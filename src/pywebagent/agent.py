@@ -81,7 +81,7 @@ def generate_system_message():
     Do not use keyword arguments, all arguments are positional.
 
     
-    IMPORTANT: ONLY ONE WEBPAGE FUNCTION CALL IS ALLOWED, EXCEPT FOR FORMS WHERE MULTIPLE CALLS ARE ALLOWED TO FILL MULTIPLE FIELDS! NOTHING IS ALLOWED AFTER THE "```" ENDING THE CODE BLOCK
+    IMPORTANT: ONLY ONE WEBPAGE FUNCTION CALL IS ALLOWED, EXCEPT FOR FORMS WHERE MULTIPLE CALLS ARE ALLOWED TO FILL MULTIPLE FIELDS! NOTHING IS ALLOWED AFTER THE "```" ENDING THE CODE BLOCK.
     IMPORTANT: LOOK FOR CUES IN THE SCREENSHOTS TO SEE WHAT PARTS OF THE TASK ARE COMPLETED AND WHAT PARTS ARE NOT. FOR EXAMPLE, IF YOU ARE ASKED TO BUY A PRODUCT, LOOK FOR CUES THAT THE PRODUCT IS IN THE CART.
     Response format:
 
@@ -101,11 +101,12 @@ def generate_system_message():
 
 def extract_code(text):
     """
-    Extracts all text in a string following the pattern "'\nCode:\n".
+    Extracts all text in a string following the pattern "\n'''python\n".
     """
-    pattern = "\nCode:\n```python\n"
+    pattern = "\n```python\n"
     start_index = text.find(pattern)
     if start_index == -1:
+        print("The text that should have included the code to execute:\n", text, "\n")
         raise Exception("Code not found")
     
     # Extract the text following the pattern, without the trailing "```"
