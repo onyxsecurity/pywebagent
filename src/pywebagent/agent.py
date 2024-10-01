@@ -19,7 +19,7 @@ class Task:
 
 def get_llm():
     return ChatOpenAI(
-        model_name="gpt-4-vision-preview",
+        model_name="gpt-4o-2024-08-06",
         temperature=1, 
         request_timeout=120, 
         max_tokens=2000,
