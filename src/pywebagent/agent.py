@@ -5,7 +5,7 @@ import time
 import logging
 from pywebagent.env.browser import BrowserEnv
 from langchain.schema import HumanMessage, SystemMessage
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +106,7 @@ def extract_code(text):
     pattern = "\n```python\n"
     start_index = text.find(pattern)
     if start_index == -1:
-        print("The text that should have included the code to execute:\n", text, "\n")
-        raise Exception("Code not found")
+        raise Exception("Code not found. The generated message that should have included the code:\n", text)
     
     # Extract the text following the pattern, without the trailing "```"
     extracted_text = text[start_index + len(pattern):-3] 
@@ -121,7 +120,7 @@ def calcualte_next_action(task, observation):
     user_message = generate_user_message(task, observation)
 
     try:
-        ai_message = llm([system_message, user_message])
+        ai_message = llm.invoke([system_message, user_message])
     except:
         # This sometimes solves the RPM limit issue
         logger.warning("Failed to get response from OpenAI, trying again in 30 seconds")
@@ -150,11 +149,12 @@ def act(url, task, max_actions=40, **kwargs):
 
     for i in range(max_actions):
         action = calcualte_next_action(task, observation) 
+
         observation = browser.step(action, observation.marked_elements)
         task_status = get_task_status(observation)
         if task_status in [TASK_STATUS.SUCCESS, TASK_STATUS.FAILED]:
             return task_status, observation.env_state.output
     
-    logger.warning(f"Reached {i} actions without completing the task.")
+    logger.warning(f"Reached {max_actions} actions without completing the task.")
     return TASK_STATUS.FAILED, observation.env_state.output
 

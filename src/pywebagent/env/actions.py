@@ -1,7 +1,6 @@
 import time
 import logging
 from attr import dataclass
-import playwright
 import subprocess
 from playwright.sync_api import TimeoutError
 

@@ -1,6 +1,8 @@
-langchain
-openai
-setuptools
+langchain==0.3.1
+langchain-community==0.3.1
+langchain-openai==0.2.1
+openai==1.50.2
+setuptools>=72.2.0
 python-dotenv
 argparse
-playwright
+playwright==1.47.0
