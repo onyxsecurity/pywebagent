@@ -3,6 +3,7 @@ import logging
 from attr import dataclass
 import playwright
 import subprocess
+from playwright.sync_api import TimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,7 @@ class Actions:
                     inner_exception_raised = True
                     inner_exception = e_click
 
-        except playwright._impl._api_types.TimeoutError:
+        except TimeoutError:
             if not inner_exception_raised:
                 return  # Expected scenario: file chooser did not open.
 
@@ -164,7 +165,7 @@ class Actions:
                 
                 file_chooser = file_chooser_info.value
             file_chooser.set_files(files)
-        except playwright._impl._api_types.TimeoutError as e:
+        except TimeoutError as e:
             if not successfully_clicked:
                 raise click_exception
             else:
@@ -174,6 +175,6 @@ class Actions:
     def _is_unstable_element_exception(e):
         e_lines = str(e).split('\n')
         print(e_lines)
-        return (isinstance(e, playwright._impl._api_types.TimeoutError)
+        return (isinstance(e, TimeoutError)
                 and "element is not stable - waiting..." in e_lines[-2] 
                 and "==============" in e_lines[-1])
