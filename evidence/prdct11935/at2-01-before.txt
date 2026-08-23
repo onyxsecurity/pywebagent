@@ -1,5 +1,5 @@
 # PRDCT-11935 at2-01 — BEFORE — full row CONTENTS after the FIRST delivery of the message under replay
-# FILE LAST WRITTEN 2026-08-23T21:42:39Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T21:52:28Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T21:25:17Z
 #
@@ -43,7 +43,8 @@
                  blob        https://prdct11935st.blob.core.windows.net/ingestion/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787519679-3895ee7a-e0bd-4c06-9085-43dcc6d9b32d.log
                  enqueued    2026-08-23T21:14:40.260000Z
     redelivery   a REAL lock-abandon by the shipping consumer pool. See at2-03 for the broker's own
-                 delivery counter rising 0→1→2→3 on that one message id.
+                 `delivery_count` 0→1→3 across the peeks — four deliveries in all: the consumer's own
+                 lines read receive_count=2, then 3, then 4 on that one message id.
 
 =================== THE INDUCEMENT, STATED IN FULL ===================
     The object's writes are idempotent, so a first pass that SUCCEEDS settles the message and there is
@@ -80,6 +81,16 @@
     _write_scanner_installations. BOTH dumps (this one and at2-02) are taken with that ONE step blocked,
     at the identical point of the identical object — so the comparison is like-for-like. What that step
     later wrote, once the lock was released, is disclosed in full at the end of at2-02.
+
+=================== ONE PRE-FLIGHT PROBE, DISCLOSED ===================
+    Before this window opened, at 21:06:41Z-21:06:55Z, the queue's `status` was flipped to
+    ReceiveDisabled and back to Active to test it as a possible pause knob. It was NOT used in the end
+    (the DB-lock inducement above replaced it). The probe ran with active=0 — no message existed yet, the
+    scan had not started, and the at2 window opened at 21:13:04Z. The queue's status was Active for the
+    whole of both the at2 and at3 windows, and is Active now:
+      $ python3 /tmp/prdct11935/r50/qstatus.py
+      endpoint-asset-ingestion-prdct11935 status=Active lock_duration=0:05:00 max_delivery_count=5
+    Recording it rather than letting a queue-audit trail turn up an undisclosed touch.
 
 =================== ISOLATION OF THE WINDOW ===================
     gen-1  scanner-collector-schedule PAUSED for the whole window:
