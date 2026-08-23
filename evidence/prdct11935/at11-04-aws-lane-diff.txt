@@ -1,11 +1,11 @@
 # PRDCT-11935 at11-04 — the AWS-lane base-vs-head tenant-DB comparison, and the one delta it found
-# FILE LAST WRITTEN 2026-08-23T16:55:35Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T17:32:37Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 4ac8a3f538a9e036f981d2bcb8bc8398fb402303 · captured 2026-08-23T16:38:24Z
+# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T17:31:27Z
 #
-# base leg  image :r45c-base  digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:d65c32ca8d147bc8c876243e1d8669d2b782fd97693046ffb397e4c833953bd2
+# base leg  image :r45c-base (merge-base)  digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:d65c32ca8d147bc8c876243e1d8669d2b782fd97693046ffb397e4c833953bd2
 #           tenant 11935f18-...-101  schema prdct11935_v18t1
-# head leg  image :r45c-head  digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:827efbae833ceba067bdd17f1ea54b9bf89363aaac5cbb8974de4fc6787bd4da
+# head leg  image :r46b-head (head)        digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25
 #           tenant 11935f18-...-102  schema prdct11935_v18t2
 #
 # The dump is /tmp/prdct11935/lane-dump.sh — eleven queries over the whole ingestion-owned graph
@@ -33,18 +33,18 @@
 
     Settled state was identical on both legs: 342 assets / 338 connections / 21 dedup rows.
     Every one of the 8 lines is the SAME phenomenon: the element ORDER inside one connection's
-    metadata.sources JSON array. No row gained or lost a source; no other column moved. (Two of
-    the 8 are one row changing position, because the dump orders connections by that metadata text.)
+    metadata.sources JSON array. No row gained or lost a source; no other column moved. (Two of the
+    8 are one row changing position, because the dump orders connections by that metadata text.)
 
 === 2. IS THAT THE IMAGE, OR THE RUN? Four legs, two images, two tenants. ===
-    The two legs alone cannot tell those apart, so two more runs were driven — the same image into
-    the OTHER tenant, for each image.
-      BASE image, tenant v18t1  vs  BASE image, v18t2 0 changed lines
-      HEAD image, tenant v18t2  vs  HEAD image, v18t1 0 changed lines
-      BASE image v18t1          vs  HEAD image v18t2 8 changed lines
-      BASE image v18t1          vs  HEAD image v18t1 8 changed lines
-      BASE image v18t2          vs  HEAD image v18t2 8 changed lines
-    Each image is self-consistent across tenants and each cross-image pair shows the same 8 lines.
+    The two legs alone cannot tell those apart, so the same image was also driven into the OTHER
+    tenant, for each image. (Those two control runs were taken earlier in the round, on the
+    pre-round-46 image pair; the phenomenon and its 8 lines are identical here, which is itself a
+    third reproduction.)
+      BASE image v18t1  vs  BASE image v18t2         0 changed lines
+      HEAD image v18t2  vs  HEAD image v18t1         0 changed lines
+      BASE image        vs  HEAD image (this round's legs) 8 changed lines
+    Each image is self-consistent across tenants and every cross-image pair shows the same 8 lines.
     Reproducible, so NOT run-to-run noise — which is why it was chased instead of re-rolled.
 
 === 3. WHAT IT ACTUALLY IS: a per-object authoritative write, and eight objects ===
@@ -56,8 +56,8 @@
       05.json  (1055077 bytes)
       07.json  (1132513 bytes)
     So the surviving order is a function of object ARRIVAL ORDER, which two pool workers racing over
-    an SQS queue decide — not of the writer's logic, which this PR does not touch
-    (mcp_writer.py and source_attribution.py have zero hunks: see at11-01's hunk map).
+    an SQS queue decide — not of the writer's logic, which this PR does not touch (mcp_writer.py and
+    source_attribution.py have zero hunks: see at11-01's hunk map).
 
 === 4. THE CONTROL THAT SETTLES IT: same image, reversed arrival order ===
     The BASE image was run once more with the same eight bodies posted in REVERSE order. If the
@@ -80,34 +80,29 @@
           McpToMcp|mcp-remote MCP Server|Tavily MCP Server|{"sources": [{"kind": "direct"}]}
 
     It does not. On the SAME base image, reversing the arrival order flips Context7 and Local MCP
-    Server (node) to the HEAD leg's ordering, and takes mcp-remote/Tavily somewhere else again. The
-    field follows arrival order on either image. This PR shifts timing slightly — one more function
-    call per message, a parser looked up instead of hard-coded — and that is enough to change which
-    of three objects lands last.
+    Server (node) to the head leg's ordering, and takes mcp-remote/Tavily somewhere else again. The
+    field follows arrival order on either image.
 
 === 5. THE ORDER-INDEPENDENT COMPARISON ===
     Normalising that one field (sort the array canonically, then sort the lines) asks the question
     that matters: WHAT was written, rather than in what order the eight objects happened to arrive.
     The normaliser is evidence/at11-04-normalize-dump.py — 20 lines, no other field touched.
-      BASE image v18t1  vs  HEAD image v18t2         0 changed lines
-      BASE image v18t1  vs  HEAD image v18t1         0 changed lines
-      BASE image v18t2  vs  HEAD image v18t2         0 changed lines
-      BASE image v18t1  vs  BASE image v18t2         0 changed lines
-    All four normalised dumps are byte-identical:
-563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b        dump-base.norm
-563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b        dump-head-KEEP.norm
-563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b        dump-ctrl.norm
-563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b        dump-ctrl2.norm
+      BASE image (merge-base)  vs  HEAD image        0 changed lines
+    Both normalised dumps, and both of this round's earlier control runs, share one hash:
+      563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b  f-dump-base.norm
+      563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b  f-dump-head.norm
+      563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b  dump-ctrl.norm
+      563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b  dump-ctrl2.norm
 
 === 6. VERDICT, stated without rounding ===
     The AWS lane writes the SAME ROWS on the head image as on the merge-base image — same assets,
     same servers, same tools, same skills, same subagents, same connections, same sources, same
     dedup state, same installation history. The single observable difference is the element order
-    inside one JSON array, and that order is decided by which of three objects lands last, on
-    either image, as section 4 demonstrates by flipping it on the base image alone.
+    inside one JSON array, and that order is decided by which of three objects lands last, on either
+    image, as section 4 demonstrates by flipping it on the base image alone.
 
     A GAP THIS FOUND, reported rather than absorbed. That last-object-wins replace makes a
-    multi-object scan's connection provenance depend on delivery order — on AWS today, and on
-    Azure after this PR. It is pre-existing (mcp_writer.py is unchanged here) and the owner ruled
-    this ticket Azure enablement only, so it is NOT fixed in this PR. It belongs with the other
+    multi-object scan's connection provenance depend on delivery order — on AWS today, and on Azure
+    after this PR. It is pre-existing (mcp_writer.py is unchanged here) and the owner ruled this
+    ticket Azure enablement only, so it is NOT fixed in this PR. It belongs with the other
     writer-parity items the round-45 ruling puts out of scope.
