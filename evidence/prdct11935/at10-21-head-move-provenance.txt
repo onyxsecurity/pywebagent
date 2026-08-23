@@ -1,0 +1,153 @@
+# PRDCT-11935 at10-21 — every head this branch moved through, and what each move did to the evidence
+# FILE LAST WRITTEN 2026-08-23T19:11:08Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# head 2b60fdc4df25188104e737e6311087681355eff8 · merge-base with origin/main 822abd2356f02c10f1d35901dd3c5feef43d8ade · captured 2026-08-23T19:11:07Z
+#
+# WHY THIS FILE WAS REWRITTEN. The round-39 gate found two things about it: the URL the PR body cited
+# 404'd for a logged-out reviewer (it had never been published), and its content described only ONE
+# head move — a2486bb33f -> 16b7bca77c — when the branch has since moved five more times, through two
+# owner rulings. Both are fixed here: this is the whole trail, and it is published.
+
+=== 1. THE TRAIL — every commit this branch put on top of the merge-base ===
+    4fa8a86e61  08-18 18:46  Add an Event Grid BlobCreated parser for the Azure ingestion lane
+    f16d1110a4  08-18 19:05  Make the asset writer consume the Azure ingestion lane
+    20fa8d9553  08-18 19:05  Remove the dead Service Bus branch from the gen-2 event consumers
+    153d29c86a  08-18 19:24  Document the Azure ingestion lane and correct the "retired" metric help
+    9f59499c55  08-18 20:11  Declare azure-storage-blob, which the Azure storage client imports directly
+    988364c282  08-18 20:36  Carry the alert fan-out and message release onto the Azure lane
+    85c90a7518  08-19 13:36  Merge origin/main into the Azure ingestion lane branch
+    b4f0b544e5  08-19 15:51  Seed Claude connector MCP servers in the in-process asset writer
+    23247bd494  08-19 19:17  Merge origin/main into the Azure ingestion lane branch
+    a1197e088f  08-19 20:00  Merge origin/main into the Azure ingestion lane branch
+    c70493626a  08-19 21:48  Pace redelivery when the broker re-offers a failed message immediately
+    8342fed114  08-19 21:48  Stamp the agent's scanner version onto seeded connector servers
+    0cfbd4240c  08-19 21:49  Move the shared eventTime parser out of the S3 module and correct stale docs
+    c0a5e99722  08-19 23:05  Merge origin/main into the Azure ingestion lane branch
+    dfe23b9e83  08-19 23:36  Derive the Service Bus lock renewal from the lock, not from config alone
+    cdcd725ebb  08-20 07:23  Merge main: one Event Grid BlobCreated parser, not two
+    f244c04494  08-20 08:20  Merge main — a frontend-only change, no overlap with this lane
+    c225ba9cd9  08-20 08:28  Merge main: renumber this branch's ADR to 0064
+    cb96081d70  08-20 10:50  Settle an object that abandoned an agent slice under its own outcome
+    c706530347  08-20 11:32  Say which field the consumer reads, since it is no longer subject
+    3979910bde  08-20 11:54  Count abandoned slices where they are abandoned, not off the marker set
+    257f4c7b3c  08-20 12:19  Merge main: renumber this branch's ADR to 0065
+    f082e24e28  08-20 14:57  Merge main before the round-21 re-drive
+    ce9ad09c30  08-20 15:05  Derive an MCP server's extension provenance the way the Go lane derives it
+    f4b3e9dfb2  08-20 15:52  Merge main: keep both test imports
+    0665ecc545  08-20 16:11  Merge main: renumber this branch's ADR to 0066
+    a2486bb33f  08-20 23:51  Serialise the Azure sender and count the alert publishes it loses
+    8f8a02bd6c  08-23 10:37  Merge remote-tracking branch 'origin/main' into factory-eval-v32/PRDCT-11935
+    840bf48542  08-23 10:45  Merge remote-tracking branch 'origin/main' into factory-eval-v32/PRDCT-11935
+    16b7bca77c  08-23 10:55  Merge remote-tracking branch 'origin/main' into factory-eval-v32/PRDCT-11935
+    ecf60f81c7  08-23 11:57  Revert the old-lane parity work; keep the Azure transport
+    12461e0002  08-23 13:48  Pin the cloud in the aws-arm service tests
+    acd46e203c  08-23 15:40  Merge main; take its abandon_message and keep the ASB pacing on top
+    4ac8a3f538  08-23 15:44  Merge main again; settle this ADR on the free 0069 slot
+    fb12b015be  08-23 17:03  Drop the queue-layer abandon and pacing work as superseded by main
+    35127c77fd  08-23 17:09  Reduce the Service Bus client to the one thing main does not have
+    2b60fdc4df  08-23 17:11  Drop the emptied lock-renewal-timing test class
+
+=== 2. WHAT MOVED IN THE LANE THE EVIDENCE RESTS ON, per hop ===
+    'lane' = endpoint_asset_ingestion + common_core queue/ingestion_events/storage + both gen-2
+    consumers + mcp_asset_creation + desktop_agent_creator + infra/helm. A hop with 0 lane files is
+    inert for every capture; a hop with lane files is why that capture had to be re-driven.
+    4fa8a86e61  lane files: 28   Add an Event Grid BlobCreated parser for the Azure ingestion lane
+          __init__.py blob_event.py eventgrid_event.py s3_event.py __init__.py asb.py client.py consumer_pool.py sqs.py extract.py gateway_identity.py gateway_writers.py mcp_writer.py swg_extract.py swg_writers.py metrics.py activities.py anthropic_compliance_gate.py __init__.py codex.py ingestion_skip.py models.py typed_custom_data.py activities.py models.py workflow.py values.yaml values.yaml 
+    f16d1110a4  lane files: 7    Make the asset writer consume the Azure ingestion lane
+          asb.py transport_guard.py config.py event_parser.py message_handler.py service.py values.yaml 
+    20fa8d9553  lane files: 5    Remove the dead Service Bus branch from the gen-2 event consumers
+          config.py service.py config.py service.py values.yaml 
+    153d29c86a  lane files: 1    Document the Azure ingestion lane and correct the "retired" metric help
+          metrics.py 
+    9f59499c55  lane files: 0    Declare azure-storage-blob, which the Azure storage client imports direc
+    988364c282  lane files: 10   Carry the alert fan-out and message release onto the Azure lane
+          eventgrid_event.py asb.py client.py consumer_pool.py sqs.py transport_guard.py config.py metrics.py service.py values.yaml 
+    85c90a7518  lane files: 6    Merge origin/main into the Azure ingestion lane branch
+          gateway_writers.py mcp_writer.py metrics.py models.py workflow.py values.yaml 
+    b4f0b544e5  lane files: 1    Seed Claude connector MCP servers in the in-process asset writer
+          writers.py 
+    23247bd494  lane files: 4    Merge origin/main into the Azure ingestion lane branch
+          swg_extract.py swg_writers.py activities.py anthropic_compliance_gate.py 
+    a1197e088f  lane files: 0    Merge origin/main into the Azure ingestion lane branch
+    c70493626a  lane files: 4    Pace redelivery when the broker re-offers a failed message immediately
+          asb.py client.py consumer_pool.py sqs.py 
+    8342fed114  lane files: 3    Stamp the agent's scanner version onto seeded connector servers
+          writers.py scanner_version.py workflow.py 
+    0cfbd4240c  lane files: 6    Move the shared eventTime parser out of the S3 module and correct stale 
+          event_time.py eventgrid_event.py s3_event.py config.py service.py config.py 
+    c0a5e99722  lane files: 0    Merge origin/main into the Azure ingestion lane branch
+    dfe23b9e83  lane files: 1    Derive the Service Bus lock renewal from the lock, not from config alone
+          asb.py 
+    cdcd725ebb  lane files: 7    Merge main: one Event Grid BlobCreated parser, not two
+          __init__.py blob_event.py eventgrid_event.py event_parser.py message_handler.py service.py values.yaml 
+    f244c04494  lane files: 0    Merge main — a frontend-only change, no overlap with this lane
+    c225ba9cd9  lane files: 6    Merge main: renumber this branch's ADR to 0064
+          extract.py activities.py __init__.py codex.py models.py typed_custom_data.py 
+    cb96081d70  lane files: 4    Settle an object that abandoned an agent slice under its own outcome
+          object_processor.py pipeline.py writers.py metrics.py 
+    c706530347  lane files: 0    Say which field the consumer reads, since it is no longer subject
+    3979910bde  lane files: 2    Count abandoned slices where they are abandoned, not off the marker set
+          object_processor.py writers.py 
+    257f4c7b3c  lane files: 1    Merge main: renumber this branch's ADR to 0065
+          activities.py 
+    f082e24e28  lane files: 2    Merge main before the round-21 re-drive
+          activities.py ingestion_skip.py 
+    ce9ad09c30  lane files: 1    Derive an MCP server's extension provenance the way the Go lane derives 
+          extract.py 
+    f4b3e9dfb2  lane files: 4    Merge main: keep both test imports
+          mcp_writer.py activities.py models.py workflow.py 
+    0665ecc545  lane files: 1    Merge main: renumber this branch's ADR to 0066
+          activities.py 
+    a2486bb33f  lane files: 2    Serialise the Azure sender and count the alert publishes it loses
+          asb.py writers.py 
+    8f8a02bd6c  lane files: 4    Merge remote-tracking branch 'origin/main' into factory-eval-v32/PRDCT-1
+          extract.py activities.py models.py values.yaml 
+    840bf48542  lane files: 0    Merge remote-tracking branch 'origin/main' into factory-eval-v32/PRDCT-1
+    16b7bca77c  lane files: 0    Merge remote-tracking branch 'origin/main' into factory-eval-v32/PRDCT-1
+    ecf60f81c7  lane files: 7    Revert the old-lane parity work; keep the Azure transport
+          extract.py object_processor.py pipeline.py writers.py metrics.py scanner_version.py workflow.py 
+    12461e0002  lane files: 0    Pin the cloud in the aws-arm service tests
+    acd46e203c  lane files: 7    Merge main; take its abandon_message and keep the ASB pacing on top
+          __init__.py asb.py client.py consumer_pool.py sqs.py values.yaml values.yaml 
+    4ac8a3f538  lane files: 2    Merge main again; settle this ADR on the free 0069 slot
+          gateway_identity.py gateway_writers.py 
+    fb12b015be  lane files: 3    Drop the queue-layer abandon and pacing work as superseded by main
+          asb.py consumer_pool.py sqs.py 
+    35127c77fd  lane files: 1    Reduce the Service Bus client to the one thing main does not have
+          asb.py 
+    2b60fdc4df  lane files: 0    Drop the emptied lock-renewal-timing test class
+
+=== 3. THE NET EFFECT, merge-base -> head, which is what actually matters ===
+    A capture taken before these moves is only stale if the NET delta touches what it measured.
+     .../services/ingestion_events/__init__.py          |  10 +-
+     .../services/ingestion_events/blob_event.py        |  15 +--
+     .../services/ingestion_events/event_time.py        |  30 +++++
+     .../services/ingestion_events/s3_event.py          |  15 +--
+     .../src/common_core/services/queue/asb.py          |  25 ++++
+     .../common_core/services/queue/transport_guard.py  | 108 ++++++++++++++++
+     .../src/endpoint_asset_ingestion/config.py         | 108 ++++++++++++++--
+     .../consumer/event_parser.py                       |  63 ++++++++--
+     .../consumer/message_handler.py                    |  90 +++++++++----
+     .../src/endpoint_asset_ingestion/metrics.py        |  12 +-
+     .../src/endpoint_asset_ingestion/service.py        | 140 ++++++++++++++++-----
+     .../mcp_gateway_event_consumer_service/config.py   |  55 ++++----
+     .../mcp_gateway_event_consumer_service/service.py  |  57 ++-------
+     .../src/scanner_event_consumer_service/config.py   |  49 ++++----
+     .../src/scanner_event_consumer_service/service.py  |  57 ++-------
+     infra/helm/onyx-app/values.yaml                    |  20 +--
+     infra/helm/onyx/values.yaml                        |   6 -
+     17 files changed, 593 insertions(+), 267 deletions(-)
+
+    and the three queue files the round-46 ruling removed from this PR are back to main exactly:
+      client.py          diff lines vs origin/main: 0
+      sqs.py             diff lines vs origin/main: 0
+      consumer_pool.py   diff lines vs origin/main: 0
+
+=== 4. THE POLICY THIS ROUND APPLIED, and where to see it discharged ===
+    The earlier version of this file argued a head move was inert and therefore no capture needed
+    re-driving. That argument does not survive the round-45 and round-46 rulings: they changed
+    writers.py, extract.py, object_processor.py, pipeline.py, metrics.py, asb.py and the three queue
+    files — code the at1..at9 captures rest on. So the policy this round is the other one: RE-DRIVE.
+    Per-artifact currency, and what was re-driven versus measured-inert, is
+    evidence/at10-23-evidence-currency.txt; evidence/at10-04-evidence-provenance.txt carries the
+    machine-generated per-file stamp table it is derived from.
