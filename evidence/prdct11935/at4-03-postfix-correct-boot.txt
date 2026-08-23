@@ -1,45 +1,20 @@
-# PRDCT-11935 at4-03 POST-FIX — the CORRECT shape still boots and still ingests (the guard is not a brick)
-# FILE LAST WRITTEN 2026-08-21T10:08:42Z
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-cg2fs
-# captured 2026-08-21T09:28:02Z
+# PRDCT-11935 at4-03 (POST-FIX) — the COHERENT azure config boots, and carries a real object
+# FILE LAST WRITTEN 2026-08-23T19:36:23Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T19:36:23Z
 #
-# THE IMAGE, PROVEN — not asserted. This artifact's capture ran on an image built from THIS head with the
-# repo's own Dockerfile.dev, and the proof is mechanical: every .py under /app/src sha256'd inside the
-# image against the head worktree — 4741 head files vs 4742 in the image, **one** differing line, and it
-# is an EMPTY /app/src/__init__.py the build creates (sha e3b0c44298fc… is the hash of zero bytes). No
-# source file differs. Digests: endpoint-asset-ingestion sha256:17dbec7e…, scanner-event-consumer
-# sha256:4c7af190…, mcp-gateway-event-consumer sha256:2464ec5a…. See evidence/at6-12-image-provenance.txt.
-#
-# WHY THIS FILE WAS RE-DRIVEN THIS ROUND. The round-25 gate found this artifact self-certifying as
-# head-exact while stamping `0665ecc545 / :prdct11935-r25` — an image built two lane-touching commits
-# back — and at10-04, generated from this very header, listed it as "1 lane-touching commit(s) landed
-# after it: a2486bb33f". Rather than argue that the head commit cannot reach a service that exits at
-# config validation, the capture was simply re-run on the head-exact image. Everything below is that run.
-#
-# A fail-closed guard is only correct if the RIGHT config still starts. This is the positive half of
-# at4, and it is the SAME shipping pod every other head capture in this round ran against.
+# A guard that refuses everything is not a guard. This is the positive half, through the real
+# front door: the running eai-azure on the shipped image.
 
-    ##### the CORRECT azure shape — the shipping deployment itself, on the head-exact image
-    -- pod: eai-azure-66d8f8595d-cg2fs
-    -- image: localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
-    -- kubectl: eai-azure-66d8f8595d-cg2fs   1/1   Running   0     26m
-    READY=1/1  STATUS=Running  RESTARTS=0 — the correct shape boots and stays up.
-    -- conditions:
-    PodReadyToStartContainers=True 
-    Initialized=True 
-    Ready=True 
-    ContainersReady=True 
-    PodScheduled=True 
-    -- in-pod readiness probe result:
-       http_code=200 body={"status":"ready","service":"endpoint-asset-ingestion","checks":{"queue":"ok"}}
-    -- it is REALLY consuming (its own settlement counters, live):
-       asset_ingestion_objects_total{outcome="processed",tenant_schema="onyx_security"} 9.0
-       asset_ingestion_objects_total{outcome="processed",tenant_schema="prdct11935_tb"} 15.0
-       asset_ingestion_objects_total{outcome="failed",tenant_schema="onyx_security"} 2.0
-       asset_ingestion_records_total{result="ok"} 24.0
-       asset_ingestion_records_total{result="unknown_tenant"} 1.0
-
-    The declared cloud and the configured transport AGREE, the pod is Ready, its own readiness endpoint
-    answers 200 with checks.queue=ok, and its settlement counters are moving — including the
-    records_total{result="unknown_tenant"} series this round's at6-01 demo created on the same pod.
-    So the guard refuses the two contradictory shapes above and passes the correct one.
+## pod eai-azure-7c4f9bd78c-hb2dd  image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head  ready=true
+## boot lines showing the azure transport was selected:
+     INFO:     Started server process [1]
+     2026-08-23T19:26:26.539563Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queu
+     2026-08-23T19:26:26.540832Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queu
+     2026-08-23T19:26:26.540986Z [info     ] azure ingestion transport selected [endpoint_asset_ingestion.service] auth=workload_identity filename=service.py func_name=start lineno=253 namespace=prdct11935
+     2026-08-23T19:26:26.541566Z [info     ] Starting consumer pool         [common_core.services.queue.consumer_pool] concurrency=2 factory_mode=True filename=consumer_pool.py func_name=run lineno=141 max
+     2026-08-23T19:26:26.544400Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queu
+## and the guard that it is NOT quietly using the AWS transport — SQS/S3/boto symbols in its whole log:
+     0 hit(s) across 3267 log lines
+## a real object it processed, end to end:
+     2026-08-23T19:31:30.762422Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.468271 outco
+     2026-08-23T19:31:48.493459Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.451008 outco
