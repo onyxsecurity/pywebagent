@@ -1,7 +1,8 @@
 # PRDCT-11935 at11-08 — rendered-manifest base-vs-head diff for EVERY AWS cell, not only the three named
-# FILE LAST WRITTEN 2026-08-23T12:53:00Z
-# onyx merge-base c2a5bb6c586ac8f (base chart, rendered from a detached worktree) vs head ecf60f81c706
-# flux-fleet b0d3e1cfb on factory-eval-v32/PRDCT-11935 · captured 2026-08-23T12:53:00Z
+# FILE LAST WRITTEN 2026-08-23T16:55:35Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx merge-base 822abd2356f02c (base chart, rendered from a detached worktree) vs head 4ac8a3f538a9
+# flux-fleet b0d3e1cfb on factory-eval-v32/PRDCT-11935 · captured 2026-08-23T15:59:55Z
 #
 # METHOD  per instance: kustomize build the instance's onyx-app overlay -> pull the HelmRelease
 #         .spec.values -> helm template the SAME values against the base chart and the head chart
@@ -111,3 +112,10 @@
     or not the chart declares a default for it — the Azure lane never depended on the chart defaults,
     which is also why removing them would NOT have been a way to make the AWS delta vanish for free.
     The chart defaults are documentation of the knob, and the owner's KEEP list names them.
+
+=== RE-RUN NOTE (2026-08-23T15:59:55Z) ===
+    Every number above was RE-MEASURED after this branch merged main twice (the branch was unmergeable
+    otherwise: main had landed its own abandon_message and taken ADR numbers 0067 and 0072). The base
+    side is the new merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade and the head side is 4ac8a3f538a9; the
+    per-cell results are unchanged from the pre-merge run, which is the expected outcome — the helm
+    delta this PR carries did not move.
