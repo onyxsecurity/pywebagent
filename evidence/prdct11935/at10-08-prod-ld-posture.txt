@@ -1,5 +1,5 @@
 # PRDCT-11935 at10-08 — the PRODUCTION LaunchDarkly posture, read at audit time, and both PR bodies conformed to it
-# FILE LAST WRITTEN 2026-08-23T21:00:37Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T21:02:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # captured 2026-08-23T20:59:08Z · onyx head 2b60fdc4df25188104e737e6311087681355eff8
 #
@@ -16,7 +16,9 @@
         'https://app.launchdarkly.com/api/v2/flags/default/endpoint-asset-ingestion?env=production'
       (GET only — the literal ?env=production is what makes this the PRODUCTION read; at10-04 is the
        env=development read of the same flag and neither substitutes for the other)
-      HTTP 200 at 2026-08-23T20:59:08Z
+      HTTP 200 at 2026-08-23T20:56:39Z   <- the READ timestamp both PR bodies quote
+      (the same call written the way the bodies phrase it:
+       GET /api/v2/flags/default/endpoint-asset-ingestion?env=production )
 
     flag key            : endpoint-asset-ingestion
     environment         : production
@@ -25,13 +27,13 @@
     variations          : {0: True, 1: False}
 
     rules, in evaluation order:
-      07b15c09  serves False  tenant.tenant_name in  (3 tenants)
+      07b15c09-5a78-4728-89c2-cc37cfdb2e31  serves False  tenant.tenant_name in  (3 tenants)
             bamfunds
             fireblocks
             intuit-prod
-      64b237b0  serves True   tenant.tenant_name in  (1 tenants)
-      929d6ce7  serves True   tenant.tenant_name in  (8 tenants)
-      c7789aea  serves True   tenant.tenant_name in  (19 tenants)
+      64b237b0-325a-474b-896f-2e4840ae6f06  serves True   tenant.tenant_name in  (1 tenants)
+      929d6ce7-e246-45b2-9dde-31b6e6368b78  serves True   tenant.tenant_name in  (8 tenants)
+      c7789aea-0948-42f8-8f54-a31d1d5148b0  serves True   tenant.tenant_name in  (19 tenants)
             Compass
             Nextiva
           * Centerpoint Energy
@@ -54,8 +56,8 @@
 
     THE THREE FACTS THAT MATTER, and the count the plan pins:
       1. fallthrough serves TRUE -> every unmatched tenant on both c02 instances gets the lane ON
-      2. the ONLY false holdouts are 3: bamfunds, fireblocks, intuit-prod  (rule 07b15c09)
-      3. rule c7789aea serves TRUE to 19 tenants, and Centerpoint Energy is one of them: True
+      2. the ONLY false holdouts are 3: bamfunds, fireblocks, intuit-prod  (rule 07b15c09-5a78-4728-89c2-cc37cfdb2e31)
+      3. rule c7789aea-0948-42f8-8f54-a31d1d5148b0 serves TRUE to 19 tenants, and Centerpoint Energy is one of them: True
 
     CORROBORATION — the same read taken twice before, by two different agents, identical:
       verify round 39   2026-08-23T18:22:18Z  evidence/verify-r39/at8-09b-prod-ld-verifier.txt
