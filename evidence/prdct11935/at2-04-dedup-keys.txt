@@ -1,78 +1,141 @@
-# PRDCT-11935 at2-04 — C11 dedup: every key SHOWN AT ITS ENFORCEMENT POINT, re-derived on head
-# FILE LAST WRITTEN 2026-08-21T12:13:26Z
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-8bh9j
-# captured 2026-08-21T12:13:26Z · tenant onyx_security
+# PRDCT-11935 at2-04 — C11 dedup keys, each SHOWN AT ITS ENFORCEMENT POINT on THIS head, + the duplicate-start rejection log
+# FILE LAST WRITTEN 2026-08-23T21:42:39Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T21:30:24Z
 #
-# RE-DERIVED ROUND 29 (gate G9). d-c11-2 requires each key be shown WHERE IT IS ENFORCED, "never a bare
-# assertion". The round-26 gate found the skills key failing that: the cite in circulation was
-# "skills ON CONFLICT(asset_id) DO NOTHING (extract.py:275)", and at head that phrase is a PROSE COMMENT
-# at extract.py:323 — there is no executable on_conflict for skills anywhere under
-# endpoint_asset_ingestion/. The previous revision of this file went the other way and asserted the key
-# with no enforcement site at all ("the SKILL.md sha256 IS the unique_identifier"), which is ALSO wrong:
-# the identity is the skill DIRECTORY hash, not the file hash. Both are corrected below, and every line
-# number here was grepped from the source at this head.
+# RE-DERIVED FROM SCRATCH AGAINST THE CURRENT HEAD (2b60fdc4df). Every file:line below was produced by
+# grepping THIS head — none is carried over. Two cites in circulation before this round had drifted and
+# are corrected here: "writers.py:717-743" (which at this head is _write_scanner_installations /
+# _link_browser_extensions, not the posture start) and the asb.py settlement line numbers
+# (280/288/266 → 265/251/244 after the merges). The image the lines were checked against is byte-identical
+# to head for this lane's whole package tree — the provenance check is quoted in at2-01.
+#
+# The live half of this file is NEW: the previous revision named the keys and then only showed DB
+# duplicate counts. This one also carries the product's OWN duplicate-start rejection lines, emitted on
+# real broker redeliveries of the SAME message during the at2-01/02 leg.
 
---- every identity this lane writes is content-derived or naturally keyed, so a replay lands on the same
-    row rather than a second one. Enforcement points, in code at a2486bb33f835af24f5850e4f4c5eb2e8b02afb9:
+=================== 1. THE OBJECT KEY — deterministic on f(s3_key), verified arithmetically ===================
+    writers.py:134-142
+        def object_workflow_id(tenant_uuid: UUID, s3_key: str) -> str:
+            digest = hashlib.sha256(s3_key.encode()).hexdigest()[:32]
+            return f"scanner-object-{tenant_uuid}-{digest}"
 
-      MCP asset id          calculate_mcp_id (mcp_asset_creation/activities.py:533) +
-                            build_mcp_version_unique_identifier (:578)
-                            -> {name}::{machine serial}[::{container}]::{version}
+    Not asserted — recomputed against the id the running writer actually emitted:
+      $ K='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787519679-3895ee7a-e0bd-4c06-9085-43dcc6d9b32d.log'
+      $ echo -n "$K" | sha256sum | cut -c1-32
+      e201ce5d45b26e10b1d805525389f28e
+      log line: started issue+risk bridge  workflow_id=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-e201ce5d45b26e10b1d805525389f28e-bridge
+      log line: started MCP downstream     workflow_id=mcp-cve-scan-onyx_security-e201ce5d45b26e10b1d805525389f28e
+    Same 32 hex characters, computed here and computed in the pod. A redelivery of the same object
+    therefore reuses the same ids by construction.
 
-      desktop agent         endpoint_{app_name}::{machine serial}  (assets.unique_identifier)
+=================== 2. REJECT_DUPLICATE ON EVERY DOWNSTREAM START — the enforcement points ===================
+    posture bridge          writers.py:685   wf_id = f"{deps.workflow_id}-bridge"
+                            writers.py:692   id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE
+                            writers.py:699   except WorkflowAlreadyStartedError:
+                            writers.py:703   logger.info("posture bridge already started for this object — redelivery no-op", ...)
+    MCP downstreams         mcp_downstreams.py:49  start_workflow(..., id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE)
+                            mcp_downstreams.py:51  except WorkflowAlreadyStartedError:
+                            mcp_downstreams.py:54  logger.info("MCP downstream already started for this object — redelivery no-op", ...)
+                            ids: mcp_downstreams.py:161 f"mcp-cve-scan-{tenant.schema_name}-{dedup_suffix}",
+                                 :144 f"mcp-version-enrichment-{app_definition_version_id}", :69 f"app-classification-{app_id}"
+                                 (dedup_suffix is the object digest above — writers.py:1098-1099)
+    custom-data embedding   custom_data_downstreams.py:45  id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE
+                            custom_data_downstreams.py:48  except WorkflowAlreadyStartedError:
+                            custom_data_downstreams.py:50  logger.info("custom-data embedding already started for this object — redelivery no-op", ...)
 
-      skill                 CORRECTED ROUND 29 — two things were wrong and both are fixed here.
-                            IDENTITY: the asset's unique_identifier is the skill DIRECTORY hash, not the
-                            SKILL.md file hash — _build_skill_unique_identifier(skill_dir_hash)
-                            (skills_creation/activities.py:231-233, used at :302).
-                            ENFORCEMENT: bulk_upsert_assets(..., insert_only=True)
-                            (skills_creation/activities.py:504), which executes the real statement at
-                            common/repository/asset.py:729:
-                                insert(Asset).values(values)
-                                  .on_conflict_do_nothing(index_elements=["unique_identifier"])
-                            i.e. ON CONFLICT DO NOTHING on unique_identifier — write-once, never locking
-                            or updating an existing row. That is the executable enforcement; the
-                            extract.py text is a comment describing it, not the mechanism.
+=================== 3. THE DUPLICATE-START REJECTION LOG, ON REAL BROKER REDELIVERIES ===================
+    During the at2-01/02 leg the object's downstreams were started on delivery 1 and then REJECTED as
+    duplicates on every subsequent delivery of the SAME message id
+    (c2bd8d2b-424a-40af-8550-94ab345f2cec). Counted from the pod's own stream:
 
-      subagent              subagent::{definition sha256} — content-addressed identity, writers.py:364
+      delivery 2 (receive_count=2, 21:15:44→21:16:56):  9 "already started … redelivery no-op" lines
+      delivery 3 (receive_count=3, 21:16:56→21:17:22):  9 lines
+      delivery 4 (receive_count=4, 21:17:22→21:17:48):  3 lines
+      (the 9-vs-3 difference is with_db_retry replaying the object inside deliveries 2 and 3; delivery 4
+       reached the released lock on its first attempt)
 
-      MCP tool              (asset_id, name) upsert in the tenant tools table
+    Delivery 4's three, verbatim:
+      2026-08-23T21:17:23.365868258Z 2026-08-23T21:17:23.365587Z [info ] custom-data embedding already started for this object — redelivery no-op [endpoint_asset_ingestion.ingestion.custom_data_downstreams] filename=custom_data_downstreams.py func_name=start_custom_data_embedding lineno=50
+      2026-08-23T21:17:24.179745385Z 2026-08-23T21:17:24.179519Z [info ] custom-data embedding already started for this object — redelivery no-op [endpoint_asset_ingestion.ingestion.custom_data_downstreams] filename=custom_data_downstreams.py func_name=start_custom_data_embedding lineno=50
+      2026-08-23T21:17:24.383976203Z 2026-08-23T21:17:24.383688Z [info ] MCP downstream already started for this object — redelivery no-op [endpoint_asset_ingestion.ingestion.mcp_downstreams] filename=mcp_downstreams.py func_name=_start lineno=54
+
+    The distinct workflow ids that were rejected, all carrying the object digest e201ce5d…:
+      workflow_id=mcp-cve-scan-onyx_security-e201ce5d45b26e10b1d805525389f28e
+      workflow_id=custom-data-embedding-onyx_security-23-e201ce5d45b26e10b1d805525389f28e
+      workflow_id=custom-data-embedding-onyx_security-10727-e201ce5d45b26e10b1d805525389f28e
+      workflow_id=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-e201ce5d45b26e10b1d805525389f28e-bridge
+
+    HONEST NOTE ON WHICH START WAS REJECTED WHEN. The at2-01/02 inducement blocks the object at
+    writers.py:1105, which is BEFORE the posture trigger at writers.py:1118 — so on deliveries 2-4 the
+    bridge start was never reached, and the rejections above are the MCP-downstream and custom-data ones.
+    The POSTURE bridge's own rejection branch is exercised in the clearly-labelled same-OBJECT-twice
+    extra of at2-02 (the identical blob re-notified through real Event Grid, message
+    9b727303-318c-4bae-8609-b2336b7266e1, after the bridge had started at 21:17:48Z):
+      2026-08-23T21:22:08.736182567Z 2026-08-23T21:22:08.735888Z [info ] custom-data embedding already started for this object — redelivery no-op [endpoint_asset_ingestion.ingestion.custom_data_downstreams] filename=custom_data_downstreams.py func_name=start_custom_data_embedding lineno=50 s3_key='tenant=61750f27-…/1787519679-3895ee7a-….log'
+      2026-08-23T21:22:09.548237061Z 2026-08-23T21:22:09.547983Z [info ] custom-data embedding already started for this object — redelivery no-op [endpoint_asset_ingestion.ingestion.custom_data_downstreams] filename=custom_data_downstreams.py func_name=start_custom_data_embedding lineno=50 s3_key='tenant=61750f27-…/1787519679-3895ee7a-….log'
+      2026-08-23T21:22:09.764368819Z 2026-08-23T21:22:09.764053Z [info ] MCP downstream already started for this object — redelivery no-op [endpoint_asset_ingestion.ingestion.mcp_downstreams] filename=mcp_downstreams.py func_name=_start lineno=54 s3_key='tenant=61750f27-…/1787519679-3895ee7a-….log'
+      2026-08-23T21:22:09.797973591Z 2026-08-23T21:22:09.797757Z [info ] posture bridge already started for this object — redelivery no-op [endpoint_asset_ingestion.ingestion.writers] filename=writers.py func_name=_posture_trigger lineno=703 s3_key='tenant=61750f27-…/1787519679-3895ee7a-….log'
+    That leg is an EXTRA, never a substitute for the same-MESSAGE evidence in at2-03.
+
+=================== 4. THE ROW-LEVEL IDENTITIES — every one content-derived or naturally keyed ===================
+    MCP asset id            calculate_mcp_id (mcp_asset_creation/activities.py:533) +
+                            build_mcp_version_unique_identifier (:578) → {MCP_ID}::{VERSION}
+                            (local file/binary MCP_ID = filename + device serial [+ container id])
+    desktop agent           derive_agent_unique_identifier (ingestion_skip.py:150-163), used at
+                            writers.py:957 — delegates to generate_desktop_agent_asset_id
+                            (common_core/utils/identifiers.py:75-113; the identifier is composed at :107-112):
+                            {normalized_app_id}::{serial_number}[::{container_id}]
+    skill                   IDENTITY  _build_skill_unique_identifier(skill_dir_hash)
+                                      (skills_creation/activities.py:231, used at :302 and :492)
+                                      — the skill DIRECTORY hash, not the SKILL.md file hash
+                            ENFORCED  bulk_upsert_assets(..., insert_only=True)
+                                      (skills_creation/activities.py:504) → common/repository/asset.py:729
+                                        insert(Asset).values(values)
+                                          .on_conflict_do_nothing(index_elements=["unique_identifier"])
+                                      i.e. ON CONFLICT DO NOTHING on unique_identifier — write-once,
+                                      never locking or updating an existing row
+    subagent                subagent::{content sha256} — _build_subagent_unique_identifier,
+                            subagents_creation/activities.py:95-102 (def at :95, `return f"subagent::{content_hash}"` at :102),
+                            described at writers.py:357-364
+    MCP tool                (asset_id, name) upsert in the tenant tools table
                             (mcp_asset_creation/activities.py:1749 upsert_mcp_tools)
+    asset_connections       UNIQUE index on (source_asset_id, destination_asset_id, connection_type)
+                            common_db/models/asset_connections.py:46
+                              Index("assetlink_source_asset_id_destination_asset_id_connection_type",
+                                    "source_asset_id","destination_asset_id","connection_type", unique=True)
+    re-ingestion skip       mcp_ingestion_state COMPOSITE PRIMARY KEY (unique_identifier, reporter_scope)
+                            with the payload's content hash —
+                            common_db/models/mcp_ingestion_state.py:30 (unique_identifier, primary_key=True),
+                            :33 (reporter_scope, primary_key=True), :34 (content_hash)
+    redelivery meter        message_handler.py:79-82 (asset_ingestion_redeliveries_total + the log line)
 
-      asset_connections     UNIQUE (source_asset_id, destination_asset_id, connection_type)
-                            (common_db/models/asset_connections.py:46)
-
-      re-ingestion skip     mcp_ingestion_state keyed (unique_identifier, reporter_scope) with the
-                            payload's content hash (common_db/models/mcp_ingestion_state.py:11)
-
-      downstream workflows  deterministic workflow ids + WorkflowIDReusePolicy.REJECT_DUPLICATE
-                            (mcp_downstreams.py:43), so a replayed object cannot start a second run;
-                            the object's own id is scanner-object-{tenant}-{sha256(s3_key)[:32]}
-                            (writers.py:137)
-
---- and the live proof that they hold, read at 2026-08-21T12:13:26Z
-                          k                      | v 
-    ---------------------------------------------+---
-     assets with a duplicate unique_identifier   | 0
-     tools with a duplicate (asset_id,name)      | 0
-     edges with a duplicate (src,dst,type)       | 0
-     skills with a duplicate content hash        | 3
-     usage sessions with a duplicate external_id | 0
-    (5 rows)
+=================== 5. AND THE LIVE PROOF THAT THEY HOLD, read at 2026-08-23T21:23Z ===================
+    $ psql -c "select 'assets with a duplicate unique_identifier', count(*) from (…) …"
+                          k                       | v 
+    ----------------------------------------------+---
+     assets with a duplicate unique_identifier    | 0
+     tools with a duplicate (asset_id,name)       | 0
+     edges with a duplicate (src,dst,type)        | 0
+     mcp_ingestion_state dup (uid,reporter_scope) | 0
+     usage sessions with a duplicate external_id  | 0
+     skills with a duplicate skill_md_hash        | 3
+    (6 rows)
     
 
-    READ THE SKILLS ROW HONESTLY, because it is not zero and the earlier capture's zero was luck.
-    Three skill_md_hash values appear on more than one row. That is NOT a duplicate identity — it is the
-    same SKILL.md content installed in two different directories, and the dedup key is the directory
-    hash, so each pair resolves to TWO DISTINCT identities:
-          md_hash      | rows | distinct_identities |       names       
-    -------------------+------+---------------------+-------------------
-     50fe139afe38195f… |    2 |                   2 | drive-site
-     f775bd1da71b57ee… |    2 |                   2 | drive-browser
-     fbb32356a59306cf… |    2 |                   2 | browser-sso-login
+    READ THE SKILLS ROW HONESTLY, because it is not zero. Three skill_md_hash values appear on more than
+    one row. That is NOT a duplicate identity — it is the same SKILL.md content installed in two
+    different directories, and the dedup key is the DIRECTORY hash, so each pair resolves to TWO
+    DISTINCT identities:
+          md_hash       | rows | distinct_identities |       names       
+    --------------------+------+---------------------+-------------------
+     50fe139afe38195ff… |    2 |                   2 | drive-site
+     f775bd1da71b57ee0… |    2 |                   2 | drive-browser
+     fbb32356a59306cf9… |    2 |                   2 | browser-sso-login
     (3 rows)
     
+
     rows == distinct_identities in every group, and the key that IS the dedup key —
-    assets.unique_identifier — has ZERO duplicates. So the replay guarantee holds; what the md-hash
-    column shows is content sharing, not identity collision. Reporting it rather than reporting the
-    convenient zero.
+    assets.unique_identifier — has ZERO duplicates, as do (asset_id,name) on tools,
+    (src,dst,type) on edges, (unique_identifier,reporter_scope) on mcp_ingestion_state and external_id
+    on usage_sessions. Reporting the non-zero column rather than only the convenient zeros.
