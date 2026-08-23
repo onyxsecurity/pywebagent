@@ -1,44 +1,54 @@
-# PRDCT-11935 at3-02 — the message received FROM $DeadLetterQueue, with its deadLetterReason
-# FILE LAST WRITTEN 2026-08-21T21:47:19Z
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-db9nv
-# captured 2026-08-21T21:47:19Z · tenant onyx_security
+# PRDCT-11935 at3-02 — the message received FROM the real $DeadLetterQueue, with its deadLetterReason
+# FILE LAST WRITTEN 2026-08-23T21:42:39Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T21:40:51Z
 #
-# RE-DRIVEN ON THE ACTUAL HEAD (round-29 gate, G7a). The previous at3-01/02/03 were stamped
-# `onyx branch f4b3e9dfb2 · image :prdct11935-r24` — head~2 — while at3-03's line 6 claimed
-# "Re-captured on the FINAL head image". That sentence was false about its own capture, and the fix is a
-# re-drive rather than a re-stamp: these three now document a poison message sent, parked and read back
-# on a2486bb33f / :prdct11935-r26, the image the PR ships.
-#
-# AND THE SECOND CLAIM IS DROPPED, NOT REPAIRED. The old premise was "the DLQ was drained to empty before
-# the send, so nothing older can be mistaken for this run" — contradicted by at3-01's own line, which
-# printed `active=0 dead_letter=6` immediately after that drain. Draining the ACTIVE queue does not empty
-# the DEAD-LETTER sub-queue, and this run has since parked 95 messages there legitimately. So this capture
-# does not claim an empty DLQ. It identifies its own message two stronger ways instead: a unique marker id
-# carried INSIDE the body (r32-poison-214512), and the broker message_id the writer's own log
-# names as it parks it. Both are matched on the way back out.
+# RE-DRIVEN FROM SCRATCH ON THE CURRENT SHIPPED HEAD (2b60fdc4df) together with at3-01/03/04. Read at3-01
+# first: it carries the body, the send, the queue deltas and the code path. This file is the read-back.
 
-=================== THE READ-BACK ===================
-    Peeked from the queue's native $DeadLetterQueue sub-queue (Azure's own, not an application table),
-    paging until the whole sub-queue had been seen — the first 60-message page did NOT contain it, and
-    that is recorded because a smaller peek returning "0 matches" would have looked like a failure when
-    it was only a paging limit.
+=================== THE READ-BACK — a real RECEIVE, not only a peek ===================
+    Taken from the queue's native $DeadLetterQueue sub-queue (Azure's own, not an application table),
+    with a peek-LOCK receive that walked the whole sub-queue. NOTHING WAS SETTLED — no complete, no
+    abandon, no dead-letter — so the sub-queue is left exactly as it was found and this run does not
+    destroy evidence another round may need. Walking the whole sub-queue matters: the target was NOT in
+    the first page, and a smaller read returning "0 matches" would have looked like a failure when it was
+    only a paging limit.
 
-    ## peeked 96 DLQ message(s) total (queue holds 96)
-    ## matching THIS run's parked id 67b505b5-7a93-4efd-9d5c-21eaecc39aeb: 1
+    $ python3 /tmp/prdct11935/r50/dlqrecv.py e9803f4a-42ee-4a49-a2ee-9b2d2e409e43
     {
-     "message_id": "67b505b5-7a93-4efd-9d5c-21eaecc39aeb",
+     "message_id": "e9803f4a-42ee-4a49-a2ee-9b2d2e409e43",
      "dead_letter_reason": "no ingestible object in the message",
      "dead_letter_error_description": null,
      "delivery_count": 0,
      "label_aka_subject": "/blobServices/default/containers/ingestion",
-     "body_marker_id": "r32-poison-214512",
-     "body_url": "https://prdct11935st.blob.core.windows.net/ingestion",
-     "marker_matches_what_was_sent": true
+     "enqueued_time_utc": "2026-08-23 21:32:33.144000+00:00",
+     "body_event_id_marker": "r50-poison-213225",
+     "body_client_request_id_marker": "r50-poison-213225",
+     "body_subject": "/blobServices/default/containers/ingestion",
+     "body_blob_url": "https://prdct11935st.blob.core.windows.net/ingestion",
+     "body_event_type": "Microsoft.Storage.BlobCreated"
     }
+    # RECEIVED (peek-lock, nothing settled) 121 message(s) from endpoint-asset-ingestion-prdct11935/$DeadLetterQueue at 2026-08-23T21:33:45Z; matches for e9803f4a-42ee-4a49-a2ee-9b2d2e409e43: 1
 
 =================== WHAT THIS PROVES, TERM BY TERM ===================
-    · joined to at3-01 by message_id 67b505b5-7a93-4efd-9d5c-21eaecc39aeb
-    · `dead_letter_reason` is the APPLICATION's own reason — "no ingestible object in the message" — not
-      the broker's `MaxDeliveryCountExceeded`, so this is a deliberate park, not an exhausted retry
-    · `delivery_count` 0: it was parked on its FIRST delivery, so it never looped
-    · the marker id inside the body matches what at3-01 sent, byte for byte
+    · joined to at3-01 by message_id e9803f4a-42ee-4a49-a2ee-9b2d2e409e43 — the id the consumer's own
+      "Dead-lettered message" line names (at3-03)
+    · `dead_letter_reason` is the APPLICATION's own reason — "no ingestible object in the message", the
+      exact string built at message_handler.py:107 — NOT the broker's "MaxDeliveryCountExceeded". So this
+      is a deliberate park on the first look, not a retry budget that ran out.
+    · `dead_letter_error_description` is null: nothing threw. The lane decided, it did not crash.
+    · `delivery_count` 0 — the message was parked on its FIRST delivery, so it never looped. (This is the
+      value at receive time; because the receive settled nothing, a later reader may see it higher.)
+    · both markers carried inside the body — `id` and `data.clientRequestId` = r50-poison-213225 — match
+      what at3-01 sent, and `body_blob_url` is still the container-only url that made it unprocessable.
+    · `label_aka_subject` is the container-scoped subject the real Event Grid subscription stamps, so the
+      message the DLQ holds is the message the subscription would have delivered.
+    · 121 messages were read and exactly 1 matched: the message is identified by id, not by assuming an
+      empty sub-queue.
+
+=================== AND THE GUARD IT SETTLES ===================
+    at3's guard is that the malformed message must NOT be silently acked and must NOT poison-loop.
+    Silently-acked would mean it is NOWHERE — this read shows it IS in the $DeadLetterQueue, with a
+    reason. Poison-looping would mean a rising delivery count and repeated processing — see at3-03,
+    where the pod's WHOLE log names this id exactly twice, with zero redelivery lines and zero
+    "Completed message" lines.
