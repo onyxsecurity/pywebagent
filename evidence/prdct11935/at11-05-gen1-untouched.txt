@@ -1,7 +1,7 @@
 # PRDCT-11935 at11-05 — gen-1 is UNTOUCHED by this PR, and still running on the stack
-# FILE LAST WRITTEN 2026-08-23T16:55:35Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T17:32:37Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 4ac8a3f538a9e036f981d2bcb8bc8398fb402303 · captured 2026-08-23T15:59:19Z
+# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T17:15:16Z
 
 === 1. Zero diff hunks on the gen-1 path. Each pathspec is proven NON-EMPTY against the tree first,
 ===    so an empty diff means 'nothing changed', never 'nothing matched'.
@@ -11,10 +11,10 @@
     backend_python/src/common_core/services/feature_flags/consts.py                tracked=1     changed=0
 
     The gen-1 workflow itself, by file:
-      backend/service/temporal/worker/pkg/general/scanner_collector/tenant_workflow.go             diff lines vs merge-base: 0
-      backend/service/temporal/worker/pkg/general/scanner_collector/object_workflow.go             diff lines vs merge-base: 0
-      backend/service/temporal/worker/pkg/general/scanner_collector/workflow.go                    diff lines vs merge-base: 0
-      backend/service/temporal/worker/pkg/general/scanner_collector/post_inventory.go              diff lines vs merge-base: 0
+      backend/service/temporal/worker/pkg/general/scanner_collector/tenant_workflow.go         diff lines: 0
+      backend/service/temporal/worker/pkg/general/scanner_collector/object_workflow.go         diff lines: 0
+      backend/service/temporal/worker/pkg/general/scanner_collector/workflow.go                diff lines: 0
+      backend/service/temporal/worker/pkg/general/scanner_collector/post_inventory.go          diff lines: 0
 
     Whole-repo sanity: the diff touches these top-level trees and no others —
       backend_python/pyproject.toml
@@ -27,26 +27,24 @@
       infra/helm
 
 === 2. gen-1 is LIVE on the stack under the head deploy ===
-    $ kubectl -n onyxd exec deploy/onyx-temporal-admintools -- temporal workflow list \
-        --address onyx-temporal-frontend:7233 --namespace default \
-        --query "WorkflowType='ScannerTenantWorkflow'" --limit 8
-    captured 2026-08-23T15:59:19Z
+    captured 2026-08-23T17:31:59Z, with the workers at their normal replica count
          Status                                 WorkflowId                                       Type             StartTime   
-        Completed  scanner-tenant-11935a26-0000-4000-8000-000000000a26-20260823T155900Z  ScannerTenantWorkflow  18 seconds ago
-        Completed  scanner-tenant-11935b26-0000-4000-8000-000000000b26-20260823T155900Z  ScannerTenantWorkflow  18 seconds ago
-        Completed  scanner-tenant-11935f18-0000-4000-8000-000000000101-20260823T155900Z  ScannerTenantWorkflow  18 seconds ago
-        Completed  scanner-tenant-11935f18-0000-4000-8000-000000000102-20260823T155900Z  ScannerTenantWorkflow  18 seconds ago
-        Completed  scanner-tenant-11935b00-0000-4000-8000-000000000b02-20260823T155900Z  ScannerTenantWorkflow  18 seconds ago
-        Completed  scanner-tenant-11935a00-0000-4000-8000-000000000a01-20260823T155900Z  ScannerTenantWorkflow  18 seconds ago
-        Completed  scanner-tenant-61750f27-8fbd-42a4-80cf-4191cfb2371a-20260823T155900Z  ScannerTenantWorkflow  19 seconds ago
-        Completed  scanner-tenant-11935a18-0000-4000-8000-0000000018a1-20260823T155900Z  ScannerTenantWorkflow  18 seconds ago
+        Completed  scanner-tenant-11935a00-0000-4000-8000-000000000a01-20260823T173100Z  ScannerTenantWorkflow  59 seconds ago
+        Completed  scanner-tenant-61750f27-8fbd-42a4-80cf-4191cfb2371a-20260823T173100Z  ScannerTenantWorkflow  59 seconds ago
+        Completed  scanner-tenant-11935b26-0000-4000-8000-000000000b26-20260823T173100Z  ScannerTenantWorkflow  58 seconds ago
+        Completed  scanner-tenant-11935a26-0000-4000-8000-000000000a26-20260823T173100Z  ScannerTenantWorkflow  58 seconds ago
+        Completed  scanner-tenant-11935f18-0000-4000-8000-000000000102-20260823T173100Z  ScannerTenantWorkflow  59 seconds ago
+        Completed  scanner-tenant-11935f18-0000-4000-8000-000000000101-20260823T173100Z  ScannerTenantWorkflow  59 seconds ago
+        Completed  scanner-tenant-11935a18-0000-4000-8000-0000000018a1-20260823T173100Z  ScannerTenantWorkflow  59 seconds ago
+        Completed  scanner-tenant-11935b00-0000-4000-8000-000000000b02-20260823T173100Z  ScannerTenantWorkflow  59 seconds ago
 
     Workers backing it, same moment:
-      temporal-general-worker      1/1 ready  image=localhost:5001/onyx/temporal-general-worker:tilt-73039ae7d7226fd1
-      temporal-scanner-worker      1/1 ready  image=localhost:5001/onyx/temporal-scanner-worker:tilt-9019cb2915c24a19
+      temporal-general-worker      1/1 ready
+      temporal-scanner-worker      1/1 ready
 
 === 3. Why the controlled AWS legs run with gen-1 scaled to 0 ===
     gen-1 writes to the same tenants from the same objects, so leaving it on during at11-02/03 would
-    mean measuring two writers instead of one. That is the same isolation the at6 transport legs use.
-    It is a measurement control, not a claim about gen-1: gen-1 is untouched by the diff (section 1)
-    and running (section 2), and the legs scale it back up when they finish.
+    mean measuring two writers instead of one — the same isolation the at6 transport legs use. It is
+    a measurement control, not a claim about gen-1: gen-1 is untouched by the diff (section 1) and
+    running (section 2), and the legs scale it back up when they finish. This listing is taken with
+    the workers at their normal replica count.
