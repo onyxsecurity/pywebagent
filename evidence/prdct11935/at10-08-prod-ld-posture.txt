@@ -1,0 +1,136 @@
+# PRDCT-11935 at10-08 — the PRODUCTION LaunchDarkly posture, read at audit time, and both PR bodies conformed to it
+# FILE LAST WRITTEN 2026-08-23T21:00:37Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# captured 2026-08-23T20:59:08Z · onyx head 2b60fdc4df25188104e737e6311087681355eff8
+#
+# WHY. The PR listed 'the live LaunchDarkly targeting for the two Azure tenants' among four things it
+# could not determine, while its deploy-day story implied objects would only flow for tenants whose
+# flag was on. One read-only call answers it, and the answer inverts the story: enabling the lane on
+# the two c02 instances is a LIVE CUTOVER, not a dark deploy. This file is the audit-time read and the
+# literal proof that BOTH bodies now say so.
+#
+# THIS RUN ONLY READS. No write was made to any production LaunchDarkly flag or environment.
+
+=== (i) THE AUDIT-TIME PRODUCTION READ ===
+    $ curl -sS -H "Authorization: $LAUNCHDARKLY_ACCESS_TOKEN" \
+        'https://app.launchdarkly.com/api/v2/flags/default/endpoint-asset-ingestion?env=production'
+      (GET only — the literal ?env=production is what makes this the PRODUCTION read; at10-04 is the
+       env=development read of the same flag and neither substitutes for the other)
+      HTTP 200 at 2026-08-23T20:59:08Z
+
+    flag key            : endpoint-asset-ingestion
+    environment         : production
+    on                  : True
+    fallthrough.variation: 0  ->  serves True   <-- a tenant matching NO rule gets this
+    variations          : {0: True, 1: False}
+
+    rules, in evaluation order:
+      07b15c09  serves False  tenant.tenant_name in  (3 tenants)
+            bamfunds
+            fireblocks
+            intuit-prod
+      64b237b0  serves True   tenant.tenant_name in  (1 tenants)
+      929d6ce7  serves True   tenant.tenant_name in  (8 tenants)
+      c7789aea  serves True   tenant.tenant_name in  (19 tenants)
+            Compass
+            Nextiva
+          * Centerpoint Energy
+            LVT
+            Ro
+            YipitData
+            Antares
+            Cava
+            westfield
+            Gilbane
+            oncoursehome
+            digitalidentity
+            kraft
+            SouthernCo
+            pvh
+            hub
+            Waste Management
+            SmartCentres
+            Regions Bank
+
+    THE THREE FACTS THAT MATTER, and the count the plan pins:
+      1. fallthrough serves TRUE -> every unmatched tenant on both c02 instances gets the lane ON
+      2. the ONLY false holdouts are 3: bamfunds, fireblocks, intuit-prod  (rule 07b15c09)
+      3. rule c7789aea serves TRUE to 19 tenants, and Centerpoint Energy is one of them: True
+
+    CORROBORATION — the same read taken twice before, by two different agents, identical:
+      verify round 39   2026-08-23T18:22:18Z  evidence/verify-r39/at8-09b-prod-ld-verifier.txt
+      research round 49 2026-08-23T20:33:27Z  evidence/research-r49/prod-ld-read.txt
+      this audit-time   2026-08-23T20:59:08Z  (above)
+    The posture has NOT flipped, so the live-cutover framing stands. Had it flipped, the plan's
+    re-open clause applies and both bodies would state the new measured posture instead.
+
+=== (ii) THE LIVE BODIES, re-fetched at write time ===
+    $ gh pr view 2307 -R onyxsecurity/flux-fleet --json body --jq .body    (2026-08-23T21:00:37Z)
+      -> 5393 bytes
+    $ gh pr view 12329 -R onyxsecurity/onyx --json body --jq .body        (2026-08-23T21:00:37Z)
+      -> 249713 bytes
+
+=== (iii) THE LITERAL GREP PROOFS, against BOTH re-fetched bodies ===
+    --- onyx#12329   (248129 bytes, re-fetched at write time)
+      [PRESENT] r49-a  timestamped measured-posture statement   hits=[1, 1]
+      [PRESENT] r49-a  the fallthrough, stated   hits=[1]
+      [PRESENT] r49-a  the holdout rule 07b15c09 named   hits=[1]
+      [PRESENT] r49-a  rule c7789aea + its tenant count 19   hits=[1, 1]
+      [PRESENT] r49-a  Centerpoint Energy named   hits=[3]
+      [PRESENT] r49-c  pre-merge instruction   hits=[1]
+      [PRESENT] r49-c  qualified as flux-fleet#2307   hits=[6]
+      [PRESENT] r49-c  'changing prod LD is not this run's to do'   hits=[1]
+      [PRESENT] r49-d  at10-08 cited   hits=[2]
+      [PRESENT] r49-d  escalation thread permalink   hits=[1]
+      [PRESENT] r49-d  escalation DM permalink   hits=[1]
+      [CLEAN  ] r49-b  the LD-targeting bullet is GONE   hits=0
+      [CLEAN  ] r49-b  the enclosing count corrected (no 'Four things')   hits=0
+      [CLEAN  ] r49-b  no dark/dormant claim left standing   hits=0
+
+    --- flux-fleet#2307   (5352 bytes, re-fetched at write time)
+      [PRESENT] r49-a  timestamped measured-posture statement   hits=[1, 1]
+      [PRESENT] r49-a  the fallthrough, stated   hits=[2]
+      [PRESENT] r49-a  the holdout rule 07b15c09 named   hits=[1]
+      [PRESENT] r49-a  rule c7789aea + its tenant count 19   hits=[2, 1]
+      [PRESENT] r49-a  Centerpoint Energy named   hits=[2]
+      [PRESENT] r49-c  pre-merge instruction   hits=[3]
+      [PRESENT] r49-c  qualified as flux-fleet#2307   hits=[1]
+      [PRESENT] r49-c  'changing prod LD is not this run's to do'   hits=[1]
+      [PRESENT] r49-d  at10-08 cited   hits=[2]
+      [PRESENT] r49-d  escalation thread permalink   hits=[1]
+      [PRESENT] r49-d  escalation DM permalink   hits=[1]
+      [CLEAN  ] r49-b  the LD-targeting bullet is GONE   hits=0
+      [CLEAN  ] r49-b  the enclosing count corrected (no 'Four things')   hits=0
+      [CLEAN  ] r49-b  no dark/dormant claim left standing   hits=0
+
+    ALL r49-a/-b/-c/-d CHECKS PASS ON BOTH BODIES: True
+
+    The one negative worth naming: r49-b is checked as the ABSENCE of the phrase, not just of the bullet.
+    The first attempt at this correction still failed it — the replacement paragraph quoted the withdrawn
+    claim verbatim while explaining that it was withdrawn, which put the phrase back in the document. It
+    is reworded so the claim is described, not restated.
+
+=== (iv) THE C3 OWNER-VISIBLE ROW, and its escalation permalinks ===
+    The row is in the onyx body's C15/C3 blast-radius table, row 78, flagged
+    'DEPLOY SAFETY — owner-visible decision'. It carries, in one cell: the measured posture with all three
+    read timestamps, the live-cutover consequence for Centerpoint Energy and every unmatched c02 tenant,
+    the pre-merge instruction naming flux-fleet#2307, the at10-08 cite, and both escalation permalinks.
+    flux-fleet#2307 carries the same statement in a box at the top of its own body, because whoever merges
+    that PR need never open the onyx one.
+
+    The escalation was posted by research BEFORE the plan re-freeze; its capture resolves both legs
+    (evidence/research-r49/escalation-r49.txt):
+      #   {"thread_ok": true, "issuer_tagged": true, "issuer_slack_id": "U0AH4F5L7A7", "dm_ok": true,
+      #    "dm_user": "U09R2BCFDLG", "dm_permalink": "https://onyx-security.slack.com/archives/D0B6V65HCEN/p1787517269723809",
+      #    "thread_permalink": "https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787063683640599?thread_ts=1787063683.640599&cid=C0BCW4JDZB2"}
+      # RESOLVED round-49 thread-reply permalink (chat.getPermalink on the posted message itself, ts 1787517269.527719):
+      #   https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787517269527719?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+      # DM permalink: https://onyx-security.slack.com/archives/D0B6V65HCEN/p1787517269723809
+
+=== VERDICT ===
+    The production flag is ON, its fallthrough serves TRUE, and Centerpoint Energy sits on a rule that
+    serves TRUE. Enabling the lane on the two c02 instances is therefore a LIVE CUTOVER, not a dark
+    deploy. Both PR bodies now say exactly that, with the audit-time timestamp, and both carry the
+    instruction to confirm the intended posture before flux-fleet#2307 is merged.
+
+    NO WRITE was made to production LaunchDarkly by this run — every call above is a GET.
