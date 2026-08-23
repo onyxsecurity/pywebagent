@@ -1,8 +1,8 @@
 # PRDCT-11935 at11-03 — the AWS lane on the HEAD writer image, same payload, fresh tenant
-# FILE LAST WRITTEN 2026-08-23T16:55:35Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T17:32:37Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 4ac8a3f538a9e036f981d2bcb8bc8398fb402303
-# captured 2026-08-23T16:37:43Z
+# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 2b60fdc4df25188104e737e6311087681355eff8
+# captured 2026-08-23T17:30:56Z
 #
 # THE CONTROL. Both legs run the AWS lane — ONYX__CLOUD unset (aws), SQS notification + S3 GetObject on
 # the lab's LocalStack — against the SAME ConfigMap (endpoint-asset-ingestion, which has no cloud key and
@@ -15,13 +15,15 @@
 # is deliberate: two live scans differ in scan_run_id and timestamps, and a base-vs-head diff is only
 # meaningful when the input is identical. Nothing is hand-seeded — Kong, vector, S3, the bucket
 # notification, SQS and the writer all run for real.
-#   scanner run: "scan_run_id": "fd3336ec-1b27-457b-a85a-4e3bc145db3d"
 #   payload set sha256 (sha of the 8 file shas): 557a61736ea096c10ae6703f8e0cca995b8c2f699dc7b2a0047b9db47c45c6cd
 #
-# RE-DRIVEN AFTER TWO MERGES OF main. This is not the pre-merge capture re-stamped; both images were
-# rebuilt from the new merge-base and the new head and both legs were run again.
+# RE-DRIVEN AT THE FINAL HEAD. This round merged main twice and then executed a second owner ruling that
+# removed the queue-layer work; both images were rebuilt and both legs re-run after all of it. The head
+# image was built at 35127c77fd and the head then moved once for a TEST-ONLY commit — `git diff --name-only
+# 35127c77fd..2b60fdc4df25188104e737e6311087681355eff8` is one file under backend_python/tests/, and the prod Dockerfile
+# copies only pyproject.toml, uv.lock and ./src, so every shipping byte here is the head's.
 
-### LEG=head image=r45c-head tenant=11935f18-0000-4000-8000-000000000102 schema=prdct11935_v18t2  started 2026-08-23T16:24:22Z
+### LEG=head image=r46b-head tenant=11935f18-0000-4000-8000-000000000102 schema=prdct11935_v18t2  started 2026-08-23T17:16:38Z
 --- reset the tenant so this is a genuine first-ingest
 SET
    schema_reset   | assets | mcp_servers | skills | subagents | installs | ingestion_state 
@@ -31,16 +33,16 @@ SET
 
 --- purge the AWS notification queue so only this leg's object can reach the writer
     queue depth after purge: 0
---- deploy the writer at r45c-head (same ConfigMap for both legs; only the image moves)
+--- deploy the writer at r46b-head (same ConfigMap for both legs; only the image moves)
 deployment.apps/endpoint-asset-ingestion image updated
 deployment.apps/endpoint-asset-ingestion scaled
 Waiting for deployment "endpoint-asset-ingestion" rollout to finish: 1 old replicas are pending termination...
 Waiting for deployment "endpoint-asset-ingestion" rollout to finish: 1 old replicas are pending termination...
 deployment "endpoint-asset-ingestion" successfully rolled out
-    newest replicaset=endpoint-asset-ingestion-5f7dfd4bdb
-    pod=endpoint-asset-ingestion-5f7dfd4bdb-prvzk
-    image actually running: localhost:5001/onyx/endpoint-asset-ingestion:r45c-head
-    imageID (digest):       localhost:5001/onyx/endpoint-asset-ingestion@sha256:827efbae833ceba067bdd17f1ea54b9bf89363aaac5cbb8974de4fc6787bd4da
+    newest replicaset=endpoint-asset-ingestion-5d6ffd4bf4
+    pod=endpoint-asset-ingestion-5d6ffd4bf4-ccbmg
+    image actually running: localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+    imageID (digest):       localhost:5001/onyx/endpoint-asset-ingestion@sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25
     boot lines:
 --- REPLAY the real scan through the Kong front door (key-auth, consumer ingestion@11935f18-0000-4000-8000-000000000102)
     the 8 source_type=mcp-scanner bodies a real onyx-scanner run posted, captured verbatim and
@@ -53,25 +55,25 @@ deployment "endpoint-asset-ingestion" successfully rolled out
       06.json  66889 bytes  sha256=dbaef22a2eac9cb5  -> HTTP 200
       07.json  1132513 bytes  sha256=bc530037f250b9b2  -> HTTP 200
       08.json  803997 bytes  sha256=7931bc4688678611  -> HTTP 200
-    all posts issued between 2026-08-23T16:25:00Z and 2026-08-23T16:25:08Z
+    all posts issued between 2026-08-23T17:17:12Z and 2026-08-23T17:17:21Z
 --- the object vector wrote, in LocalStack S3 under this tenant's prefix (bounded wait)
-      2026-08-23 16:25:06      66232 tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787502306-65e5c9d8-5e60-4df8-a51a-d8e4b62e3f93.log
-      2026-08-23 16:25:07    1123871 tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787502307-e587107d-8134-401a-b7db-93423e3bade0.log
-      2026-08-23 16:25:08     804165 tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787502308-7a7e66fc-8481-41c4-baab-e106ab690869.log
+      2026-08-23 17:17:19      66232 tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787505439-9f8dcdda-cbea-4d35-8364-2433c0f5c82e.log
+      2026-08-23 17:17:20    1123871 tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787505440-c89703e9-98d1-491f-b106-e54554c778c7.log
+      2026-08-23 17:17:21     804165 tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787505441-9a7e1b09-f48f-4dda-9959-e43919f2dca7.log
 --- bounded settle: the queue must DRAIN (0 visible) and the counts must then hold steady
-    16:25:42 queue_visible=0 inflight=11  assets|conns|state = 6|5|5
-    16:25:53 queue_visible=0 inflight=2  assets|conns|state = 342|338|21
-    16:26:19 queue_visible=0 inflight=2  assets|conns|state = 342|338|21
-    16:26:30 queue_visible=0 inflight=2  assets|conns|state = 342|338|21
-    16:26:46 queue_visible=0 inflight=2  assets|conns|state = 342|338|21
+    17:17:47 queue_visible=0 inflight=9  assets|conns|state = 0|0|0
+    17:17:58 queue_visible=0 inflight=2  assets|conns|state = 342|338|21
+    17:18:24 queue_visible=0 inflight=2  assets|conns|state = 342|338|21
+    17:18:36 queue_visible=0 inflight=2  assets|conns|state = 342|338|21
+    17:18:52 queue_visible=0 inflight=2  assets|conns|state = 342|338|21
     SETTLED (queue drained and counts steady)
 --- what the writer logged for this object
-      [2m2026-08-23T16:25:49.408346Z[0m [[32m[1minfo     [0m] [1mingested scanner object       [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.object_processor[0m][0m [36mfilename[0m=[35mobject_processor.py[0m [36mfunc_name[0m=[35mprocess[0m [36mlineno[0m=[35m152[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787502305-ff66babc-cdb7-44da-9ad0-40d3f894d25e.log'[0m [36mspan_id[0m=[35md76e5ee5e54a0140[0m [36mtenant_schema[0m=[35mprdct11935_v18t2[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000102[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35mc86a146eef4fd39d78ae77ce6777f7b1[0m
-      [2m2026-08-23T16:25:49.408619Z[0m [[32m[1minfo     [0m] [1masset_ingestion_record_handled[0m [[0m[1m[34mendpoint_asset_ingestion.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name[0m=[35m_handle_record[0m [36mlineno[0m=[35m171[0m [36mobject_age_seconds[0m=[35m41.811249[0m [36moutcome[0m=[35mprocessed[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787502305-ff66babc-cdb7-44da-9ad0-40d3f894d25e.log'[0m [36mspan_id[0m=[35md76e5ee5e54a0140[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000102[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35mc86a146eef4fd39d78ae77ce6777f7b1[0m
-      [2m2026-08-23T16:25:49.715286Z[0m [[32m[1minfo     [0m] [1mingested scanner object       [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.object_processor[0m][0m [36mfilename[0m=[35mobject_processor.py[0m [36mfunc_name[0m=[35mprocess[0m [36mlineno[0m=[35m152[0m [36ms3_key[0m=[35m'tenant=11935a00-0000-4000-8000-000000000a01/source=mcp-scanner/date=2026-08-23/parity-1787502306-fc0a76ab-9913-445e-83ae-d9bdd7b0e3c1.log'[0m [36mspan_id[0m=[35m6b62e31df9cf8572[0m [36mtenant_schema[0m=[35mprdct11935_ta[0m [36mtenant_uuid[0m=[35m11935a00-0000-4000-8000-000000000a01[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35mb2a4a86509d171946d649308fbf43ecf[0m
-      [2m2026-08-23T16:25:49.715481Z[0m [[32m[1minfo     [0m] [1masset_ingestion_record_handled[0m [[0m[1m[34mendpoint_asset_ingestion.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name[0m=[35m_handle_record[0m [36mlineno[0m=[35m171[0m [36mobject_age_seconds[0m=[35m42.731468[0m [36moutcome[0m=[35mprocessed[0m [36ms3_key[0m=[35m'tenant=11935a00-0000-4000-8000-000000000a01/source=mcp-scanner/date=2026-08-23/parity-1787502306-fc0a76ab-9913-445e-83ae-d9bdd7b0e3c1.log'[0m [36mspan_id[0m=[35m6b62e31df9cf8572[0m [36mtenant_uuid[0m=[35m11935a00-0000-4000-8000-000000000a01[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35mb2a4a86509d171946d649308fbf43ecf[0m
-      [2m2026-08-23T16:25:50.010025Z[0m [[32m[1minfo     [0m] [1mingested scanner object       [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.object_processor[0m][0m [36mfilename[0m=[35mobject_processor.py[0m [36mfunc_name[0m=[35mprocess[0m [36mlineno[0m=[35m152[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787502306-65e5c9d8-5e60-4df8-a51a-d8e4b62e3f93.log'[0m [36mspan_id[0m=[35m224ec0e59d834174[0m [36mtenant_schema[0m=[35mprdct11935_v18t2[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000102[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m3583e65b2a03139b1a003af446595e9e[0m
-      [2m2026-08-23T16:25:50.010300Z[0m [[32m[1minfo     [0m] [1masset_ingestion_record_handled[0m [[0m[1m[34mendpoint_asset_ingestion.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name[0m=[35m_handle_record[0m [36mlineno[0m=[35m171[0m [36mobject_age_seconds[0m=[35m43.032614[0m [36moutcome[0m=[35mprocessed[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787502306-65e5c9d8-5e60-4df8-a51a-d8e4b62e3f93.log'[0m [36mspan_id[0m=[35m224ec0e59d834174[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000102[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m3583e65b2a03139b1a003af446595e9e[0m
+      [2m2026-08-23T17:17:54.520542Z[0m [[32m[1minfo     [0m] [1mingested scanner object       [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.object_processor[0m][0m [36mfilename[0m=[35mobject_processor.py[0m [36mfunc_name[0m=[35mprocess[0m [36mlineno[0m=[35m152[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787505440-c89703e9-98d1-491f-b106-e54554c778c7.log'[0m [36mspan_id[0m=[35m2128cea14d1a379a[0m [36mtenant_schema[0m=[35mprdct11935_v18t2[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000102[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m53b691bba8dcb8f86b959bbd492e2eb3[0m
+      [2m2026-08-23T17:17:54.520710Z[0m [[32m[1minfo     [0m] [1masset_ingestion_record_handled[0m [[0m[1m[34mendpoint_asset_ingestion.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name[0m=[35m_handle_record[0m [36mlineno[0m=[35m171[0m [36mobject_age_seconds[0m=[35m33.961377[0m [36moutcome[0m=[35mprocessed[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787505440-c89703e9-98d1-491f-b106-e54554c778c7.log'[0m [36mspan_id[0m=[35m2128cea14d1a379a[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000102[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m53b691bba8dcb8f86b959bbd492e2eb3[0m
+      [2m2026-08-23T17:17:54.555546Z[0m [[32m[1minfo     [0m] [1mingested scanner object       [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.object_processor[0m][0m [36mfilename[0m=[35mobject_processor.py[0m [36mfunc_name[0m=[35mprocess[0m [36mlineno[0m=[35m152[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787505441-9a7e1b09-f48f-4dda-9959-e43919f2dca7.log'[0m [36mspan_id[0m=[35m7d867d510543a199[0m [36mtenant_schema[0m=[35mprdct11935_v18t2[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000102[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m19957fc11708622a8b25f3382ee952d5[0m
+      [2m2026-08-23T17:17:54.555703Z[0m [[32m[1minfo     [0m] [1masset_ingestion_record_handled[0m [[0m[1m[34mendpoint_asset_ingestion.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name[0m=[35m_handle_record[0m [36mlineno[0m=[35m171[0m [36mobject_age_seconds[0m=[35m32.950023[0m [36moutcome[0m=[35mprocessed[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-23/1787505441-9a7e1b09-f48f-4dda-9959-e43919f2dca7.log'[0m [36mspan_id[0m=[35m7d867d510543a199[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000102[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m19957fc11708622a8b25f3382ee952d5[0m
+      [2m2026-08-23T17:17:54.589447Z[0m [[32m[1minfo     [0m] [1mingested scanner object       [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.object_processor[0m][0m [36mfilename[0m=[35mobject_processor.py[0m [36mfunc_name[0m=[35mprocess[0m [36mlineno[0m=[35m152[0m [36ms3_key[0m=[35m'tenant=11935a00-0000-4000-8000-000000000a01/source=mcp-scanner/date=2026-08-23/parity-1787505441-be843930-41eb-4232-be94-a37fcb1d417e.log'[0m [36mspan_id[0m=[35m624e8273ea6164cd[0m [36mtenant_schema[0m=[35mprdct11935_ta[0m [36mtenant_uuid[0m=[35m11935a00-0000-4000-8000-000000000a01[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m565ec837c1e757b7947a0b65160094a7[0m
+      [2m2026-08-23T17:17:54.589688Z[0m [[32m[1minfo     [0m] [1masset_ingestion_record_handled[0m [[0m[1m[34mendpoint_asset_ingestion.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name[0m=[35m_handle_record[0m [36mlineno[0m=[35m171[0m [36mobject_age_seconds[0m=[35m32.970473[0m [36moutcome[0m=[35mprocessed[0m [36ms3_key[0m=[35m'tenant=11935a00-0000-4000-8000-000000000a01/source=mcp-scanner/date=2026-08-23/parity-1787505441-be843930-41eb-4232-be94-a37fcb1d417e.log'[0m [36mspan_id[0m=[35m624e8273ea6164cd[0m [36mtenant_uuid[0m=[35m11935a00-0000-4000-8000-000000000a01[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m565ec837c1e757b7947a0b65160094a7[0m
 --- normalized tenant dump
     wrote /tmp/prdct11935/r45/dump-head.txt (1080 lines)
-### LEG=head finished 2026-08-23T16:26:48Z
+### LEG=head finished 2026-08-23T17:18:53Z
