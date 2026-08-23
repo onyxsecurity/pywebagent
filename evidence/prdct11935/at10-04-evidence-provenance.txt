@@ -1,5 +1,5 @@
 # PRDCT-11935 at10-04 — EVIDENCE PROVENANCE, per artifact, generated from the artifacts themselves
-# generated 2026-08-23T21:57:23Z · onyx head 2b60fdc4df (committed 2026-08-23T17:11:02+00:00)
+# generated 2026-08-23T21:58:15Z · onyx head 2b60fdc4df (committed 2026-08-23T17:11:02+00:00)
 #
 # HOW THIS FILE IS PRODUCED, because two hand-maintained versions of it drifted from the artifacts they
 # described: a script reads each artifact's OWN header and prints the stamp, the onyx sha, the writer
@@ -86,13 +86,13 @@ at1-11-merged-head-creates.txt            2026-08-20T15:53:54Z   f4b3e9dfb2   pr
                                                                                              kind: (not classified)
 at1-12-ld-cutover-state.txt               2026-08-20T11:30:38Z   cb96081d70   -              10 lane-touching commit(s) landed after it: 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
-at10-01-pr-body.md                        2026-08-23T21:53:24Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+at10-01-pr-body.md                        2026-08-23T21:58:14Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: pr-state (a copy of the PR body as pushed)
 at10-02-image-check.txt                   2026-08-22T10:56:14Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none)
                                                                                              kind: pr-state (anonymous-200 receipts)
 at10-03-ci.txt                            2026-08-23T21:55:10Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: pr-state (CI on the head)
-at10-04-evidence-provenance.txt           2026-08-23T21:53:26Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+at10-04-evidence-provenance.txt           2026-08-23T21:57:24Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: document (this file)
 at10-04-ld-supersession-read.txt          2026-08-21T15:13:55Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none)
                                                                                              kind: (not classified)
