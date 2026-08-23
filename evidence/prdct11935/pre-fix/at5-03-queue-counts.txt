@@ -1,0 +1,11 @@
+# at5 pre-fix — queue + DLQ counts AFTER the azure-mode base consumers ran (2026-08-18T16:48:41Z)
+# Before: 9 active messages on EACH queue (real Event Grid deliveries). After:
+scanner-events-prdct11935: active=0 deadLetter=0
+mcp-gateway-events-prdct11935: active=0 deadLetter=0
+endpoint-asset-ingestion-prdct11935: active=9 deadLetter=0
+# scanner-events + mcp-gateway-events: consumed-and-VANISHED (acked, no DLQ, nothing dispatched).
+# endpoint-asset-ingestion-prdct11935 still holds its 9 — NO consumer exists for it on the base (the absent writer this ticket builds).
+
+## ScannerObjectWorkflow executions (Temporal) — EMPTY (nothing was dispatched):
+
+  [94mWORKFLOW TYPE[0m | [94mWORKFLOW ID[0m | [94mRUN ID[0m | [94mTASK QUEUE[0m | [94mSTART TIME[0m | [94mEXECUTION TIME[0m | [94mEND TIME[0m  
