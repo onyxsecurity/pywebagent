@@ -1,5 +1,5 @@
 # PRDCT-11935 at6-05 — the queue-settlement classes on the Azure transport, RE-DRIVEN ON THE SHIPPED HEAD
-# FILE LAST WRITTEN 2026-08-23T19:34:03Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T20:26:23Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T19:34:02Z
 #
@@ -125,3 +125,15 @@
     received back OUT of the queue's native $DeadLetterQueue with
     dead_letter_reason: 'no ingestible object in the message', 0 redelivery lines and 0
     'Completed message' lines for that id. See evidence/at3-01/02/03.
+
+=== A METHOD FACT LEARNED LATER THE SAME EVENING, recorded because it bears on the two clone legs ===
+    deploy/eai-azure is driven by a KEDA ScaledObject with minReplicaCount=1, so `kubectl scale
+    --replicas=0` on it is reverted within about ten seconds. The flag-off and failed-redeliver legs
+    above scaled it down and ran a clone; eai-azure may therefore have been restored partway through
+    either window. It does not change either verdict, and here is why rather than an assurance:
+      * flag-off — the assertion is that NOTHING was written. onyx_security.assets was 690 before and
+        690 after. Had the healthy pod consumed the object, it would have written rows.
+      * failed -> redelivered — the assertion is that the message was abandoned and later processed.
+        Both halves are in the logs of the two different pods, with the redelivery counter at 1.
+    The correct hold is `autoscaling.keda.sh/paused-replicas="0"` on the ScaledObject, which the at1
+    re-drive used; these two legs predate that discovery and are reported as they ran.
