@@ -1,5 +1,6 @@
 # PRDCT-11935 at11-06 — exactly ONE onyx PR carries this ticket's code; no separate parity PR was opened
-# FILE LAST WRITTEN 2026-08-23T12:50:03Z
+# FILE LAST WRITTEN 2026-08-23T16:55:35Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # captured 2026-08-23T12:50:03Z, live via the GitHub API (gh, app token minted at capture time)
 #
 # The ruling ends 'do not re-add the parity fixes and do not open a separate PR for them yourself'.
