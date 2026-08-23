@@ -1,27 +1,78 @@
-# PRDCT-11935 at3-04 — the sibling payload's rows, landed
-# FILE LAST WRITTEN 2026-08-21T21:53:39Z
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
-# captured 2026-08-21T21:53:39Z · tenant onyx_security
+# PRDCT-11935 at3-04 — the sibling payloads' rows, landed — while the poison sat parked in the $DeadLetterQueue
+# FILE LAST WRITTEN 2026-08-23T21:42:39Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T21:41:52Z
 #
-# RE-DRIVEN ON HEAD (round-29 gate, G7a) alongside at3-01/02/03. This is the DB half of at3's sibling
-# check: a poison message parked in the same window must not stop ordinary objects from being written.
+# RE-DRIVEN FROM SCRATCH ON THE CURRENT SHIPPED HEAD (2b60fdc4df) alongside at3-01/02/03. This is the DB
+# half of at3's sibling check: a poison message parked in the same window must not stop ordinary objects
+# from being written.
 
-=================== THE SIBLING ===================
-    A fresh skill created on this machine for this window, then driven through the REAL front door
-    (onyx-scanner -> Kong -> vector -> Azure Blob -> Event Grid -> Service Bus -> the azure consumer):
-        subject       at3sib-20260821214753
-        scan_run_id   97fe7126-7b22-499a-a1ec-cc52b362f628
-    Its settlement line (`outcome=processed`, `Completed message`) is in at3-03.
+=================== THE SIBLINGS ===================
+    Two fresh marker skills were created on this machine for this window and driven through the REAL
+    front door (onyx-scanner → Kong → vector → Azure Blob → real Event Grid → Service Bus → the azure
+    consumer). Nothing was hand-seeded in storage or in the database.
 
-=================== THE ROWS IT WROTE ===================
-       id   |         name          |      type      |                          skill_md_hash                           
-    --------+-----------------------+----------------+------------------------------------------------------------------
-     309879 | at3sib-20260821214753 | AssetTypeSkill | 2cda7f3e3abf211bd7fa14722480377e85d1fe0a7dc5c9a901b3a6f47c6dfa6e
-    (1 row)
+      leg A  subject      vr50-at3-20260823213124
+             scan_run_id  d9ed8060-7137-4f99-b73b-d05d2a129584   (21:31:33Z → 21:32:41Z)
+      poison parked       21:32:33Z   (message e9803f4a-42ee-4a49-a2ee-9b2d2e409e43, at3-01/02/03)
+      leg B  subject      vr50-at3b-20260823213507
+             scan_run_id  15ef6234-df34-4149-a40c-dc23ccee004d   (21:35:07Z → 21:36:16Z)
+             — this whole leg ran AFTER the park, with the poison already sitting in the DLQ.
+
+    Their settlement lines (`outcome=processed`, `Completed message`) are in at3-03.
+
+=================== THE ROWS THEY WROTE ===================
+    $ kubectl -n onyxd exec -i postgres-1 -c postgres -- psql -U postgres -d postgres -X -P pager=off -c "
+        select a.id, a.name, a.type, a.sub_type, a.unique_identifier, a.is_deleted, a.status, s.skill_md_hash
+        from onyx_security.assets a join onyx_security.agent_skills s on s.asset_id=a.id
+        where a.name in ('vr50-at3-20260823213124','vr50-at3b-20260823213507') order by a.id;
+        select c.id, c.source_asset_id, c.destination_asset_id, c.connection_type, c.is_deleted
+        from onyx_security.asset_connections c join onyx_security.assets a on a.id=c.destination_asset_id
+        where a.name in ('vr50-at3-20260823213124','vr50-at3b-20260823213507') order by c.id;
+        select id, scan_run_id, trigger_method, total_agents, total_mcp_servers, total_skills, scanned_at
+        from onyx_security.scanner_installations
+        where scan_run_id in ('d9ed8060-7137-4f99-b73b-d05d2a129584','15ef6234-df34-4149-a40c-dc23ccee004d') order by id;"
+
+       id   |           name           |      type      |     sub_type      |                        unique_identifier                         | is_deleted |        status         |                          skill_md_hash                           
+    --------+--------------------------+----------------+-------------------+------------------------------------------------------------------+------------+-----------------------+------------------------------------------------------------------
+     405961 | vr50-at3-20260823213124  | AssetTypeSkill | AssetSubTypeSkill | 1503a33eaff116eb3cd0e61252c3ed71aceb14d3b828946cc5b00f9b7fc58529 | f          | AssetStatusDiscovered | 28f7aa28e62f884a182f0b2b5bbdcb79c847f4f6c7cfeb4c966564680aab22e8
+     406543 | vr50-at3b-20260823213507 | AssetTypeSkill | AssetSubTypeSkill | bb0027bcb9ecf0a56150ab9343b14e932e5be867e4e0885aa6fcacda705aee2e | f          | AssetStatusDiscovered | a9fd650403a404a9844b65005804608b8e5fe8a2b6bca5609d918fa7ed5f7b91
+    (2 rows)
     
-    2cda7f3e3abf211bd7fa14722480377e85d1fe0a7dc5c9a901b3a6f47c6dfa6e  /home/coder/prdct11935-lab/.claude/skills/at3sib-20260821214753/SKILL.md
+       id   | source_asset_id | destination_asset_id | connection_type | is_deleted 
+    --------+-----------------+----------------------+-----------------+------------
+     399115 |              23 |               405961 | AgentToSkill    | f
+     399681 |              23 |               406543 | AgentToSkill    | f
+    (2 rows)
+    
+     id  |             scan_run_id              | trigger_method | total_agents | total_mcp_servers | total_skills |       scanned_at       
+    -----+--------------------------------------+----------------+--------------+-------------------+--------------+------------------------
+     971 | d9ed8060-7137-4f99-b73b-d05d2a129584 | INSTALL_SCRIPT |            4 |                25 |          263 | 2026-08-23 21:32:38+00
+     972 | 15ef6234-df34-4149-a40c-dc23ccee004d | INSTALL_SCRIPT |            4 |                25 |          264 | 2026-08-23 21:36:14+00
+    (2 rows)
+    
 
-    The identity tie is the same one the fidelity class rests on: the digest on the LEFT was computed on
-    disk by sha256sum, the one in `agent_skills.skill_md_hash` was computed by the Python lane from the
-    payload, and they are identical — while, in the same window, a poison message sat parked in the
-    $DeadLetterQueue (at3-02).
+=================== THE IDENTITY TIE — computed on disk vs computed by the lane ===================
+    The digests on the LEFT were computed on disk by sha256sum; the ones on the RIGHT are what the Python
+    lane wrote into agent_skills.skill_md_hash from the payload it fetched out of Azure Blob storage.
+
+      $ sha256sum ~/.claude/skills/vr50-at3-20260823213124/SKILL.md
+      28f7aa28e62f884a182f0b2b5bbdcb79c847f4f6c7cfeb4c966564680aab22e8  /home/coder/.claude/skills/vr50-at3-20260823213124/SKILL.md
+      agent_skills(405961).skill_md_hash = 28f7aa28e62f884a182f0b2b5bbdcb79c847f4f6c7cfeb4c966564680aab22e8   ✔ identical
+
+      $ sha256sum ~/.claude/skills/vr50-at3b-20260823213507/SKILL.md
+      a9fd650403a404a9844b65005804608b8e5fe8a2b6bca5609d918fa7ed5f7b91  /home/coder/.claude/skills/vr50-at3b-20260823213507/SKILL.md
+      agent_skills(406543).skill_md_hash = a9fd650403a404a9844b65005804608b8e5fe8a2b6bca5609d918fa7ed5f7b91   ✔ identical
+
+=================== READ THE TIMELINE, because it is what makes this a "no batch loss" proof ===================
+      21:32:01.447Z  asset 405961 (vr50-at3-…) created            — leg A, BEFORE the park
+      21:32:33.163Z  poison e9803f4a-… dead-lettered              — the park
+      21:32:38    Z  scanner_installations 971 (leg A summary)    — AFTER the park
+      21:35:36    Z  asset 406543 (vr50-at3b-…) created           — leg B, AFTER the park
+      21:36:14    Z  scanner_installations 972 (leg B summary)    — AFTER the park
+    Three of the five row groups above were written AFTER the malformed message was parked, on the same
+    consumer, off the same queue. total_skills on the two installation rows (263, then 264) also matches
+    what each scan reported on the wire, so the sibling objects were ingested whole, not partially.
+
+    And the poison is still parked — the DLQ read in at3-02 was taken at 21:33:45Z, between the two legs,
+    and the end-of-window queue read (at3-03) still shows dead_letter=121 with active=0.
