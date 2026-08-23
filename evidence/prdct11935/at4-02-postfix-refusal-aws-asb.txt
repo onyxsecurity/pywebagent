@@ -1,9 +1,11 @@
 # PRDCT-11935 at4-02 (POST-FIX) — cloud=aws with a Service Bus transport configured REFUSES TO BOOT
-# FILE LAST WRITTEN 2026-08-23T19:37:56Z
+# FILE LAST WRITTEN 2026-08-23T19:46:48Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T19:37:56Z
 #
 # The symmetric direction. A guard that only catches one way round is half a guard.
 
+## 1. WHAT KUBERNETES SHOWS
 ## deployment eai-aws-refuse-asb   pod eai-aws-refuse-asb-5b78899b5f-5qb9g   state: 0/1 Running 1
 ## exitCode=3 reason=Error restarts=1
 ## the config it was given, decisive keys:
@@ -13,6 +15,8 @@
      asset_ingestion_asb:
        fully_qualified_namespace: "prdct11935bus.servicebus.windows.net"
        queue_name: "endpoint-asset-ingestion-prdct11935"
+
+## 2. THE REFUSAL, verbatim from the pod's own log
 ## the refusal, verbatim from the pod's own log:
      pydantic_core._pydantic_core.ValidationError: 1 validation error for EndpointAssetIngestionConfig
        Value error, endpoint_asset_ingestion: ONYX__CLOUD=aws but the Azure Service Bus transport is configured (ONYX__ASSET_INGESTION_ASB__QUEUE_NAME='endpoint-asset-ingestion-prd
