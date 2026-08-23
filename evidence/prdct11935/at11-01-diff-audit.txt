@@ -1,0 +1,205 @@
+# PRDCT-11935 at11-01 — the PR diff audited hunk-by-hunk against the round-45 OWNER RULING
+# FILE LAST WRITTEN 2026-08-23T13:49:55Z
+# merge-base c2a5bb6c586ac8fba9893a1350fe9c6c6d2e6267
+# head       12461e0002f512cd1d89cac9509fedb9833b92eb
+# captured   2026-08-23T13:49:55Z
+#
+# The ruling has a REVERT list and a KEEP list. This file proves, per bullet and per member, that
+# every REVERT item is absent from the diff and every KEEP item is present — and that no hunk in
+# the diff falls outside the sanctioned categories.
+
+=== 1. HUNK MAP — every changed file, its hunk count, and the sanctioned category it belongs to ===
+  Azure transport enablement (KEEP-list member)  —  17 file(s), 58 hunk(s)
+        1 hunk(s)  backend_python/src/common_core/services/ingestion_events/__init__.py
+        3 hunk(s)  backend_python/src/common_core/services/ingestion_events/blob_event.py
+        1 hunk(s)  backend_python/src/common_core/services/ingestion_events/event_time.py
+        3 hunk(s)  backend_python/src/common_core/services/ingestion_events/s3_event.py
+        7 hunk(s)  backend_python/src/common_core/services/queue/asb.py
+        1 hunk(s)  backend_python/src/common_core/services/queue/client.py
+        2 hunk(s)  backend_python/src/common_core/services/queue/consumer_pool.py
+        1 hunk(s)  backend_python/src/common_core/services/queue/sqs.py
+        1 hunk(s)  backend_python/src/common_core/services/queue/transport_guard.py
+        6 hunk(s)  backend_python/src/endpoint_asset_ingestion/config.py
+        2 hunk(s)  backend_python/src/endpoint_asset_ingestion/consumer/event_parser.py
+        4 hunk(s)  backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py
+       10 hunk(s)  backend_python/src/endpoint_asset_ingestion/service.py
+        4 hunk(s)  backend_python/src/mcp_gateway_event_consumer_service/config.py
+        4 hunk(s)  backend_python/src/mcp_gateway_event_consumer_service/service.py
+        4 hunk(s)  backend_python/src/scanner_event_consumer_service/config.py
+        4 hunk(s)  backend_python/src/scanner_event_consumer_service/service.py
+  dependency for the Azure blob client (KEEP: azure-storage-blob)  —  2 file(s), 3 hunk(s)
+        1 hunk(s)  backend_python/pyproject.toml
+        2 hunk(s)  backend_python/uv.lock
+  owner-sanctioned metrics TEXT whitelist  —  1 file(s), 4 hunk(s)
+        4 hunk(s)  backend_python/src/endpoint_asset_ingestion/metrics.py
+  docs (KEEP: ADR 0067, the monitoring doc)  —  4 file(s), 6 hunk(s)
+        2 hunk(s)  docs/architecture/services.md
+        1 hunk(s)  docs/decisions/0067-the-declared-cloud-decides-the-ingestion-transport.md
+        1 hunk(s)  docs/decisions/README.md
+        2 hunk(s)  docs/monitoring/endpoint-asset-ingestion-alerts.md
+  tests (KEEP: 'and their tests')  —  14 file(s), 24 hunk(s)
+        3 hunk(s)  backend_python/tests/common/services/queue/test_asb_client.py
+        1 hunk(s)  backend_python/tests/common/services/queue/test_consumer_pool.py
+        1 hunk(s)  backend_python/tests/common_core/services/ingestion_events/test_blob_event.py
+        1 hunk(s)  backend_python/tests/common_core/services/test_asb_sender_concurrency.py
+        1 hunk(s)  backend_python/tests/common_core/services/test_asb_settlement.py
+        1 hunk(s)  backend_python/tests/common_core/services/test_asb_system_properties.py
+        1 hunk(s)  backend_python/tests/common_core/services/test_transport_guard.py
+        2 hunk(s)  backend_python/tests/endpoint_asset_ingestion/consumer/test_event_parser.py
+        3 hunk(s)  backend_python/tests/endpoint_asset_ingestion/consumer/test_message_handler.py
+        1 hunk(s)  backend_python/tests/endpoint_asset_ingestion/test_cloud_config.py
+        1 hunk(s)  backend_python/tests/endpoint_asset_ingestion/test_service.py
+        2 hunk(s)  backend_python/tests/mcp_gateway_event_consumer_service/test_config.py
+        2 hunk(s)  backend_python/tests/scanner_event_consumer_service/test_config.py
+        4 hunk(s)  backend_python/tests/scanner_event_consumer_service/test_service.py
+  helm ASB stanzas (KEEP)  —  2 file(s), 5 hunk(s)
+        3 hunk(s)  infra/helm/onyx-app/values.yaml
+        2 hunk(s)  infra/helm/onyx/values.yaml
+
+  files=40  hunks=100  UNCATEGORISED=0
+  A non-zero UNCATEGORISED count would mean the diff carries work the ruling never sanctioned.
+
+=== 2. REVERT LIST — every bullet, proven absent ===
+  --- writers.py: seeded connectors / scanner_version stamp / _meter_session_alerts
+      diff hunks vs merge-base in writers.py: 0    (0 = the file is byte-identical to base)
+        grep -c 'build_seeded_connector_servers' in the head tree's writers.py: 0
+        grep -c 'scanner_version_for_agent' in the head tree's writers.py: 0
+        grep -c '_meter_session_alerts' in the head tree's writers.py: 0
+        grep -c 'InventoryWriteResult' in the head tree's writers.py: 0
+  --- extract.py: _extension_name_from_mcpb and its helpers
+      diff hunks vs merge-base in extract.py: 0    (0 = the file is byte-identical to base)
+        grep -c '_extension_name_from_mcpb' in the head tree's extract.py: 0
+        grep -c '_extension_name_from_server_name' in the head tree's extract.py: 0
+        grep -c '_MCPB_APP_ID_PREFIX' in the head tree's extract.py: 0
+  --- object_processor.py: the processed_with_failures split and agent_slices_dropped
+      diff hunks vs merge-base in object_processor.py: 0    (0 = the file is byte-identical to base)
+        grep -c 'processed_with_failures' in the head tree's object_processor.py: 0
+        grep -c 'agent_slices_dropped' in the head tree's object_processor.py: 0
+        grep -c 'AgentSlicesDroppedLabels' in the head tree's object_processor.py: 0
+  --- pipeline.py: failed_agent_slices / InventoryWriteResult plumbing
+      diff hunks vs merge-base in pipeline.py: 0    (0 = the file is byte-identical to base)
+        grep -c 'failed_agent_slices' in the head tree's pipeline.py: 0
+        grep -c 'InventoryWriteResult' in the head tree's pipeline.py: 0
+  --- scanner_version.py plus the workflow.py move: resolve_scanner_version_for_agent stays on main's location
+      backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/scanner_version.py present in head tree: False   (False = never added)
+      diff hunks vs merge-base in workflow.py: 0
+        workflow.py:207:def resolve_scanner_version_for_agent(scan_summaries: list[ScanSummaryData], device_serial_number: str | None) -> str | None:
+        workflow.py:735:                        scanner_version_for_agent = resolve_scanner_version_for_agent(input_data.scan_summaries, agent_data.device_serial_number)
+      and it is at the SAME line on the merge-base tree:
+        (base) workflow.py:207:def resolve_scanner_version_for_agent(scan_summaries: list[ScanSummaryData], device_serial_number: str | None) -> str | None:
+        (base) workflow.py:735:                        scanner_version_for_agent = resolve_scanner_version_for_agent(input_data.scan_summaries, agent_data.device_serial_number)
+  --- the four named parity test files, one grep section each
+      test_writers.py
+        in head tree: True     diff hunks vs merge-base: 0
+        parity-symbol grep counts: build_seeded_connector_servers=0, _extension_name_from_mcpb=0, scanner_version=2, processed_with_failures=0, agent_slices_dropped=0, failed_agent_slices=0, InventoryWriteResult=0, _meter_session_alerts=0
+        NOTE: scanner_version is non-zero, and that is base content, not re-added work — this
+        file has 0 diff hunks vs the merge-base, so every occurrence is already on main.
+      test_extract.py
+        in head tree: True     diff hunks vs merge-base: 0
+        parity-symbol grep counts: build_seeded_connector_servers=0, _extension_name_from_mcpb=0, scanner_version=8, processed_with_failures=0, agent_slices_dropped=0, failed_agent_slices=0, InventoryWriteResult=0, _meter_session_alerts=0
+        NOTE: scanner_version is non-zero, and that is base content, not re-added work — this
+        file has 0 diff hunks vs the merge-base, so every occurrence is already on main.
+      test_object_processor.py
+        in head tree: True     diff hunks vs merge-base: 0
+        parity-symbol grep counts: build_seeded_connector_servers=0, _extension_name_from_mcpb=0, scanner_version=0, processed_with_failures=0, agent_slices_dropped=0, failed_agent_slices=0, InventoryWriteResult=0, _meter_session_alerts=0
+      test_session_alert_failure_is_metered.py
+        in head tree: False     diff hunks vs merge-base: 0
+        absent from the head tree — it was added by the parity work and is deleted with it;
+        present on the merge-base tree? no (it never existed on base either)
+
+=== 3. metrics.py — the PARTIAL bullet, whitelist enforced line by line ===
+  every changed line in metrics.py (12 of them):
+      -        "Total SQS messages received from the asset ingestion events queue",
+      +        "Total queue messages received from the asset ingestion events queue",
+      -        "Ingestion steps by outcome (ok / error / skipped) — step names map 1:1 to the retired Temporal workflows/activities",
+      +        "Ingestion steps by outcome (ok / error / skipped) — step names map 1:1 to the Temporal units "
+      +        "this lane replaces, still live on every cell not yet cut over",
+      -        "SQS redeliveries (ApproximateReceiveCount > 1) — idempotent message reprocessing (message-level, no tenant label)",
+      +        "Queue redeliveries (receive count > 1: SQS ApproximateReceiveCount, Service Bus delivery count) — "
+      +        "idempotent message reprocessing (message-level, no tenant label)",
+      -        "Messages that exhausted maxReceiveCount and landed in the DLQ, by reason",
+      +        "Messages that exhausted the queue's delivery limit and landed in the DLQ, by reason",
+      -        "Age of the SQS message at receive time (now - SentTimestamp) — THE overload signal (schedule-to-start replacement)",
+      +        "Age of the queue message at receive time (now - SentTimestamp) — THE overload signal (schedule-to-start replacement)",
+
+  KEPT (must be present):
+      1  Total queue messages received
+      1  Queue redeliveries
+      1  exhausted the queue's delivery limit
+      1  Age of the queue message
+      1  the Temporal units
+  DROPPED (must be absent, count 0):
+      0  processed_with_failures
+      0  AgentSlicesDroppedLabels
+      0  agent_slices_dropped
+  every changed line above is HELP/comment TEXT — no metric name, label class or type moved:
+      changed lines that touch a metric declaration rather than its text: 0
+
+=== 4. KEEP LIST — every named member, proven PRESENT in the head tree, with its tests ===
+  Each member gets a source probe and the concrete test file(s) that exercise it. A member with
+  no test file resolved would be a hole in the 'and their tests' bullet.
+
+  --- transport_guard.py and its validators
+         1  def assert_transport_matches_cloud   in backend_python/src/common_core/services/queue/transport_guard.py
+         1  def assert_cloud_supported   in backend_python/src/common_core/services/queue/transport_guard.py
+            tests: backend_python/tests/common_core/services/test_transport_guard.py  present=True  test functions=11
+  --- AssetIngestionASBConfig
+         1  class AssetIngestionASBConfig   in backend_python/src/endpoint_asset_ingestion/config.py
+            tests: backend_python/tests/endpoint_asset_ingestion/test_cloud_config.py  present=True  test functions=11
+  --- the service.py cloud branch
+         3  CloudProvider.AZURE   in backend_python/src/endpoint_asset_ingestion/service.py
+            tests: backend_python/tests/endpoint_asset_ingestion/test_service.py  present=True  test functions=8
+  --- blob dispatch in event_parser.py
+         1  def parser_for_cloud   in backend_python/src/endpoint_asset_ingestion/consumer/event_parser.py
+         3  parse_blob_event_message   in backend_python/src/endpoint_asset_ingestion/consumer/event_parser.py
+            tests: backend_python/tests/endpoint_asset_ingestion/consumer/test_event_parser.py  present=True  test functions=8
+            tests: backend_python/tests/common_core/services/ingestion_events/test_blob_event.py  present=True  test functions=9
+  --- _system_properties in asb.py
+         2  _system_properties   in backend_python/src/common_core/services/queue/asb.py
+            tests: backend_python/tests/common_core/services/test_asb_system_properties.py  present=True  test functions=4
+  --- abandon_message on client.py and consumer_pool.py
+         1  def abandon_message   in backend_python/src/common_core/services/queue/client.py
+         1  abandon_message   in backend_python/src/common_core/services/queue/consumer_pool.py
+         1  def abandon_message   in backend_python/src/common_core/services/queue/sqs.py
+         1  def abandon_message   in backend_python/src/common_core/services/queue/asb.py
+            tests: backend_python/tests/common/services/queue/test_consumer_pool.py  present=True  test functions=11
+            tests: backend_python/tests/common_core/services/test_asb_settlement.py  present=True  test functions=3
+  --- event_time.py
+         1  def parse_event_time   in backend_python/src/common_core/services/ingestion_events/event_time.py
+            tests: backend_python/tests/common_core/services/ingestion_events/test_blob_event.py  present=True  test functions=9
+  --- the sibling consumers' dead-Azure-branch deletion plus assert_cloud_supported
+         2  assert_cloud_supported   in backend_python/src/scanner_event_consumer_service/config.py
+         2  assert_cloud_supported   in backend_python/src/mcp_gateway_event_consumer_service/config.py
+            tests: backend_python/tests/scanner_event_consumer_service/test_config.py  present=True  test functions=6
+            tests: backend_python/tests/mcp_gateway_event_consumer_service/test_config.py  present=True  test functions=6
+            tests: backend_python/tests/scanner_event_consumer_service/test_service.py  present=True  test functions=6
+  --- the helm ASB stanzas
+         1  asset_ingestion_asb   in infra/helm/onyx-app/values.yaml
+         1  alert_processing_asb   in infra/helm/onyx-app/values.yaml
+            tests: (render-proven, not unit-tested: evidence/at11-08-flux-render-aws-cells.txt + at8-01/at8-02)
+  --- azure-storage-blob
+         1  azure-storage-blob   in backend_python/pyproject.toml
+            tests: (dependency; exercised by the live Azure lane, at1)
+  --- ADR 0067
+         5  #   in docs/decisions/0067-the-declared-cloud-decides-the-ingestion-transport.md
+         1  0067   in docs/decisions/README.md
+            tests: (doc)
+  --- the monitoring doc
+         2  Service Bus   in docs/monitoring/endpoint-asset-ingestion-alerts.md
+            tests: (doc)
+
+  KEEP-list members with a missing probe or a missing test file: 0
+
+=== 5. ZERO hunks on the gen-1 Go/Temporal path (full detail in at11-05) ===
+      backend/                                                                   tracked=2145   changed=0
+      backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/ tracked=39     changed=0
+      backend_python/src/scanner_event_consumer_service/consumer/dispatcher.py   tracked=1      changed=0
+
+=== 6. STATED LIMITATION (pre-declared by the plan, not discovered after the fact) ===
+  The live AWS-lane leg (at11-02/03/04) drives the CREATED asset class. The matched and
+  reingest-skip classes on the AWS transport are covered instead by:
+    * this file's hunk map — no hunk touches the writer's per-class code paths at all;
+    * the sibling-consumer AWS-mode leg (at11-07), which boots and consumes on both images;
+    * the per-instance render 0-diffs (at11-08);
+    * at6's same-image two-transport per-class diffs, which cover matched and reingest-skip.
+  This is a real bound on the live leg and it is stated here and in the PR body, not papered over.
