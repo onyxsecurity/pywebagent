@@ -1,0 +1,43 @@
+# PRDCT-11935 at11-06 — exactly ONE onyx PR carries this ticket's code; no separate parity PR was opened
+# FILE LAST WRITTEN 2026-08-23T12:50:03Z
+# captured 2026-08-23T12:50:03Z, live via the GitHub API (gh, app token minted at capture time)
+#
+# The ruling ends 'do not re-add the parity fixes and do not open a separate PR for them yourself'.
+# Absence is the claim, so this file enumerates rather than asserts.
+
+=== every PR, any state, naming this ticket, in the three repos this run touches ===
+  --- onyxsecurity/onyx
+        #12329 [OPEN] factory-eval-v32/PRDCT-11935
+          PRDCT-11935 | Run the scanner asset-ingestion lane on Azure
+          https://github.com/onyxsecurity/onyx/pull/12329
+        #12382 [OPEN] feat/dev-service-identity-autoinject
+          PRDCT-11935 | dev: auto-inject per-caller service_identity so parallel agents stop colliding on LD flags
+          https://github.com/onyxsecurity/onyx/pull/12382
+  --- onyxsecurity/infrastructure
+        #1575 [MERGED] factory-eval-v32/PRDCT-11935
+          PRDCT-11935 | Azure parity for the endpoint-asset-ingestion scanner lane
+          https://github.com/onyxsecurity/infrastructure/pull/1575
+  --- onyxsecurity/flux-fleet
+        #2307 [OPEN] factory-eval-v32/PRDCT-11935
+          PRDCT-11935 | Enable the scanner asset-ingestion lane on the Azure c02 instances
+          https://github.com/onyxsecurity/flux-fleet/pull/2307
+
+=== the second onyx PR, #12382, carries NO parity work — its complete file list ===
+      .claude/skills/tilt-dev/SKILL.md  (+34/-0)
+      backend/internal/flags/service_identity_test.go  (+29/-0)
+      backend/service/proxy/service_identity_env_test.go  (+40/-0)
+      infra/coder/templates/coder-factory-env/main.tf  (+19/-0)
+      infra/coder/templates/coder-full-env/main.tf  (+19/-0)
+      infra/coder/templates/gsd-full-env/main.tf  (+19/-0)
+      infra/coder/templates/main-factory-env/main.tf  (+19/-0)
+      tilt/ai_guard.star  (+22/-0)
+      tilt/helm.star  (+37/-0)
+    None of the ruling's REVERT files (writers.py, extract.py, object_processor.py, pipeline.py,
+    scanner_version.py, metrics.py or the four parity test files) appears above. #12382 is the
+    dev-only LaunchDarkly service-identity fix from round 44, on its own unrelated branch, and it
+    is disclosed in #12329's body.
+
+=== and no unpushed local branch is hiding the reverted work ===
+      * factory-eval-v32/PRDCT-11935
+      local branches mentioning this ticket:
+        * factory-eval-v32/PRDCT-11935
