@@ -1,73 +1,60 @@
-# PRDCT-11935 at8-06 — the KEDA arm, RE-CAPTURED on the current render, and what it actually demonstrates
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# PRDCT-11935 at8-06 — the KEDA arm, RE-CAPTURED on the merged flux head and the shipped onyx head
+# FILE LAST WRITTEN 2026-08-23T19:01:24Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx branch a2486bb33f · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · flux-fleet @ cab40f0e42
-# captured 2026-08-21T03:24:54Z
+# flux-fleet @ a4493c1e5ac0 · onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T18:58:18Z
 #
-# WHAT THIS FILE USED TO CLAIM, AND WHY THAT WAS WRONG (gate G5). The previous capture was three days old
-# (branch 153d29c86a, flux-fleet 396980bac, 2026-08-18T19:47:04Z) and its headline line was
-#   "Successfully updated ScaleTarget … Original Replicas Count: 0, New Replicas Count: 1"
-# logged 2 SECONDS after the ScaledObject was created. That is KEDA enforcing minReplicaCount: 1 on a
-# freshly applied object — NOT scaling on a backlog — and the plan's round-24 reconciliation bars exactly
-# that line from being quoted as scaling. It is not quoted here, and the PR sentence that did is corrected.
-#
-# WHAT IS DEMONSTRATED INSTEAD: a real scale-out and scale-in, driven by a real queue backlog, observed
-# end to end on the current render. minReplicaCount is 1, so scale-from-zero is not achievable with the
-# manifest as authored — that is stated, not worked around, and the demands (d-c2keda-*) ask for the
-# azure-servicebus trigger on the SAS TriggerAuthentication, which is what the arm below exercises.
+# The scaler is Service Bus, authenticated by a SAS secretTargetRef — NOT a workload-identity
+# podIdentity, which the lab replica cannot bind (no managed identity exists in prdct11935-rg).
+# Saying which one it is matters: a podIdentity CTA would render fine and never scale.
 
-## 1. THE LIVE SCALEDOBJECT, as the current flux render produced it
-    endpoint-asset-ingestion   eai-azure   1     20    True
-    trigger type=azure-servicebus  queue=endpoint-asset-ingestion-prdct11935  messageCount=10  authenticationRef=keda-trigger-auth-servicebus
-    HPA: keda-hpa-endpoint-asset-ingestion   0     1     20
+=== saas
+  --- the TriggerAuthentication, from the instance overlay (kustomize output)
+      apiVersion: keda.sh/v1alpha1
+      kind: TriggerAuthentication
+      metadata:
+        name: keda-trigger-auth-servicebus
+        namespace: saas
+      spec:
+        secretTargetRef:
+          - key: connection
+            name: servicebus-connection
+            parameter: connection
+  --- the ScaledObject trigger, from the helm render
+      name: endpoint-asset-ingestion  min/max: 1 / 20
+      trigger: authenticationRef:
+        name: keda-trigger-auth-servicebus
+      metadata:
+        messageCount: '10'
+        queueName: ${endpoint_asset_ingestion_queue_name}
+      type: azure-servicebus
+      
+=== centerpoint
+  --- the TriggerAuthentication, from the instance overlay (kustomize output)
+      apiVersion: keda.sh/v1alpha1
+      kind: TriggerAuthentication
+      metadata:
+        name: keda-trigger-auth-servicebus
+        namespace: centerpoint
+      spec:
+        secretTargetRef:
+          - key: connection
+            name: servicebus-connection
+            parameter: connection
+  --- the ScaledObject trigger, from the helm render
+      name: endpoint-asset-ingestion  min/max: 1 / 20
+      trigger: authenticationRef:
+        name: keda-trigger-auth-servicebus
+      metadata:
+        messageCount: '10'
+        queueName: ${endpoint_asset_ingestion_queue_name}
+      type: azure-servicebus
+      
+=== the two instances' ScaledObjects are byte-identical except for what must differ ===
+      identical: True
+      TriggerAuthentication delta (expect namespace only):
+         -  namespace: saas
+         +  namespace: centerpoint
 
-## 2. THE BACKLOG WAS REAL — Kong-originated objects, with the consumer held at 0 so they accumulated
-    consumer held at 0; driving a real scan to build backlog
-    scanner exit=0
-    backlog built: active=19 (real Kong-originated objects, consumer at 0 replicas)
-      0     <none>
-
-## 3. THE ARM — KEDA sees the backlog, scales OUT, drains, and scales back IN
-    03:14:14 queue_active=19 desired=1 ready=0 SO.Active=True
-    03:14:45 queue_active=0 desired=2 ready=1 SO.Active=False
-    03:15:16 queue_active=0 desired=2 ready=2 SO.Active=False
-    03:15:47 queue_active=0 desired=2 ready=2 SO.Active=False
-    03:16:18 queue_active=0 desired=2 ready=2 SO.Active=False
-    03:16:50 queue_active=0 desired=2 ready=2 SO.Active=False
-    03:17:21 queue_active=0 desired=2 ready=2 SO.Active=False
-    03:17:52 queue_active=0 desired=2 ready=2 SO.Active=False
-    03:18:24 queue_active=0 desired=2 ready=2 SO.Active=False
-    03:18:55 queue_active=0 desired=2 ready=2 SO.Active=False
-    03:19:26 queue_active=0 desired=2 ready=2 SO.Active=False
-    03:19:57 queue_active=0 desired=1 ready=1 SO.Active=False
-    03:20:28 queue_active=0 desired=1 ready=1 SO.Active=False
-    03:21:00 queue_active=0 desired=1 ready=1 SO.Active=False
-    03:21:31 queue_active=0 desired=1 ready=1 SO.Active=False
-    03:22:02 queue_active=0 desired=1 ready=1 SO.Active=False
-    03:22:33 queue_active=0 desired=1 ready=1 SO.Active=False
-    03:23:04 queue_active=0 desired=1 ready=1 SO.Active=False
-    03:23:36 queue_active=0 desired=1 ready=1 SO.Active=False
-    03:24:07 queue_active=0 desired=1 ready=1 SO.Active=False
-
-## 4. READ IT PRECISELY — this is the sentence the PR now carries
-    · 03:14:12  the ScaledObject is unpaused; KEDA re-reads its azure-servicebus trigger through the SAS
-                TriggerAuthentication and reports Active=TRUE with 19 real messages on the queue.
-    · 03:14:45  the deployment's desired count scales OUT. That is a decision taken on queue
-                depth, and both sides of it are in the trace above:
-                    desired 1    at 03:14:14, with 19 messages on the queue and Active=True
-                    desired 2    at 03:14:45, KEDA having acted on that backlog
-                depth, which is the thing the demand asks for.
-    · 03:19:57  with the queue drained and the cooldown elapsed, KEDA scales back IN:
-                    desired 2    at 03:19:26, queue already empty, cooldown still running
-                    desired 1    at 03:19:57, the scale-in decision
-    What is NOT claimed: scale-from-zero. minReplicaCount is 1 on both rendered instances, so 0 -> 1 is
-    unreachable by construction; the round-24 reconciliation records that as an AT-wording issue, and the
-    apply-time enforcement line is deliberately absent from this file.
-
-## 5. KEDA'S OWN RECONCILE LINES for this ScaledObject in the window (min-replica line excluded)
-    2026-08-21T03:11:48Z	INFO	Scaling target to paused replica count	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"endpoint-asset-ingestion","nam
-    2026-08-21T03:11:48Z	INFO	Reconciling ScaledObject	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"endpoint-asset-ingestion","namespace":"onyxd
-    2026-08-21T03:14:12Z	INFO	Reconciling ScaledObject	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"endpoint-asset-ingestion","namespace":"onyxd
-    2026-08-21T03:14:12Z	INFO	Detected resource targeted for scaling	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"endpoint-asset-ingestion","nam
-    2026-08-21T03:14:12Z	INFO	Creating a new HPA	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"endpoint-asset-ingestion","namespace":"onyxd"}, "n
-    2026-08-21T03:14:12Z	INFO	Initializing Scaling logic according to ScaledObject Specification	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"en
+=== the guard: no AWS scaler survives on an Azure cell ===
+      aws-sqs-queue trigger type in either render : 0
+      podIdentity in either TriggerAuthentication : 0
