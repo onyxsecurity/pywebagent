@@ -1,5 +1,5 @@
 # PRDCT-11935 at6-07 — TRANSPORT EQUIVALENCE, created class, on the shipped head
-# FILE LAST WRITTEN 2026-08-23T19:22:09Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T20:27:39Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · writer image (BOTH lanes) localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T19:22:09Z
 #
@@ -47,7 +47,7 @@
 === the verdict ===
     $ diff created-ta.txt created-tb.txt
     (no output — the two dumps are identical)
-    changed lines : 0
+    changed lines: 0
 
     lines each    : 1080
     sha256 ta     : e6dba029c180a563a09af13ce9fc1d973c4283bf507777f43bbc296f83a2ed62
