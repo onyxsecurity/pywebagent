@@ -1,6 +1,7 @@
 {
  "_header": [
   "# PRDCT-11935 at1-03 \u2014 the REAL Event Grid BlobCreated delivery on the lab Service Bus queue, PEEKED",
+  "# FILE LAST WRITTEN 2026-08-23T20:24:24Z",
   "# onyx head 2b60fdc4df25188104e737e6311087681355eff8 \u00b7 image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head \u00b7 captured 2026-08-23T20:08:13Z"
  ],
  "_what_this_is": "the REAL Event Grid BlobCreated deliveries on the lab Service Bus queue endpoint-asset-ingestion-prdct11935, PEEKED non-destructively while the consumer was held at zero, then joined to the SAME message_id's settlement by the real shipping consumer on the head image. Nothing here is synthesized: the bodies are Azure Event Grid's own, the application_properties are Event Grid's own (aeg-*), and the Label/subject is the delivery-attribute mapping at1-01 shows.",
