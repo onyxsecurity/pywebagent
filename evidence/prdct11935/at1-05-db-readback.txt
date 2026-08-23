@@ -1,40 +1,126 @@
-# PRDCT-11935 at1-05 — the tenant-DB rows the AZURE lane wrote (flag ON)
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# PRDCT-11935 at1-05 — the tenant-DB rows the AZURE lane wrote, keyed on the exact object key
+# FILE LAST WRITTEN 2026-08-23T20:22:54Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx branch f4b3e9dfb2 · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r24 · captured 2026-08-20T15:58:26Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T20:09:40Z
 #
-# RE-CAPTURED IN ROUND 7 on the merge head, in the same isolated window as at1-02/at1-04 above.
+# RE-MEASURED THIS ROUND on the current shipped head, in the SAME isolated window as at1-02/03/04:
+#   scan_run_id 9e971fab-4f73-4a7e-8215-4ddea134a22c · consumer pod eai-azure-7c4f9bd78c-2ss7g
+#   · tenant onyx_security (61750f27-8fbd-42a4-80cf-4191cfb2371a).
 #
-# Chain: onyx-scanner -> Kong (key-auth) -> vector -> lab Blob container -> Event Grid BlobCreated
-# -> byoc-events topic -> sys.Label LIKE '%source=mcp-scanner/%' -> Service Bus queue -> the azure-mode
-# endpoint_asset_ingestion pod (ONYX__CLOUD=azure, Blob reads via DefaultAzureCredential) -> these rows.
+# Chain: /tmp/onyx-scanner -> Kong key-auth -> vector azure_blob sink -> lab Blob prdct11935st/ingestion
+# -> Event Grid BlobCreated (subject->Label) -> topic byoc-events -> subscription only-mcp-scanner
+# (sys.Label LIKE '%source=mcp-scanner/%') -> queue endpoint-asset-ingestion-prdct11935
+# -> deploy/eai-azure (ONYX__CLOUD=azure, blob reads via DefaultAzureCredential) -> these rows.
+#
+# WHY THE ISOLATION MATTERS, measured rather than assumed. In the UNisolated window earlier this run
+# (19:56-19:59Z) the very same scan produced an installation row whose log_s3_key was the *LocalStack*
+# lane's key, because the box runs the parity dual-write and the AWS-mode writer won the race — the
+# azure consumer's own insert then logged `Scanner installations inserted count=0`. That is the parity
+# design working, but it makes "which lane wrote this row" unattributable. So for this capture the
+# gen-1 schedule was paused and the five other writers (endpoint-asset-ingestion, scanner-event-consumer,
+# mcp-gateway-event-consumer, temporal-scanner-worker, temporal-general-worker) were all at ZERO
+# replicas — leaving the azure-mode pod as the only possible writer. Its insert then logged count=1
+# and the row below carries the AZURE object key. All five were restored (receipt in at1-07).
 
-## assets written into the SSO tenant this scan authenticates as (onyx_security):
-    id   |            name             |       type        |        status         |          updated_at           
-  -------+-----------------------------+-------------------+-----------------------+-------------------------------
-   58967 | lab-r20-head-20260820155354 | AssetTypeSkill    | AssetStatusDiscovered | 2026-08-20 15:54:52.840183+00
-   58986 | lab-r20-head-20260820155354 | AssetTypeSubAgent | AssetStatusDiscovered | 2026-08-20 15:54:53.005481+00
-  (2 rows)
-  
-## its MCP servers + agent rows, same window:
-   touched_mcp_servers | total 
-  ---------------------+-------
-                     2 |    29
-  (1 row)
-  
-   touched_skills | total 
-  ----------------+-------
-                1 |   194
-  (1 row)
-  
-   ingestion_state_rows 
-  ----------------------
-                     34
-  (1 row)
-  
+=================== 1. the installation row carrying THIS window's AZURE object key ===================
 
-## window closed; gen-1's writers restored:
-    eai-azure                                 1
-    endpoint-asset-ingestion                  0
-    temporal-general-worker                   1
-    temporal-scanner-worker                   1
+## (the object-key column on this table is named log_s3_key — a cloud-neutral field name kept from the
+##  AWS lane; the VALUE below is an Azure blob key in the lab container.)
+### the installation row carrying THIS window`s object key (the key is the column log_s3_key)
+$ SELECT id, scan_run_id, total_agents, total_mcp_servers, total_skills, scanned_at, created_at, log_s3_key FROM onyx_security.scanner_installations WHERE log_s3_key IN ('<K1>','<K2>');
+ id  |             scan_run_id              | total_agents | total_mcp_servers | total_skills |       scanned_at       |          created_at           |                                                             log_s3_key                                                             
+-----+--------------------------------------+--------------+-------------------+--------------+------------------------+-------------------------------+------------------------------------------------------------------------------------------------------------------------------------
+ 966 | 9e971fab-4f73-4a7e-8215-4ddea134a22c |            4 |                25 |          264 | 2026-08-23 20:06:53+00 | 2026-08-23 20:08:44.579019+00 | tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log
+(1 row)
+
+
+### the same row reached from the scan_run_id the scanner printed (independent join)
+$ SELECT id, scan_run_id, scanned_at, log_s3_key FROM onyx_security.scanner_installations WHERE scan_run_id = '9e971fab-4f73-4a7e-8215-4ddea134a22c';
+ id  |             scan_run_id              |       scanned_at       |                                                             log_s3_key                                                             
+-----+--------------------------------------+------------------------+------------------------------------------------------------------------------------------------------------------------------------
+ 966 | 9e971fab-4f73-4a7e-8215-4ddea134a22c | 2026-08-23 20:06:53+00 | tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log
+(1 row)
+
+
+### THIS window`s marker skill, as an asset row in the tenant schema
+$ SELECT id, name, type, status, created_at, updated_at FROM onyx_security.assets WHERE name = 'r49-at1c-20260823T200526Z';
+   id   |           name            |      type      |        status         |          created_at           |          updated_at           
+--------+---------------------------+----------------+-----------------------+-------------------------------+-------------------------------
+ 400116 | r49-at1c-20260823T200526Z | AssetTypeSkill | AssetStatusDiscovered | 2026-08-23 20:08:39.835221+00 | 2026-08-23 20:08:39.835221+00
+(1 row)
+
+
+### all three round-49 marker skills, in creation order (window 1 / window 2 / window 3)
+   id   |           name            |      type      |        status         |          created_at           |          updated_at           
+--------+---------------------------+----------------+-----------------------+-------------------------------+-------------------------------
+ 396626 | r49-at1-20260823T194543Z  | AssetTypeSkill | AssetStatusDiscovered | 2026-08-23 19:47:54.757916+00 | 2026-08-23 20:01:39.059717+00
+ 398348 | r49-at1b-20260823T195553Z | AssetTypeSkill | AssetStatusDiscovered | 2026-08-23 19:56:18.447453+00 | 2026-08-23 20:01:39.059717+00
+ 400116 | r49-at1c-20260823T200526Z | AssetTypeSkill | AssetStatusDiscovered | 2026-08-23 20:08:39.835221+00 | 2026-08-23 20:08:39.835221+00
+(3 rows)
+
+
+### the desktop-agent + skill + mcp rows this window touched (updated_at inside the window)
+$ SELECT type, count(*) FROM onyx_security.assets WHERE updated_at >= '2026-08-23 20:08:36+00' GROUP BY type ORDER BY 1;
+      type      | count 
+----------------+-------
+ AssetTypeSkill |     1
+(1 row)
+
+
+### ingestion-state rows refreshed inside the window (the writer`s dedup ledgers)
+             table             | count 
+-------------------------------+-------
+ desktop_agent_ingestion_state |     0
+ mcp_ingestion_state           |     5
+(2 rows)
+
+
+=================== 2. the write, tied line-by-line to the consumer that made it ===================
+
+## The installation row's created_at is 2026-08-23 20:08:44.579019+00.
+## The azure consumer's own insert log line, 23ms later, carries the SAME key:
+  2026-08-23T20:08:44.602225Z [info     ] Scanner installations inserted [python_temporal_worker.integrations.desktop_agent_creator.activities] count=1 filename=activities.py func_name=insert_scanner_installations lineno=2732 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log' span_id=b3578e13b659bd9e tenant_schema=onyx_security tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=6507d3614be6d1c09a303e61fb2309a8
+
+## The marker-skill asset row (id 400116, created 20:08:39.835221+00) is tied to the AZURE object the
+## same way — the consumer's own skill-upsert line names BOTH the skill and the azure object key:
+  2026-08-23T20:08:39.831416Z [info     ] Skill asset upsert             [python_temporal_worker.skills_creation.activities] agent_asset_id=23 filename=
+  activities.py func_name=bulk_upsert_skills lineno=478 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/178751557
+  5-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log' skill_dir_hash=a3e79cfac019a4ddbda0d8b75ee10c2f8fea35ae54de4e10902b07f581afff5c skill_name=r49-at1c-202608
+  23T200526Z span_id=8c8fb826dbd1a256 tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=01f975092bb5ac447372d0a354c492a6
+       ^ skill_name=r49-at1c-20260823T200526Z
+         s3_key='tenant=61750f27-…/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log'
+         i.e. the row and the Azure blob are the same event, 4ms apart.
+
+=================== 3. marker-skill lifecycle receipt ===================
+
+## Three marker skills were created during this run (one per scan window, so the scanner's send-dedup
+## could not suppress any window's payload). All three are REMOVED at the end of the run; the removal
+## receipt is at the foot of this file. Their rows above are real product data written by the lane.
+
+## the skills as they existed on disk during the run:
+$ ls -1 ~/.claude/skills | grep '^r49-at1'
+    r49-at1-20260823T194543Z
+    r49-at1b-20260823T195553Z
+    r49-at1c-20260823T200526Z
+
+## REMOVAL (run at the very end of the run — see the tail of this file for the post-removal readback)
+
+=================== 4. MARKER-SKILL REMOVAL — the receipt ===================
+
+$ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-08-23T20:22:50Z
+$ ls -1 ~/.claude/skills | grep "^r49-at1"      # before
+    r49-at1-20260823T194543Z
+    r49-at1b-20260823T195553Z
+    r49-at1c-20260823T200526Z
+    r49-at1d-20260823T201626Z
+$ rm -rf ~/.claude/skills/r49-at1-* ~/.claude/skills/r49-at1b-* ~/.claude/skills/r49-at1c-* ~/.claude/skills/r49-at1d-*
+$ ls -1 ~/.claude/skills | grep "^r49-at1" ; echo "exit=$?"      # after
+    exit=0 (1 = no match = all four removed)
+$ ls -d ~/.claude/skills/r49-at1* 2>&1
+    ls: cannot access '/home/coder/.claude/skills/r49-at1*': No such file or directory
+
+    The four marker skills were dedup-busters for the four scan windows this round drove
+    (r49-at1-…194543Z, r49-at1b-…195553Z, r49-at1c-…200526Z, r49-at1d-…201626Z). They are
+    harness, never PR content. Their tenant-DB rows (§1 above) stay — they are the product data
+    the lane actually wrote, which is the point of this artifact.
