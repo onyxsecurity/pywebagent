@@ -1,0 +1,113 @@
+# PRDCT-11935 at11-08 — rendered-manifest base-vs-head diff for EVERY AWS cell, not only the three named
+# FILE LAST WRITTEN 2026-08-23T12:53:00Z
+# onyx merge-base c2a5bb6c586ac8f (base chart, rendered from a detached worktree) vs head ecf60f81c706
+# flux-fleet b0d3e1cfb on factory-eval-v32/PRDCT-11935 · captured 2026-08-23T12:53:00Z
+#
+# METHOD  per instance: kustomize build the instance's onyx-app overlay -> pull the HelmRelease
+#         .spec.values -> helm template the SAME values against the base chart and the head chart
+#         -> diff. Identical values on both sides, so any delta is the chart's, which is the point.
+#         The vendored subcharts (gotenberg/vector .tgz, gitignored build artifacts) were copied
+#         into the base worktree so helm could resolve deps; the one TRACKED subchart, onyx-common,
+#         is byte-identical between base and head (git diff over infra/helm/onyx-app/charts: empty),
+#         so the copy cannot mask a difference.
+
+=== the numbers, all eight instances in the fleet ===
+    INSTANCE                         CLOUD    eai?     gen-2?   CHANGED LINES
+    ox-aws-p-use1-c01/saas           aws      no       no       0
+    ox-aws-p-use1-c01/bamfunds       aws      no       no       0
+    ox-aws-p-use1-c04/saas           aws      no       no       0
+    ox-aws-p-use1-c01/intuit         aws      yes      no       8
+    ox-aws-p-use1-c03/saas           aws      yes      yes      8
+    ox-aws-s-use1-c01/saas           aws      yes      yes      18
+    ox-az-p-eus2-c02/saas            azure    yes      no       0
+    ox-az-p-eus2-c02/centerpoint     azure    yes      no       0
+
+=== THE THREE CELLS at11 NAMES: c01/saas, c01/bamfunds, c04/saas — 0 changed lines each ===
+  --- ox-aws-p-use1-c01/saas
+      diff base..head: EMPTY (identical, 5871 rendered lines)
+  --- ox-aws-p-use1-c01/bamfunds
+      diff base..head: EMPTY (identical, 5883 rendered lines)
+  --- ox-aws-p-use1-c04/saas
+      diff base..head: EMPTY (identical, 5871 rendered lines)
+
+!!! AND THE FINDING THOSE THREE HIDE — read this before quoting the zeros above.
+    Those three instances render ZERO endpoint-asset-ingestion workloads and ZERO gen-2 consumer
+    workloads (see the eai?/gen-2? columns): they do not run any service this PR touches, so their
+    0-diff is true but uninformative. The AWS instances that DO run them are c01/intuit, c03/saas
+    and s-use1-c01/saas, and those are NOT 0-diff. Reporting only the named three would have been
+    technically compliant and misleading, so here is the whole delta:
+
+  --- c01/intuit and c03/saas (both run endpoint-asset-ingestion): the identical 8-line delta
+      @@ -773,10 +773,16 @@
+      +    alert_processing_asb:
+      +      fully_qualified_namespace: ""
+      +      queue_name: ""
+      +    asset_ingestion_asb:
+      +      fully_qualified_namespace: ""
+      +      queue_name: ""
+      @@ -3142,7 +3148,7 @@
+      -        checksum/config: 5ce35286b689b2d8637dea79d2e91e146457e55536ddcbbe5d3ee506a5dc9d47
+      +        checksum/config: 4014ba63617c148b6f6d0938ab0e757264fddf027077131f476f99db40f7e9ff
+
+  --- s-use1-c01/saas (staging; runs eai AND both gen-2 consumers): the same, plus the gen-2 removal
+      @@ -739,10 +739,16 @@
+      +    alert_processing_asb:
+      +      fully_qualified_namespace: ""
+      +      queue_name: ""
+      +    asset_ingestion_asb:
+      +      fully_qualified_namespace: ""
+      +      queue_name: ""
+      @@ -1234,9 +1240,6 @@
+      -    mcp_gateway_events_asb:
+      -      fully_qualified_namespace: ""
+      -      queue_name: ""
+      @@ -1311,9 +1314,6 @@
+      -    scanner_events_asb:
+      -      fully_qualified_namespace: ""
+      -      queue_name: ""
+      @@ -3050,7 +3050,7 @@
+      -        checksum/config: 5ce35286b689b2d8637dea79d2e91e146457e55536ddcbbe5d3ee506a5dc9d47
+      +        checksum/config: 4014ba63617c148b6f6d0938ab0e757264fddf027077131f476f99db40f7e9ff
+      @@ -4193,7 +4193,7 @@
+      -        checksum/config: 3c0c1ed6804244aee8f76150e5626a4637b45c0ad19a6da53817fbd579a16d57
+      +        checksum/config: 89a2143050c0a6e5262607381dafb0d47807392b7f19edea8af06e695bf00b30
+      @@ -4470,7 +4470,7 @@
+      -        checksum/config: 46f95a166f3f93870a0dc3f574c13657bae431a27159fbf4056b2dd1a4917bc8
+      +        checksum/config: 286278f355f290733a9c5485f9a0fcda91ae97923ec22c2c794fd62ccd80fb02
+
+=== WHAT THAT DELTA IS, AND WHY IT IS STILL NOT A BEHAVIOUR CHANGE ===
+    Three things, all of them config TEXT:
+      (a) two ASB stanzas ADDED to endpoint-asset-ingestion's config.yaml, both entirely empty. Empty
+          is exactly what the model already defaults them to, and every branch that reads them tests
+          for a NON-empty queue_name, so an empty stanza and an absent stanza are the same config.
+      (b) the two empty gen-2 *_asb stanzas REMOVED. Their model fields are gone with the dead Azure
+          branch; BaseCustomSettings sets extra="allow", so a cell whose values still carry the key
+          boots and ignores it either way (measured in at10-22 section 4.2).
+      (c) a checksum/config annotation change, which is helm's deploy trigger. The one real operational
+          consequence of this PR on an AWS cell is therefore a SINGLE ROLLING RESTART of
+          endpoint-asset-ingestion (and, on s-use1-c01, of the two gen-2 consumers) when the chart
+          lands — a redeploy, not a behaviour change. Saying so plainly is the point of this section.
+
+    The strongest form of (a): take the REAL rendered config.yaml off c03/saas's head manifest, fill
+    the terraform placeholders with that cell's values, and construct the HEAD config model from it.
+    If the head chart broke an AWS cell, it breaks here.
+        the rendered AWS-cell config CONSTRUCTS on the head model: cloud=aws
+          asset_ingestion_sqs.queue_url = https://sqs.us-east-1.amazonaws.com/1234/endpoint-asset-ingestion
+          asset_ingestion_asb           = ns='' queue=''  (empty -> the transport guard is satisfied)
+          alert_processing_sqs.queue_url= https://sqs.us-east-1.amazonaws.com/1234/alert-processing
+          alert_processing_asb          = ns='' queue=''
+          s3 aws_region/endpoint        = 'us-east-1' / ''
+        and the branch selectors it drives resolve to the AWS lane:
+          parser_for_cloud(cfg.cloud) is parse_object_created_message : True
+          empty_parse_is_poison(cfg.cloud)                            : False
+          alert fan-out arm taken                                     : sqs
+      (the rendered file itself is at evidence/at11-08-aws-cell-config.yaml, and the probe at
+       evidence/at11-08-real-cell-probe.py, so both are re-runnable)
+
+=== the Azure instances render 0-diff too, which is not a contradiction ===
+    c02/saas and c02/centerpoint set asset_ingestion_asb to REAL values in their own flux-fleet
+    instance values (fully_qualified_namespace: ${endpoint_asset_ingestion_servicebus_namespace}).
+    Helm renders config.yaml from the merged values map, so an instance-supplied key renders whether
+    or not the chart declares a default for it — the Azure lane never depended on the chart defaults,
+    which is also why removing them would NOT have been a way to make the AWS delta vanish for free.
+    The chart defaults are documentation of the knob, and the owner's KEEP list names them.
