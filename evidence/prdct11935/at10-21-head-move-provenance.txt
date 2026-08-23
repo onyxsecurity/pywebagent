@@ -1,5 +1,5 @@
 # PRDCT-11935 at10-21 — every head this branch moved through, and what each move did to the evidence
-# FILE LAST WRITTEN 2026-08-23T19:11:08Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T19:48:36Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # head 2b60fdc4df25188104e737e6311087681355eff8 · merge-base with origin/main 822abd2356f02c10f1d35901dd3c5feef43d8ade · captured 2026-08-23T19:11:07Z
 #
@@ -119,6 +119,12 @@
 
 === 3. THE NET EFFECT, merge-base -> head, which is what actually matters ===
     A capture taken before these moves is only stale if the NET delta touches what it measured.
+    $ git diff --stat 822abd2356f02c10f1d35901dd3c5feef43d8ade..HEAD -- \
+        backend_python/src/endpoint_asset_ingestion/ backend_python/src/common_core/services/queue/ \
+        backend_python/src/common_core/services/ingestion_events/ backend_python/src/common_core/services/storage_factory.py \
+        backend_python/src/scanner_event_consumer_service/ backend_python/src/mcp_gateway_event_consumer_service/ \
+        backend_python/src/python_temporal_worker/mcp_asset_creation/ \
+        backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/ infra/helm/
      .../services/ingestion_events/__init__.py          |  10 +-
      .../services/ingestion_events/blob_event.py        |  15 +--
      .../services/ingestion_events/event_time.py        |  30 +++++
