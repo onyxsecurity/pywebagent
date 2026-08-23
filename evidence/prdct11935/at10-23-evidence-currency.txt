@@ -1,7 +1,7 @@
 # PRDCT-11935 at10-23 — per-artifact evidence currency against the shipped head
-# FILE LAST WRITTEN 2026-08-23T20:23:13Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T21:43:00Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T20:23:12Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T21:42:59Z
 #
 # The round-39 gate found the PR body claiming 'every artifact in this bundle is stamped
 # 16b7bca77c' while the head was 2b60fdc4 and the run's own provenance file marked every at1..at9
@@ -10,36 +10,45 @@
 # shipped head this round, and for anything not re-driven, the MEASURED reason it still holds.
 
 === SUMMARY ===
-    at1..at9 artifacts in the bundle              : 177
-    RE-DRIVEN or REGENERATED this round (>=18:45Z) : 45
-    not re-driven, lane code moved under it        : 73
+    at1..at9 artifacts in the bundle              : 178
+    RE-DRIVEN or REGENERATED this round (>=18:45Z) : 54
+    not re-driven, lane code moved under it        : 65
     not re-driven, lane code did NOT move          : 0
     not re-driven, no parseable sha in the header  : 59
 
 === RE-DRIVEN OR REGENERATED THIS ROUND ===
     artifact                                       stamped     written
-    at1-01-lab-resources.txt                       2b60fdc4df  08-23 20:22
-    at1-02-scanner-post.txt                        2b60fdc4df  08-23 20:22
-    at1-03-eventgrid-message.json                  2b60fdc4df  08-23 20:12
-    at1-04-consumer-logs.txt                       2b60fdc4df  08-23 20:22
-    at1-05-db-readback.txt                         2b60fdc4df  08-23 20:23
-    at1-06-flagoff-guard.txt                       2b60fdc4df  08-23 20:22
-    at1-07-cutover-guard.txt                       2b60fdc4df  08-23 20:22
+    at1-01-lab-resources.txt                       2b60fdc4df  08-23 20:24
+    at1-02-scanner-post.txt                        2b60fdc4df  08-23 20:24
+    at1-03-eventgrid-message.json                  2b60fdc4df  08-23 20:24
+    at1-04-consumer-logs.txt                       2b60fdc4df  08-23 20:24
+    at1-05-db-readback.txt                         2b60fdc4df  08-23 20:24
+    at1-06-flagoff-guard.txt                       2b60fdc4df  08-23 20:24
+    at1-07-cutover-guard.txt                       2b60fdc4df  08-23 20:25
     at1-08-cfg-diff.py                             —           08-23 20:21
-    at1-08-config-provenance.txt                   2b60fdc4df  08-23 20:22
+    at1-08-config-provenance.txt                   2b60fdc4df  08-23 20:25
     at1-08-derive-sink.py                          —           08-23 20:21
     at1-08-live-sink-readback.yaml                 —           08-23 20:21
     at1-08-rediff-output.txt                       —           08-23 20:22
     at1-08-rediff.py                               —           08-23 20:21
     at1-08-rendered-sink.yaml                      —           08-23 20:21
-    at10-01-pr-body.md                             —           08-23 19:47
-    at10-04-evidence-provenance.txt                2b60fdc4df  08-23 19:47
+    at10-01-pr-body.md                             —           08-23 21:02
+    at10-04-evidence-provenance.txt                2b60fdc4df  08-23 21:02
     at10-05-owner-ruling-c3.txt                    2b60fdc4df  08-23 19:03
     at10-06-tracker-fetch.txt                      2b60fdc4df  08-23 18:51
     at10-07-r46-body-and-adr.txt                   2b60fdc4df  08-23 19:04
+    at10-08-prod-ld-posture.txt                    2b60fdc4df  08-23 21:02
     at10-21-head-move-provenance.txt               —           08-23 19:48
-    at10-23-evidence-currency.txt                  —           08-23 20:23
-    at10-24-sibling-pr-12382.txt                   2b60fdc4df  08-23 19:50
+    at10-23-evidence-currency.txt                  —           08-23 21:42
+    at10-24-sibling-pr-12382.txt                   2b60fdc4df  08-23 20:24
+    at2-01-before.txt                              2b60fdc4df  08-23 21:42
+    at2-02-after.txt                               2b60fdc4df  08-23 21:42
+    at2-03-redelivery.txt                          2b60fdc4df  08-23 21:42
+    at2-04-dedup-keys.txt                          2b60fdc4df  08-23 21:42
+    at3-01-poison-send.txt                         2b60fdc4df  08-23 21:42
+    at3-02-dlq-receive.txt                         2b60fdc4df  08-23 21:42
+    at3-03-consumer-logs.txt                       2b60fdc4df  08-23 21:42
+    at3-04-sibling-db.txt                          2b60fdc4df  08-23 21:42
     at4-01-postfix-refusal-azure-s3.txt            2b60fdc4df  08-23 19:46
     at4-02-postfix-refusal-aws-asb.txt             2b60fdc4df  08-23 19:46
     at4-03-postfix-correct-boot.txt                2b60fdc4df  08-23 19:36
@@ -47,9 +56,9 @@
     at5-02-mcpgw-postfix.txt                       2b60fdc4df  08-23 19:39
     at6-04b-diff-matched.txt                       2b60fdc4df  08-23 19:22
     at6-04c-diff-reingest-skip.txt                 2b60fdc4df  08-23 19:22
-    at6-05-per-class.txt                           2b60fdc4df  08-23 19:34
-    at6-06-ledger.txt                              2b60fdc4df  08-23 19:49
-    at6-07-transport-equivalence.txt               2b60fdc4df  08-23 19:22
+    at6-05-per-class.txt                           2b60fdc4df  08-23 20:26
+    at6-06-ledger.txt                              2b60fdc4df  08-23 20:25
+    at6-07-transport-equivalence.txt               2b60fdc4df  08-23 20:27
     at7-50-amendment-r30-reaffirm.txt              2b60fdc4df  08-23 19:34
     at8-01-render-saas.txt                         2b60fdc4df  08-23 19:01
     at8-02-render-centerpoint.txt                  2b60fdc4df  08-23 19:01
@@ -62,7 +71,7 @@
     at9-05-roles.txt                               2b60fdc4df  08-23 19:46
     at9-06-flux-config.txt                         2b60fdc4df  08-23 19:46
     at9-07-key-match.txt                           2b60fdc4df  08-23 19:46
-    at9-08-credential-footprint.txt                2b60fdc4df  08-23 19:46
+    at9-08-credential-footprint.txt                2b60fdc4df  08-23 20:24
 
 === NOT RE-DRIVEN, AND LANE CODE MOVED UNDER IT — each needs its own reason ===
     artifact                                       stamped     lane files moved
@@ -88,16 +97,8 @@
     at10-19-round43-gaps.txt                       a2486bb33f  18
     at11-01-azure-alert-path.txt                   a2486bb33f  18
     at12-01-downstream-start-failure.txt           a2486bb33f  18
-    at2-01-before.txt                              a2486bb33f  18
-    at2-02-after.txt                               a2486bb33f  18
-    at2-03-redelivery.txt                          a2486bb33f  18
-    at2-04-dedup-keys.txt                          a2486bb33f  18
     at2-05-isolated-replay.txt                     a2486bb33f  18
     at2-06-dedup-constraint-names.txt              a2486bb33f  18
-    at3-01-poison-send.txt                         a2486bb33f  18
-    at3-02-dlq-receive.txt                         a2486bb33f  18
-    at3-03-consumer-logs.txt                       a2486bb33f  18
-    at3-04-sibling-db.txt                          a2486bb33f  18
     at5-03-shapes.txt                              a2486bb33f  18
     at6-01-inventory.txt                           a2486bb33f  18
     at6-02-old-lane-rows.txt                       a2486bb33f  18
