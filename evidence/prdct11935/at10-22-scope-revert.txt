@@ -1,0 +1,276 @@
+# PRDCT-11935 at10-22 — OWNER SCOPE CORRECTION: the revert, and proof it changes nothing on AWS
+# FILE LAST WRITTEN 2026-08-23T12:27:41Z
+# onyx head ecf60f81c706 (post-revert) · captured 2026-08-23T12:27:41Z
+#
+# The ticket owner ruled PRDCT-11935 Azure ENABLEMENT ONLY — not a bug-fix PR. The old-lane parity
+# work this branch had accumulated comes back out; the Azure transport stays. This file is the
+# reverted-vs-kept map and the AWS-safety proof.
+
+=== 1. REVERTED — restored to main exactly ===
+  ingestion/writers.py           seeded Claude connectors (build_seeded_connector_servers), the
+                                 scanner_version stamp, _meter_session_alerts, and the
+                                 InventoryWriteResult/abandoned plumbing
+  ingestion/extract.py           _extension_name_from_mcpb + _extension_name_from_server_name
+  ingestion/object_processor.py  the processed_with_failures split + agent_slices_dropped
+  ingestion/pipeline.py          failed_agent_slices; write_inventory returns list[int] again
+  desktop_agent_creator/scanner_version.py    DELETED (was new)
+  desktop_agent_creator/workflow.py           restored; resolve_scanner_version_for_agent is back
+                                 at its main location:
+                                   workflow.py:207:def resolve_scanner_version_for_agent(scan_summaries: list[ScanSummaryData], device_serial_number: str | None) -> str | None:
+  tests                          test_writers.py, test_extract.py, test_object_processor.py restored;
+                                 test_session_alert_failure_is_metered.py DELETED
+
+  Dangling-reference sweep — every reverted symbol must be gone from src and tests:
+      build_seeded_connector_servers     0
+      _extension_name_from_mcpb          0
+      InventoryWriteResult               0
+      agent_slices_dropped               0
+      AgentSlicesDroppedLabels           0
+      processed_with_failures            0
+      failed_agent_slices                0
+      _meter_session_alerts              0
+
+=== 2. metrics.py — PARTIAL revert, exactly as ruled ===
+  DROPPED : the processed_with_failures outcome value, AgentSlicesDroppedLabels, the
+            agent_slices_dropped counter.
+  KEPT    : the HELP-text rewording. Every surviving line in this file:
+      -        "Total SQS messages received from the asset ingestion events queue",
+      +        "Total queue messages received from the asset ingestion events queue",
+      -        "Ingestion steps by outcome (ok / error / skipped) — step names map 1:1 to the retired Temporal workflows/activities",
+      +        "Ingestion steps by outcome (ok / error / skipped) — step names map 1:1 to the Temporal units "
+      +        "this lane replaces, still live on every cell not yet cut over",
+      -        "SQS redeliveries (ApproximateReceiveCount > 1) — idempotent message reprocessing (message-level, no tenant label)",
+      +        "Queue redeliveries (receive count > 1: SQS ApproximateReceiveCount, Service Bus delivery count) — "
+      +        "idempotent message reprocessing (message-level, no tenant label)",
+      -        "Messages that exhausted maxReceiveCount and landed in the DLQ, by reason",
+      +        "Messages that exhausted the queue's delivery limit and landed in the DLQ, by reason",
+      -        "Age of the SQS message at receive time (now - SentTimestamp) — THE overload signal (schedule-to-start replacement)",
+      +        "Age of the queue message at receive time (now - SentTimestamp) — THE overload signal (schedule-to-start replacement)",
+  JUDGEMENT CALL, surfaced for the owner rather than decided quietly: four of those are the
+  SQS->queue rewording the ruling names. The fifth (step_total, 'retired Temporal workflows' ->
+  'the Temporal units this lane replaces, still live on every cell not yet cut over') is a
+  different rewording. It is not on the drop list and it is not the SQS->queue one either. I kept
+  it because reverting would restore a sentence that is factually wrong, but it is the owner's to
+  overrule.
+
+=== 3. KEPT — the Azure transport set, verified present ===
+      transport_guard.py = 1
+      AssetIngestionASBConfig = 1
+      service.py CloudProvider.AZURE branch = 3
+      event_parser blob dispatch = 3
+      asb.py _system_properties = 2
+      event_time.py = 1
+      ADR 0067 = 1
+      abandon_message (client.py + consumer_pool.py + sqs.py + asb.py) = 4 files
+      assert_cloud_supported in both gen-2 configs = 2
+      ASBQueueClient left in either gen-2 service (expect 0) = 0
+
+=== 4. THE AWS QUESTION — does anything left in this PR change behaviour on an AWS cell? ===
+  The ruling asks for proof, not assurance, so this section is a per-file walk of the whole diff with
+  a measured basis for each verdict. Nothing here is "should be fine".
+
+  4.1 Diff scope. 40 files:
+
+  4.2 Helm. Two kinds of change, both inert on AWS:
+      * the gen-2 charts LOSE their scanner_events_asb / mcp_gateway_events_asb stanzas — every value in
+        them was the empty string, so no AWS cell was configured through them;
+      * endpoint-asset-ingestion GAINS asset_ingestion_asb + alert_processing_asb, both defaulting to "".
+      The risk this creates is a cell whose flux-fleet values still carry a key the model no longer
+      declares. common_core.config.BaseCustomSettings sets extra="allow" (config.py:32-38) and Config
+      inherits it (config.py:790), so such a key is accepted and ignored rather than rejected. Measured,
+      by constructing each config WITH the removed stanza still present:
+          scanner_event_consumer  cloud=aws    stale scanner_events_asb accepted+ignored, field gone from the model: True
+          mcp_gateway_consumer    cloud=aws    stale mcp_gateway_events_asb accepted+ignored, field gone: True
+          endpoint_asset_ingestion cloud=aws   asset_ingestion_asb defaults empty -> ns='' queue=''; sqs url untouched=''
+          all three default to cloud=aws and boot clean
+      An operator who removes the stale key later gets the same result; an operator who never does is
+      not broken by this PR. (A boot with a NON-empty ASB stanza on an AWS cell is refused on purpose —
+      that is the transport guard, evidence at4-02, and it cannot fire on a cell that is correctly
+      configured today because the stanza did not exist to be filled.)
+
+  4.3 Dependencies. One line added to pyproject: azure-storage-blob>=12.27.1, in the base dependency
+      group. It was already installed on every image as a transitive of the azure_mgmt extra; the change
+      makes the direct import direct. Its only import site is common_core/services/blob_storage_client.py,
+      which storage_factory imports lazily INSIDE the Azure branch, so an AWS pod's import graph is
+      byte-identical. uv.lock is the lock of that one line.
+      import sites of azure.storage.blob: 2, both in blob_storage_client.py
+      reached from storage_factory only under 'if cloud_provider == CloudProvider.AZURE' (storage_factory.py:67, a function-local import)
+
+  4.4 The 18 production source files, each with its AWS verdict and the basis for it.
+
+      NEVER EXECUTED ON AN AWS CELL — 3 files
+        ingestion_events/blob_event.py   the Event Grid parser. Reached only via parser_for_cloud(AZURE).
+        queue/asb.py                     the Service Bus client. Constructed only under a cloud is AZURE
+                                         branch. Its module-level `from azure.servicebus...` imports are
+                                         not new reachability: common_core/services/queue/__init__.py
+                                         already imported ASBQueueClient on main (line 33), so every AWS
+                                         pod that touches that package imports azure.servicebus today.
+        ingestion_events/event_time.py   new, but see the next block — it is a MOVE.
+
+      MOVED OR RE-EXPORTED, BEHAVIOUR UNCHANGED — 3 files
+        ingestion_events/event_time.py   s3_event.py's private `_parse_event_time` lifted out verbatim so
+        ingestion_events/s3_event.py     the blob parser can share it. Only the docstring was generalized
+                                         ("an S3 RFC3339 eventTime" -> "an RFC3339 storage-notification
+                                         eventTime"); every executable line is the original. s3_event.py's
+                                         sole change is calling it by its new name.
+        ingestion_events/__init__.py     docstring + one added re-export. No AWS symbol moved or changed.
+
+      SHARED CODE AN AWS POD DOES EXECUTE — 6 files. This is where a regression would actually live.
+        queue/client.py                  +1 abstract method, abandon_message, on the QueueClient protocol.
+                                         Additive; no existing signature touched.
+        queue/sqs.py                     implements it. The whole executable body, by AST:
+            AST of SQSQueueClient.abandon_message, docstring removed -> 1 statement(s):
+                return False
+                calls made: 0   awaits: 0   -> it cannot reach the SQS API
+                                         Returning False is not an arbitrary choice — it is the statement
+                                         "the broker did NOT re-offer this message immediately", which is
+                                         true of SQS, whose redelivery waits out the visibility timeout.
+        queue/consumer_pool.py           the only caller. It backs off ONLY when the client returns True:
+                                  released_immediately = await client.abandon_message(msg)
+                              except Exception:
+                                  logger.exception("Failed to release message for redelivery", worker_id=worker_id, message_id=msg.id)
+                                  released_immediately = False
+          
+                              # Pace the retry, but ONLY where the broker re-offers the message at once. Service Bus
+                              # does, and each attempt counts against the queue's max_delivery_count, so without this
+                              # a dependency outage cycles receive -> fail -> abandon at full speed and dead-letters
+                              # work that was never bad. SQS is the opposite: the message is invisible for its
+                              # visibility timeout either way, so sleeping here would only idle a worker that could
+                              # be draining other messages.
+                              if released_immediately:
+                                  logger.info(
+                                      "Backing off before the next attempt at an immediately-redelivered message",
+                                      worker_id=worker_id,
+                                         So on SQS the pool takes the same path it took on main: release,
+                                         no sleep, next message. Both arms are covered by named tests —
+                                         test_immediate_release_backs_off_between_attempts (the Service Bus
+                                         arm) and test_deferred_release_does_not_stall_the_worker (SQS).
+        eai/consumer/event_parser.py     `parse_object_created_message` — the function the AWS lane calls —
+                                         is untouched. The new selector hands the AWS lane that same
+                                         function object back, and declares empty-parse NOT poison there.
+        eai/consumer/message_handler.py  the parser and the empty-is-poison flag became constructor
+                                         arguments whose DEFAULTS are the previous hard-coded behaviour, so
+                                         the new dead-letter branch is unreachable on an AWS cell. The
+                                         unparseable-poison path moved into `_park_poison` unchanged: same
+                                         PoisonLabels(reason="unparseable"), same dead_letter_message, same
+                                         ack-anyway fallback. Measured:
+            parser_for_cloud(AWS) IS the parser main already used : True
+            empty_parse_is_poison(AWS)                            : False  (the new dead-letter branch is unreachable on AWS)
+            handler defaults, i.e. what an unchanged caller gets   : parse=parse_object_created_message  empty_is_poison=False
+            SQSQueueClient.abandon_message executable body        : ['Kept explicit so the pool can release a failed message on every transport without asking which', 'one it is talking to. Returns False because the redelivery is DEFERRED by that timeout — the', 'message is invisible meanwhile, so the pool must not idle a worker waiting for it.', 'return False']   (no boto call, no state change)
+            parse_event_time round-trips the three S3 eventTime cases identically to main's _parse_event_time
+            a real S3 notification through the AWS parser         : key='tenant=x/o.log' event_time=2026-08-23 12:00:00+00:00
+            an s3:TestEvent still parses to [] (routine, acked)   : True
+        eai/metrics.py                   HELP text only, after the partial revert in section 2. No metric
+                                         name, label set, or type changed, so no dashboard, alert or
+                                         recording rule that queries this lane on AWS is affected.
+
+      CLOUD-BRANCHED, AWS ARM PRESERVED — 6 files
+        eai/config.py                    the ASB stanza is new and defaults empty (4.2). The one change
+                                         that touches the AWS lane is AssetIngestionS3Config's base:
+                                         BaseCustomSettings -> the shared S3Config. That is only safe if
+                                         the four inherited fields match the four it stopped declaring —
+                                         same names, same defaults, or an AWS cell's ONYX__ASSET_INGESTION_S3__*
+                                         env would land somewhere else. Read off the built model:
+              aws_region           present=True  default='us-east-1'
+              endpoint             present=True  default=None
+              access_key_id        present=True  default=None
+              secret_access_key    present=True  default=None
+                                         Identical on all four, including the us-east-1 default. The base
+                                         adds one field this lane does not use (bucket_name — the bucket
+                                         always comes from the storage event record), documented in place.
+        eai/service.py                   the storage client is now built by the shared storage_factory
+                                         instead of inline. That factory is NOT in this diff — it is
+                                         pre-existing common_core — and its AWS arm constructs
+                                         S3Client(region_name=..., endpoint_url=..., access_key_id=...,
+                                         secret_access_key=...) from exactly the fields the inline code
+                                         passed. The alert fan-out gains an `elif cloud is not AZURE`
+                                         guard in front of the pre-existing `alert_processing_sqs.queue_url`
+                                         arm, which is true on every AWS cell, so that arm still runs.
+        scanner_event_consumer_service/{config,service}.py
+        mcp_gateway_event_consumer_service/{config,service}.py
+                                         these two lost their Azure branch, which was DEAD on an AWS cell
+                                         twice over: it was gated on cloud == AZURE, and its queue_name
+                                         was "" in every chart. What is left is the old `else` arm,
+                                         dedented — same SQSQueueClient, same ConsumerPoolConfig, same
+                                         ConsumerPool. `_health_client` went away because on AWS it was
+                                         literally assigned `self._queue_client`, so health now reads the
+                                         same object it always read, and close() no longer tests a
+                                         condition that was never true on AWS. The added
+                                         assert_cloud_supported validator refuses cloud=azure only —
+                                         test_supported_cloud_passes covers the AWS side.
+
+  4.5 The suites, on the reverted head.
+      AWS mode (the default, ONYX__CLOUD unset -> aws) — endpoint_asset_ingestion, the queue layer,
+      common_core, and both gen-2 consumers:
+        $ uv run pytest tests/endpoint_asset_ingestion tests/common/services/queue tests/common_core \
+                        tests/scanner_event_consumer_service tests/mcp_gateway_event_consumer_service -q
+        855 passed, 15 warnings in 131.56s (0:02:11)
+        EXIT=0
+
+      Azure mode (ONYX__CLOUD=azure exported for the whole run), same packages:
+        $ ONYX__CLOUD=azure uv run pytest <same paths> -q
+        2 failed, 853 passed, 15 warnings in 138.11s (0:02:18)
+        2 of those failures are PRE-EXISTING on origin/main and untouched by this PR:
+          tests/endpoint_asset_ingestion/test_config.py::test_env_configured_lane_config_drives_the_scanner_version_fallback
+          tests/endpoint_asset_ingestion/test_config.py::test_unconfigured_lane_config_leaves_the_fallback_inert
+        Both construct a bare EndpointAssetIngestionConfig() and so inherit the ambient
+        ONYX__CLOUD=azure, which trips a validator that lives in common_core/config.py:815 and is
+        NOT in this diff ('ONYX__BLOB__ACCOUNT_URL is required when ONYX__CLOUD=azure'). Proven by
+        running the same two node-ids against a detached origin/main worktree (f2df1ddb82):
+          2 failed, 4 warnings in 0.36s   <- identical failure on main
+        The owner ruled this ticket Azure ENABLEMENT ONLY and 'do not fix pre-existing AWS-lane
+        bugs here', so they are reported, not fixed. Neither test fails in CI, which does not
+        export ONYX__CLOUD.
+
+      The three tests of MINE that failed the same way ARE fixed, because a test named
+      TestAwsBoot must assert the AWS arm whatever the surrounding environment says:
+        tests/endpoint_asset_ingestion/test_service.py now pins cloud=CloudProvider.AWS in its
+        _aws_config() helper and in TestStorageConfigSurvives, exactly as _azure_config() already
+        pinned AZURE. After the fix: 8 passed under ONYX__CLOUD=azure.
+
+      The packages the revert touched, full run:
+        $ uv run pytest tests/python_temporal_worker/integrations/desktop_agent_creator tests/endpoint_asset_ingestion -q
+        1345 passed, 24 warnings in 129.55s (0:02:09)
+
+  4.6 And the live proof, which the diff audit cannot give on its own. The full base-vs-head AWS-lane
+      leg is its own artifact set — a real onyx-scanner's bodies replayed through Kong into two fresh
+      tenants, one per writer image, tenant-DB dumps diffed:
+        evidence/at11-02-aws-lane-base.txt    the frozen-base image leg
+        evidence/at11-03-aws-lane-head.txt    the head image leg, same bytes
+        evidence/at11-04-aws-lane-diff.txt    0 changed lines; both dumps sha256 035e7784c6708865...
+        evidence/at11-07-sibling-consumers-aws.txt   both gen-2 consumers, AWS mode, both images
+        evidence/at11-08-flux-render-aws-cells.txt   every AWS cell's rendered manifests, base vs head
+        evidence/at11-05-gen1-untouched.txt   gen-1: 2145 tracked files, 0 changed, still running
+
+=== 5. THE AZURE LANE STILL WORKS ON THE REVERTED HEAD ===
+  The revert must not have taken the feature with it. One real scan, driven through the same Kong
+  front door, all the way down the Azure chain on the reverted image:
+    image  localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r45, built from the reverted head
+    marker r45-revert-smoke-20260823120948
+
+    the scan:
+      2026-08-23T12:26:15.061330755Z	INFO	Scan run completed	{"payloads_sent": 6, "users": 1, "agents_detected_total": 4, "mcp_servers_total": 9, "projects_total": 2, "skills_total": 252, "duration_ms": 67517, "scan_run_id": "71901440-868b-44da-be94-05637ea0498d"}
+
+    the eai-azure consumer settling the Event Grid messages off Service Bus:
+      2026-08-23T12:26:14.518409Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_se
+      2026-08-23T12:26:14.518888Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=266 message_id=0ee36fe4-f8e2-4f09-96ff-c7e02b6
+      2026-08-23T12:26:15.715656Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_se
+      2026-08-23T12:26:15.716165Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=266 message_id=430c2ae3-600d-4443-a747-22c3624
+      2026-08-23T12:26:16.623260Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_se
+      2026-08-23T12:26:16.623716Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=266 message_id=9be3cb3b-6aa5-4972-8967-4b38729
+
+    and the row the marker skill produced, read back from the tenant DB:
+      355961 | r45-revert-smoke-20260823120948 | AssetTypeSkill | AssetStatusDiscovered | 2026-08-23 12:26:03.770601+00
+
+=== HEAD-MOVE NOTE (appended 2026-08-23T13:50:09Z) ===
+    The images driven above were built from ecf60f81c7. The branch head then moved once, to
+    12461e0002f512cd1d89cac9509fedb9833b92eb, for a TEST-ONLY commit ("Pin the cloud in the aws-arm service tests").
+    That commit is not in the images and cannot be: the prod Dockerfile copies pyproject.toml,
+    uv.lock and ./src, and nothing else.
+      $ git diff --name-only ecf60f81c7..12461e0002f512cd1d89cac9509fedb9833b92eb
+        backend_python/tests/endpoint_asset_ingestion/test_service.py
+      $ git diff --stat ecf60f81c7..12461e0002f512cd1d89cac9509fedb9833b92eb -- backend_python/src backend_python/pyproject.toml \
+                          backend_python/uv.lock infra docs
+        (empty)
+    So every shipping byte these legs exercised is the head's shipping byte.
