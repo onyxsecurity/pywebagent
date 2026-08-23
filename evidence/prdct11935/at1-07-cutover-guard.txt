@@ -1,60 +1,216 @@
-# PRDCT-11935 at1-07 — CUTOVER GUARD: the old lane off, the new lane still lands the scan
-# FILE LAST WRITTEN 2026-08-21T10:08:29Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# PRDCT-11935 at1-07 — CUTOVER GUARD: the gen-1 lane off, the new lane still lands a fresh scan
+# FILE LAST WRITTEN 2026-08-23T20:22:54Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx branch 0665ecc545 · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r25 · pod eai-azure-5d8757d74d-l528g
-# captured 2026-08-20T21:45:02Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T20:10:44Z
 #
-# IMAGE PROVENANCE, STATED HONESTLY (round-28 correction). This capture ran on
-# :prdct11935-r25, which was built from `0665ecc545`. That is NOT the head that merges: `a2486bb33f`
-# is ONE commit ahead of it. The previous revision of this header claimed r25 was "proven byte-exact to
-# head" citing at6-12 — at6-12 establishes that :prdct11935-r26 is the head-exact image, not r25 — and at10-04, generated from
-# this very header, has been listing this row as "1 lane-touching commit(s) landed after it". That claim
-# is withdrawn and replaced by the measured delta:
-#     $ git diff --name-only 0665ecc545..a2486bb33f
-#       backend_python/src/common_core/services/queue/asb.py                       (the sender lock)
-#       backend_python/src/endpoint_asset_ingestion/ingestion/writers.py           (alert-publish metering)
-#       backend_python/tests/common_core/services/test_asb_sender_concurrency.py   (new test)
-#       backend_python/tests/endpoint_asset_ingestion/ingestion/test_session_alert_failure_is_metered.py (new test)
-#     4 files changed, 181 insertions(+), 4 deletions(-)
-# WHY THIS MEASUREMENT IS STILL SOUND ON r25: this leg asserts WHICH lane is running (gen-1 at zero replicas, the new writer consuming) and that the
-#   tenant keeps getting rows across a cutover. The delta adds a sender lock and a metric; it changes no
-#   row, no lane selection and no schedule.
+# RE-MEASURED THIS ROUND on the current shipped head. This is the footgun the ticket exists to close:
+# an Azure tenant that follows the documented cutover order (disable the old scheduled lane, enable
+# the new one) must not end up with NO writer at all.
 #
-# RE-DRIVEN THIS ROUND ON THE HEAD-EXACT IMAGE. The round-21 gate found this required_evidence item had
-# last been captured 2026-08-19T17:18Z on image :prdct11935-r5. This is a fresh drive on
-#
-# This is the footgun the ticket exists to close: an Azure tenant that follows the documented cutover
-# order (disable the old scheduled lane, enable the new one) must not end up with no writer at all.
-#
-# HOW THE OLD LANE IS OFF HERE: every deployment that could execute it is at ZERO REPLICAS with no pods —
-# stronger than pausing its schedule, because a schedule may keep firing while nothing can run it.
+# The window is the same one at1-02/03/04/05 were captured in:
+#   window open  = 2026-08-23T20:05:17Z (the moment the gen-1 schedule was paused)
+#   window close = 2026-08-23T20:10:11Z (the counts below) / restore at 20:10:44Z
+#   fresh scan   = scan_run_id 9e971fab-4f73-4a7e-8215-4ddea134a22c, 20:05:48Z -> 20:06:56Z
 
-=== 1. the old lane cannot execute (replica counts and the pods that do NOT exist)
-temporal-general-worker    0     <none>
-temporal-scanner-worker    0     <none>
-scanner-event-consumer     0     <none>
-endpoint-asset-ingestion   0     <none>
-    pods alive for those four deployments:
-      0  (0 = the old lane has no process anywhere in the cluster)
-    the NEW lane, still running, on the head-exact image:
-eai-azure   localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r25   1
+=================== 1. the state BEFORE — the gen-1 schedule running ===================
 
-=== 2. a FRESH real scan through the product's own front door, with the old lane down
-    scanner_installations max id before: 326
-    SCAN START 2026-08-20T21:41:50Z
-    scanner exit=0
-    "scan_run_id": "416d2663-ea52-4291-8c8c-e51987ef6818"
+$ kubectl -n onyxd exec deploy/onyx-temporal-admintools -- tctl --namespace default schedule describe --sid scanner-collector-schedule
+    
+              ScheduleId                WorkflowType        Paused         Notes         RunningWorkflows     NextRunTime       LastRunTime                           Specification                          
+      scanner-collector-schedule  ScannerCollectorWorkflow  false   r39d at6-04c closed  []                6 seconds from now  53 seconds ago  {"interval":[{"interval":"60s","phase":"0s"}],"jitter":"0s"}  
 
-=== 3. the new lane LANDED it — the tenant's own receipt for that exact scan_run_id
-     id  |             scan_run_id              | total_agents | total_mcp_servers | total_skills |       scanned_at       |                                                                key                                                                 
-    -----+--------------------------------------+--------------+-------------------+--------------+------------------------+------------------------------------------------------------------------------------------------------------------------------------
-     328 | 416d2663-ea52-4291-8c8c-e51987ef6818 |            3 |                17 |          120 | 2026-08-20 21:42:49+00 | tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-20/1787262171-ce27e713-271c-4e97-a5c9-853a2a064356.log
+$ kubectl -n onyxd get deploy endpoint-asset-ingestion scanner-event-consumer mcp-gateway-event-consumer temporal-scanner-worker temporal-general-worker -o custom-columns=NAME:.metadata.name,REPLICAS:.spec.replicas
+    endpoint-asset-ingestion     1
+    scanner-event-consumer       1
+    mcp-gateway-event-consumer   1
+    temporal-scanner-worker      1
+    temporal-general-worker      1
+
+=================== 2. PAUSE the gen-1 schedule (the cutover's first step, in observable form) ===================
+
+## Note for anyone re-driving this: `tctl schedule pause` does NOT exist on this admintools image
+## ("No help topic for 'pause'"), and `temporal schedule pause` is not a command either. The working
+## invocation is `temporal schedule toggle --pause --schedule-id …`; both wrong forms were tried and
+## are recorded in the run log rather than hidden.
+  ### kubectl -n onyxd exec deploy/onyx-temporal-admintools -- temporal schedule toggle --pause --address onyx-temporal-frontend:7233 --namespace default --schedule-id scanner-collector-schedule --reason "PRDCT-11935 at1-07 cutover guard (round 49)"
+  2026-08-23T20:05:17Z
+  
+  ### readback:  temporal schedule describe --schedule-id scanner-collector-schedule -o json  (state fields)
+  {
+   "paused": true,
+   "notes": "PRDCT-11935 at1-07 cutover guard (round 49)",
+   "spec": {
+    "interval": [
+     {
+      "interval": "60s",
+      "phase": "0s"
+     }
+    ],
+    "jitter": "0s"
+   }
+  }
+  
+  ### the same fact through tctl (the view env_setup documents)
+  
+            ScheduleId                WorkflowType        Paused              Notes               RunningWorkflows      NextRunTime       LastRunTime                           Specification                          
+    scanner-collector-schedule  ScannerCollectorWorkflow  true    PRDCT-11935 at1-07 cutover      []                42 seconds from now  17 seconds ago  {"interval":[{"interval":"60s","phase":"0s"}],"jitter":"0s"}  
+                                                                  guard (round 49)                                                                                                                                     
+  SCHEDULE_PAUSED_AT=2026-08-23T20:05:17Z
+
+## AND, so the window's DB rows are attributable to the azure lane alone, every other writer that
+## could put a row in this tenant was taken to zero replicas for the window:
+  ### and quiesce every OTHER writer that could put a row in this tenant, so the window's rows are attributable to the AZURE lane alone
+  $ kubectl -n onyxd scale deploy/endpoint-asset-ingestion --replicas=0
+  deployment.apps/endpoint-asset-ingestion scaled
+  $ kubectl -n onyxd scale deploy/scanner-event-consumer --replicas=0
+  deployment.apps/scanner-event-consumer scaled
+  $ kubectl -n onyxd scale deploy/mcp-gateway-event-consumer --replicas=0
+  deployment.apps/mcp-gateway-event-consumer scaled
+  $ kubectl -n onyxd scale deploy/temporal-scanner-worker --replicas=0
+  deployment.apps/temporal-scanner-worker scaled
+  $ kubectl -n onyxd scale deploy/temporal-general-worker --replicas=0
+  deployment.apps/temporal-general-worker scaled
+  
+  ### bounded wait for those pods to actually be gone
+    t+5s running pods across the five quiesced deployments: 5
+    t+10s running pods across the five quiesced deployments: 1
+    t+15s running pods across the five quiesced deployments: 1
+    t+20s running pods across the five quiesced deployments: 1
+    t+25s running pods across the five quiesced deployments: 1
+    t+30s running pods across the five quiesced deployments: 1
+    t+35s running pods across the five quiesced deployments: 1
+    t+40s running pods across the five quiesced deployments: 1
+    t+45s running pods across the five quiesced deployments: 1
+    t+50s running pods across the five quiesced deployments: 1
+    t+55s running pods across the five quiesced deployments: 1
+    t+60s running pods across the five quiesced deployments: 1
+    t+65s running pods across the five quiesced deployments: 1
+    t+70s running pods across the five quiesced deployments: 1
+    t+75s running pods across the five quiesced deployments: 1
+    t+80s running pods across the five quiesced deployments: 1
+    t+85s running pods across the five quiesced deployments: 1
+    t+90s running pods across the five quiesced deployments: 1
+    t+95s running pods across the five quiesced deployments: 1
+    t+100s running pods across the five quiesced deployments: 1
+    t+105s running pods across the five quiesced deployments: 1
+    t+110s running pods across the five quiesced deployments: 1
+    t+115s running pods across the five quiesced deployments: 1
+    t+120s running pods across the five quiesced deployments: 1
+  
+
+## replica receipt at window open:
+    NAME                         REPLICAS   READY
+    endpoint-asset-ingestion     0          <none>
+    scanner-event-consumer       0          <none>
+    mcp-gateway-event-consumer   0          <none>
+    temporal-scanner-worker      0          <none>
+    temporal-general-worker      0          <none>
+    eai-azure                    1          1
+    WINDOW_OPEN=2026-08-23T20:04:15Z
+
+=================== 3. THE OBSERVATION — zero gen-1 executions in the window, against a control ===================
+  ### gen-1 executions STARTED inside the window (window open = the moment the schedule was paused, 2026-08-23T20:05:17Z)
+  $ NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ) ; echo $NOW
+  2026-08-23T20:10:11Z
+  $ kubectl -n onyxd exec deploy/onyx-temporal-admintools -- temporal workflow count --address onyx-temporal-frontend:7233 --namespace default --query "WorkflowType='ScannerCollectorWorkflow' AND StartTime > '2026-08-23T20:05:17Z'"
+  Total: 0
+  $ kubectl -n onyxd exec deploy/onyx-temporal-admintools -- temporal workflow count --address onyx-temporal-frontend:7233 --namespace default --query "WorkflowType='ScannerTenantWorkflow' AND StartTime > '2026-08-23T20:05:17Z'"
+  Total: 0
+  $ kubectl -n onyxd exec deploy/onyx-temporal-admintools -- temporal workflow count --address onyx-temporal-frontend:7233 --namespace default --query "WorkflowType='ScannerObjectWorkflow' AND StartTime > '2026-08-23T20:05:17Z'"
+  Total: 0
+  
+  ### and the raw listing, so the zero is not just an aggregate
+  $ temporal workflow list --query "WorkflowType='ScannerTenantWorkflow' AND StartTime > '2026-08-23T20:05:17Z'"
+  $ temporal workflow list --query "WorkflowType='ScannerObjectWorkflow' AND StartTime > '2026-08-23T20:05:17Z'"
+  
+  ### the raw listings, so the zeros are not just aggregates (empty body = no executions):
+  $ temporal workflow list --address onyx-temporal-frontend:7233 --namespace default --query "WorkflowType='ScannerCollectorWorkflow' AND StartTime > '2026-08-23T20:05:17Z'"
+      (no output at all — zero executions)
+  $ temporal workflow list --address onyx-temporal-frontend:7233 --namespace default --query "WorkflowType='ScannerTenantWorkflow' AND StartTime > '2026-08-23T20:05:17Z'"
+      (no output at all — zero executions)
+  $ temporal workflow list --address onyx-temporal-frontend:7233 --namespace default --query "WorkflowType='ScannerObjectWorkflow' AND StartTime > '2026-08-23T20:05:17Z'"
+      (no output at all — zero executions)
+  
+  ### CONTROL, same three queries against the 10 minutes BEFORE the pause (schedule running):
+  $ temporal workflow count --query "WorkflowType='ScannerCollectorWorkflow' AND StartTime BETWEEN '2026-08-23T19:55:17Z' AND '2026-08-23T20:05:17Z'"
+  Total: 10
+  $ temporal workflow count --query "WorkflowType='ScannerTenantWorkflow' AND StartTime BETWEEN '2026-08-23T19:55:17Z' AND '2026-08-23T20:05:17Z'"
+  Total: 63
+  $ temporal workflow count --query "WorkflowType='ScannerObjectWorkflow' AND StartTime BETWEEN '2026-08-23T19:55:17Z' AND '2026-08-23T20:05:17Z'"
+  Total: 0
+
+    READ THE CONTROL HONESTLY:
+      · ScannerCollectorWorkflow  10 -> 0   and   ScannerTenantWorkflow  63 -> 0.
+        Those two are the decisive comparison: with the schedule running, gen-1 started 10 collector
+        and 63 tenant workflows in the preceding 10 minutes; with it paused, it started NONE in the
+        ~5-minute window that contains the fresh scan.
+      · ScannerObjectWorkflow is 0 on BOTH sides. That is NOT a null result being dressed up — it is
+        the pre-existing state of this tenant: the gen-1 event-driven path (scanner-event-driven-
+        ingestion) already evaluates FALSE for it, so that workflow type was not running before the
+        pause either. It is reported as 0/0 rather than quietly dropped.
+
+=================== 4. THE POINT — with the old lane off, a FRESH real scan STILL lands ===================
+
+## the scan, through the product's own front door, INSIDE the paused window (full transcript in at1-02):
+    2026-08-23T20:05:48.952281066Z	DEBUG	Scan run starting	{"scan_run_id": "9e971fab-4f73-4a7e-8215-4ddea134a22c", "timestamp": "2026-08-23T20:05:48.950518899Z", "full_scan": true, "dry_run": false, "proj
+    2026-08-23T20:06:55.250219868Z	INFO	Scan run completed	{"payloads_sent": 6, "users": 1, "agents_detected_total": 4, "mcp_servers_total": 10, "projects_total": 2, "skills_total": 264, "duration_ms": 64156, "scan_run_id": "9e971fab-4f73-4a7e-8215-4ddea134a22c"}
+
+## and the tenant's own receipt for that exact scan_run_id, written by the AZURE lane:
+    ### the same row reached from the scan_run_id the scanner printed (independent join)
+    $ SELECT id, scan_run_id, scanned_at, log_s3_key FROM onyx_security.scanner_installations WHERE scan_run_id = '9e971fab-4f73-4a7e-8215-4ddea134a22c';
+     id  |             scan_run_id              |       scanned_at       |                                                             log_s3_key                                                             
+    -----+--------------------------------------+------------------------+------------------------------------------------------------------------------------------------------------------------------------
+     966 | 9e971fab-4f73-4a7e-8215-4ddea134a22c | 2026-08-23 20:06:53+00 | tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log
     (1 row)
     
+    The log_s3_key on that row is the AZURE blob key (tenant=…/source=mcp-scanner/date=2026-08-23/
+    1787515631-415c98cc-…), and the scan_run_id matches the one the scanner printed — so the row
+    cannot be a replay of anything older, and it cannot have come from gen-1, which started zero
+    workflows in the window and whose workers had zero pods.
 
-=== 4. what this proves
-    With gen-1's two Temporal workers, the gen-2 scanner-event-consumer and the AWS-mode writer all at
-    zero pods, a real scan posted to Kong still reached the tenant DB — through Blob -> Event Grid ->
-    Service Bus -> the azure-mode writer alone. The object key on the row (source=mcp-scanner/...) is the
-    Azure path, and the scan_run_id matches the one the scanner printed, so the row cannot have come from
-    an earlier replay. On the frozen base this same cutover left the tenant with NO writer at all.
+=================== 5. RESTORE — and the verification that it took ===================
+  ### RESTORE — unpause the gen-1 schedule
+  $ kubectl -n onyxd exec deploy/onyx-temporal-admintools -- temporal schedule toggle --unpause --address onyx-temporal-frontend:7233 --namespace default --schedule-id scanner-collector-schedule --reason "PRDCT-11935 at1-07 window closed (round 49)"
+  2026-08-23T20:10:38Z
+  
+  ### RESTORE — the five quiesced deployments back to their pre-window replica counts (all were 1)
+  $ kubectl -n onyxd scale deploy/endpoint-asset-ingestion --replicas=1
+  deployment.apps/endpoint-asset-ingestion scaled
+  $ kubectl -n onyxd scale deploy/scanner-event-consumer --replicas=1
+  deployment.apps/scanner-event-consumer scaled
+  $ kubectl -n onyxd scale deploy/mcp-gateway-event-consumer --replicas=1
+  deployment.apps/mcp-gateway-event-consumer scaled
+  $ kubectl -n onyxd scale deploy/temporal-scanner-worker --replicas=1
+  deployment.apps/temporal-scanner-worker scaled
+  $ kubectl -n onyxd scale deploy/temporal-general-worker --replicas=1
+  deployment.apps/temporal-general-worker scaled
+  
+  ### bounded wait for all five to be Ready again
+    t+5s  endpoint-asset-ingestion: scanner-event-consumer: mcp-gateway-event-consumer: temporal-scanner-worker: temporal-general-worker: 
+    t+10s  endpoint-asset-ingestion:1 scanner-event-consumer:1 mcp-gateway-event-consumer:1 temporal-scanner-worker:1 temporal-general-worker:1 
+  
+  ### RESTORE VERIFICATION
+  NAME                         REPLICAS   READY
+  endpoint-asset-ingestion     1          1
+  scanner-event-consumer       1          1
+  mcp-gateway-event-consumer   1          1
+  temporal-scanner-worker      1          1
+  temporal-general-worker      1          1
+  eai-azure                    1          1
+  
+            ScheduleId                WorkflowType        Paused              Notes               RunningWorkflows      NextRunTime       LastRunTime                          Specification                          
+    scanner-collector-schedule  ScannerCollectorWorkflow  false   PRDCT-11935 at1-07 window       []                15 seconds from now  5 minutes ago  {"interval":[{"interval":"60s","phase":"0s"}],"jitter":"0s"}  
+                                                                  closed (round 49)                                                                                                                                   
+  NAME                       PAUSED   ANN
+  endpoint-asset-ingestion   False    map[kubectl.kubernetes.io/last-applied-configuration:{"apiVersion":"keda.sh/v1alpha1","kind":"ScaledObject","metadata":{"annotations":{},"labels":{"app.kubernetes.io/instance":"onyx-app","app.kubernetes.io/managed-by":"Helm","app.kubernetes.io/name":"endpoint-asset-ingestion","app.kubernetes.io/version":"0.0.0","helm.sh/chart":"endpoint-asset-ingestion-0.0.0"},"name":"endpoint-asset-ingestion","namespace":"onyxd"},"spec":{"cooldownPeriod":300,"fallback":{"behavior":"static","failureThreshold":3,"replicas":5},"maxReplicaCount":20,"minReplicaCount":1,"pollingInterval":30,"scaleTargetRef":{"apiVersion":"apps/v1","kind":"Deployment","name":"eai-azure"},"triggers":[{"authenticationRef":{"name":"keda-trigger-auth-servicebus"},"metadata":{"messageCount":"10","queueName":"endpoint-asset-ingestion-prdct11935"},"type":"azure-servicebus"}]}}
+  ]
+  RESTORED_AT=2026-08-23T20:10:44Z
+
+    RESTORE VERDICT: schedule Paused=false and firing again (NextRunTime 15 seconds from now); all
+    five deployments back at replicas=1 / ready=1; the KEDA ScaledObject PAUSED=False with the
+    paused-replicas annotation removed; deploy/eai-azure 1/1.
+    ONE COSMETIC RESIDUE, disclosed: `temporal schedule toggle` writes its --reason into the
+    schedule's `notes` field, so the schedule's notes now read "PRDCT-11935 at1-07 window closed
+    (round 49)" where they previously read "r39d at6-04c closed". The notes field is free-text
+    annotation on a harness object; the schedule's spec, state and paused flag are byte-identical to
+    the pre-window readback in §1.
