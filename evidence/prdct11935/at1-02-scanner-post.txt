@@ -1,0 +1,128 @@
+# PRDCT-11935 at1-02 — the Kong front-door guard, then the REAL scanner upload through Kong
+# FILE LAST WRITTEN 2026-08-23T20:22:54Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T20:06:56Z
+#
+# RE-MEASURED THIS ROUND on the current shipped head. Every block is the literal command and its
+# literal output. The ingest api-key is NEVER written into this artifact — it is shown as <redacted>
+# in the quoted command line; the live value lives only in the shell that ran it.
+#
+# ISOLATION for this window (so at1-05's rows are attributable to the AZURE lane and nothing else):
+#   · the gen-1 schedule scanner-collector-schedule was PAUSED at 2026-08-23T20:05:17Z (at1-07),
+#   · deployments endpoint-asset-ingestion (the LocalStack/SQS writer), scanner-event-consumer,
+#     mcp-gateway-event-consumer, temporal-scanner-worker and temporal-general-worker were all at
+#     ZERO replicas for the whole window,
+#   · deploy/eai-azure (the azure-mode writer under test) was the ONLY consumer of the lab queue —
+#     re-proven mechanically below.
+#   All of it was restored afterwards; the restore receipt is in at1-07.
+#
+# THE CONSUMER IS KEDA-MANAGED — a fact this round measured and earlier rounds did not state.
+#   ScaledObject/endpoint-asset-ingestion targets deploy/eai-azure with minReplicaCount=1, so a bare
+#   `kubectl scale deploy/eai-azure --replicas=0` is REVERTED by the operator within ~10s (observed:
+#   a scale-to-0 at 19:47:33Z had a fresh pod back at 19:47:44Z). The sanctioned pause used here is
+#   the KEDA annotation autoscaling.keda.sh/paused-replicas="0"; see at1-03.
+
+=================== 1. the competing-consumer check, before anything is driven ===================
+
+## Only ONE workload in the cluster references the lab queue. Derived, not asserted: for every
+## deployment with replicas>0, read its mounted ConfigMap and grep for the queue name.
+$ for d in $(kubectl -n onyxd get deploy -o jsonpath='{range .items[?(@.spec.replicas>0)]}{.metadata.name}{"\n"}{end}'); do
+    cm=$(kubectl -n onyxd get deploy $d -o jsonpath='{.spec.template.spec.volumes[*].configMap.name}')
+    for c in $cm; do
+      n=$(kubectl -n onyxd get cm $c -o jsonpath='{.data.config\.yaml}' | grep -c 'endpoint-asset-ingestion-prdct11935')
+      [ "$n" != "0" ] && echo "$d -> cm $c references the lab eai queue ($n hits)"
+    done
+  done
+    eai-azure -> cm eai-azure references the lab eai queue (1 hits)
+    (no other line — exactly one consumer)
+
+## and the queue itself was EMPTY before the window opened:
+$ python sb.py counts endpoint-asset-ingestion-prdct11935
+    # queue counts at 2026-08-23T20:05:40.918498+00:00
+    endpoint-asset-ingestion-prdct11935: active=0 dead_letter=120 scheduled=0 transfer_dlq=0 total=120
+
+=================== 2. THE GUARD — the front door with NO key ===================
+### GUARD — the front door with NO key
+$ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-08-23T20:05:48Z
+$ curl -sS -i -X POST http://ingest-onyx:8080/mcp-scanner -H "Content-Type: application/json" -H "x-source-type: mcp-scanner" -d "{}"
+    HTTP/1.1 401 Unauthorized
+    Date: Sun, 23 Aug 2026 20:05:48 GMT
+    Connection: keep-alive
+    Content-Length: 36
+    X-Kong-Response-Latency: 0
+    Server: kong/3.9.3
+    X-Kong-Request-Id: bf3fc44265828e740c2bf1369ccab656
+    
+    {"error": "Authentication required"}
+## (the 401 is Kong's key-auth plugin, not the app: X-Kong-Response-Latency 0 and the body is Kong's
+##  own {"error": "Authentication required"} — nothing reached vector.)
+
+=================== 3. THE REAL SCAN, through that same front door, WITH the key ===================
+
+$ /tmp/onyx-scanner scan --verbose --endpoint http://ingest-onyx:8080/mcp-scanner --api-key <redacted>
+
+## the binary: rebuilt from THIS head before the run, so the transcript is the head's own scanner
+$ cd ~/onyx/scanner && go build -o /tmp/onyx-scanner-2b60fdc4 . && cp /tmp/onyx-scanner-2b60fdc4 /tmp/onyx-scanner
+$ sha256sum /tmp/onyx-scanner
+    6c6ca19911149363619b84de91a776b77acdc9073c9b6bf419e263d3c37e306c  /tmp/onyx-scanner
+
+## marker skill created FIRST so the scanner's send-dedup cannot suppress this window's payload:
+##   ~/.claude/skills/r49-at1c-20260823T200526Z/SKILL.md   (nonce 60ef8ebd-579e-4a3f-9467-edf945cc117e)
+##   — removed at the end of the run; the removal receipt is at the foot of at1-05.
+
+$ echo "SCAN_START=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+SCAN3_START=2026-08-23T20:05:48Z
+
+## the transcript's own start line, its per-payload sends, and its completion line:
+    3:2026-08-23T20:05:48.952281066Z	DEBUG	Scan run starting	{"scan_run_id": "9e971fab-4f73-4a7e-8215-4ddea134a22c", "timestamp": "2026-08-23T20:05:48.950518899Z", "full_scan": true, "dry_run": false, "project_walk_timeout": "7m0s", "session_lookback_window": "720
+    185:2026-08-23T20:05:56.596723312Z	DEBUG	payload sent to backend	{"payload_id": "scanner-agent-claude-code-f5686558-322f-449d-801f-c189b0a86a83", "size_bytes": 649472}
+    188:2026-08-23T20:05:57.613796391Z	DEBUG	payload sent to backend	{"payload_id": "scanner-agent-claude-c5a999e5-2c4b-4019-8e3b-c0d39d97c943", "size_bytes": 6438}
+    191:2026-08-23T20:05:58.655884534Z	DEBUG	payload sent to backend	{"payload_id": "scanner-agent-codex-23445bab-109d-4ef2-baac-061ebe79703e", "size_bytes": 23815}
+    194:2026-08-23T20:05:59.672677498Z	DEBUG	payload sent to backend	{"payload_id": "scanner-agent-hermes-agent-739b475e-7441-4629-a219-f9f1db4ce2b4", "size_bytes": 5942}
+    2627:2026-08-23T20:06:52.061097065Z	DEBUG	payload sent to backend	{"payload_id": "scanner-agent-claude-code-6c5886a2-4290-425f-8e90-a1669cbc46f3", "size_bytes": 1063003}
+    2634:2026-08-23T20:06:53.086282194Z	DEBUG	payload sent to backend	{"payload_id": "scanner-agent-codex-00743127-044f-476a-bb3b-df367d959d8a", "size_bytes": 66891}
+    2662:2026-08-23T20:06:54.176623575Z	DEBUG	payload sent to backend	{"payload_id": "scanner-summary-192b39ba-4bfa-4f66-9f80-ebc763a821f2", "size_bytes": 1141342}
+    2665:2026-08-23T20:06:55.249725205Z	DEBUG	payload sent to backend	{"payload_id": "scanner-logs-9e971fab-4f73-4a7e-8215-4ddea134a22c", "size_bytes": 804263}
+    2667:2026-08-23T20:06:55.250219868Z	INFO	Scan run completed	{"payloads_sent": 6, "users": 1, "agents_detected_total": 4, "mcp_servers_total": 10, "projects_total": 2, "skills_total": 264, "duration_ms": 64156, "scan_run_id": "9e971fab-4f73-4a7e-8215-4ddea134a22c"}
+
+SCAN3_EXIT=0
+SCAN3_END=2026-08-23T20:06:56Z
+
+=================== 4. THE HTTP STATUSES, from Kong's own access log ===================
+
+## The scanner logs "payload sent to backend" but not the status code, so the statuses are read from
+## the gateway that issued them. Filtered to this window only (>= 20:05:40Z):
+$ kubectl -n onyxd logs deploy/onyx-onyxd-platform-gateway --since=12m | grep '"POST /mcp-scanner'
+    127.0.0.1 - - [23/Aug/2026:20:05:48 +0000] "POST /mcp-scanner HTTP/1.1" 401 36 "-" "curl/7.81.0" kong_request_id: "bf3fc44265828e740c2bf1369ccab656"
+    127.0.0.1 - - [23/Aug/2026:20:05:56 +0000] "POST /mcp-scanner HTTP/1.1" 200 0 "-" "Go-http-client/1.1" kong_request_id: "2a3bb849f8b860686c64b60f4e305825"
+    127.0.0.1 - - [23/Aug/2026:20:05:57 +0000] "POST /mcp-scanner HTTP/1.1" 200 0 "-" "Go-http-client/1.1" kong_request_id: "bcfc711d7317eb444e766f30aba26b48"
+    127.0.0.1 - - [23/Aug/2026:20:05:58 +0000] "POST /mcp-scanner HTTP/1.1" 200 0 "-" "Go-http-client/1.1" kong_request_id: "a0af543f1993a00566983510872f1805"
+    127.0.0.1 - - [23/Aug/2026:20:05:59 +0000] "POST /mcp-scanner HTTP/1.1" 200 0 "-" "Go-http-client/1.1" kong_request_id: "39f16a626390a54fe9f541751a420922"
+    127.0.0.1 - - [23/Aug/2026:20:06:52 +0000] "POST /mcp-scanner HTTP/1.1" 200 0 "-" "Go-http-client/1.1" kong_request_id: "8b40c344a7bfae6a58cc5e2e294e383b"
+    127.0.0.1 - - [23/Aug/2026:20:06:53 +0000] "POST /mcp-scanner HTTP/1.1" 200 0 "-" "Go-http-client/1.1" kong_request_id: "1d76d532a84635339073695da8b69877"
+    127.0.0.1 - - [23/Aug/2026:20:06:54 +0000] "POST /mcp-scanner HTTP/1.1" 200 0 "-" "Go-http-client/1.1" kong_request_id: "38716c7437052238ba57f03ca75f006e"
+    127.0.0.1 - - [23/Aug/2026:20:06:55 +0000] "POST /mcp-scanner HTTP/1.1" 200 0 "-" "Go-http-client/1.1" kong_request_id: "5da0a0583c6d927cbba2fd00e92b896d"
+    -> 1 x HTTP 401 (the no-key guard, curl) and 8 x HTTP 200 (Go-http-client/1.1 = the scanner:
+       6 payloads + the end-of-scan summary + the scan logs = the 8 "payload sent to backend" lines
+       above). No non-2xx from the scanner.
+
+=================== 5. THE OBJECTS THE FRONT DOOR PRODUCED, in the REAL lab container ===================
+
+## Written by vector's azure_blob sink (the RENDERED authored sink — provenance in at1-08), not by hand.
+$ az storage blob list --account-name prdct11935st --container-name ingestion --auth-mode login \
+    --prefix "tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/" \
+    --query "[?properties.creationTime>='2026-08-23T20:05:40Z'].{name:name,created:properties.creationTime,bytes:properties.contentLength}" -o table
+    Name                                                                                                                                Created                    Bytes
+    ----------------------------------------------------------------------------------------------------------------------------------  -------------------------  -------
+    tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log  2026-08-23T20:06:15+00:00  680904
+    tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log  2026-08-23T20:07:11+00:00  3058551
+    (two blobs, not eight, because the authored sink batches at timeout_secs=20 — see at1-08. The
+     tenant segment of the key is derived by vector from the Kong consumer identity
+     (x-consumer-username), which is why the tenant is in the path at all: the front door put it there.)
+
+## The tenant these keys name is the SSO tenant the scan authenticates as:
+##   61750f27-8fbd-42a4-80cf-4191cfb2371a = schema onyx_security.
+## The lab container ALSO receives parity blobs under tenant=11935b00-0000-4000-8000-000000000b02
+## (prefix "parity-"), written by the cm's separate azure_blob_parity_tb sink. Those are a different
+## tenant and a different sink; they are visible in the at1-03 peek listing and are not this AT's rows.
