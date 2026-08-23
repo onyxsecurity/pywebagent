@@ -1,53 +1,113 @@
-# PRDCT-11935 at11-04 — the AWS-lane base-vs-head tenant-DB diff: ZERO changed lines
-# FILE LAST WRITTEN 2026-08-23T13:41:30Z
-# captured 2026-08-23T13:41:30Z
+# PRDCT-11935 at11-04 — the AWS-lane base-vs-head tenant-DB comparison, and the one delta it found
+# FILE LAST WRITTEN 2026-08-23T16:55:35Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 4ac8a3f538a9e036f981d2bcb8bc8398fb402303 · captured 2026-08-23T16:38:24Z
 #
-# base leg  image localhost:5001/onyx/endpoint-asset-ingestion:r45-base  (merge-base c2a5bb6c58)
-#           digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:874808ba81fb440b5ca1cbf8d06853a7b2f0552fbca666dbd313dcd8c97bfd63
-#           tenant 11935f18-0000-4000-8000-000000000101  schema prdct11935_v18t1
-# head leg  image localhost:5001/onyx/endpoint-asset-ingestion:r45-head  (head ecf60f81c7)
-#           digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:e31cac11db8bada7a750b752cefa39af8c230e7b97c208b55555ba8aa1b6ef79
-#           tenant 11935f18-0000-4000-8000-000000000102  schema prdct11935_v18t2
+# base leg  image :r45c-base  digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:d65c32ca8d147bc8c876243e1d8669d2b782fd97693046ffb397e4c833953bd2
+#           tenant 11935f18-...-101  schema prdct11935_v18t1
+# head leg  image :r45c-head  digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:827efbae833ceba067bdd17f1ea54b9bf89363aaac5cbb8974de4fc6787bd4da
+#           tenant 11935f18-...-102  schema prdct11935_v18t2
 #
 # The dump is /tmp/prdct11935/lane-dump.sh — eleven queries over the whole ingestion-owned graph
 # (assets by class, every asset row's identity+state, mcp servers, mcp tools, skills, subagents,
 # usage sessions, scanner installations, asset connections, issue instances, dedup state). Row ids
-# and timestamps are excluded by construction: two independent runs cannot match those, and they
-# are not what 'same behaviour' means.
+# and timestamps are excluded by construction.
 
-=== settled state, both legs ===
-    base           13:27:35 queue_inflight=0  assets|conns|state = 342|338|21
-    head           13:40:30 queue_inflight=0  assets|conns|state = 342|338|21
+=== 1. THE RAW DIFF IS NOT ZERO — 8 lines. Here it is, before any explanation. ===
+735c735
+< AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Context7 MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
+---
+> AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Context7 MCP Server|f|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "codebase-agents"}]}
+739c739
+< AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (node)|f|{"sources": [{"kind": "plugin", "name": "autonomous-workflow"}, {"kind": "direct"}]}
+---
+> AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (node)|f|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "autonomous-workflow"}]}
+743a744
+> AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "codebase-agents"}]}
+745d745
+< AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
+1067c1067
+< McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Tavily MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
+---
+> McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Tavily MCP Server|f|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "codebase-agents"}]}
 
-=== $ diff dump-base.txt dump-head.txt ===
-    (no output — the two dumps are byte-identical)
+    Settled state was identical on both legs: 342 assets / 338 connections / 21 dedup rows.
+    Every one of the 8 lines is the SAME phenomenon: the element ORDER inside one connection's
+    metadata.sources JSON array. No row gained or lost a source; no other column moved. (Two of
+    the 8 are one row changing position, because the dump orders connections by that metadata text.)
 
-    dump lines each : 1080
-    changed lines   : 0
+=== 2. IS THAT THE IMAGE, OR THE RUN? Four legs, two images, two tenants. ===
+    The two legs alone cannot tell those apart, so two more runs were driven — the same image into
+    the OTHER tenant, for each image.
+      BASE image, tenant v18t1  vs  BASE image, v18t2 0 changed lines
+      HEAD image, tenant v18t2  vs  HEAD image, v18t1 0 changed lines
+      BASE image v18t1          vs  HEAD image v18t2 8 changed lines
+      BASE image v18t1          vs  HEAD image v18t1 8 changed lines
+      BASE image v18t2          vs  HEAD image v18t2 8 changed lines
+    Each image is self-consistent across tenants and each cross-image pair shows the same 8 lines.
+    Reproducible, so NOT run-to-run noise — which is why it was chased instead of re-rolled.
 
-    sha256 base     : 035e7784c670886534138db3535f220f29e2ab559195388d074008411fa1e23d
-    sha256 head     : 035e7784c670886534138db3535f220f29e2ab559195388d074008411fa1e23d
+=== 3. WHAT IT ACTUALLY IS: a per-object authoritative write, and eight objects ===
+    metadata.sources is written by replace_scan_connection_sources (mcp_writer.py) — 'authoritatively
+    overwrite metadata.sources on every connection observed this scan ... runs once per object'. An
+    edge named by more than one object of the same scan therefore ends up with whatever the LAST
+    object to land says. Three of the eight replayed payloads name the Context7 edge:
+      01.json  (641547 bytes)
+      05.json  (1055077 bytes)
+      07.json  (1132513 bytes)
+    So the surviving order is a function of object ARRIVAL ORDER, which two pool workers racing over
+    an SQS queue decide — not of the writer's logic, which this PR does not touch
+    (mcp_writer.py and source_attribution.py have zero hunks: see at11-01's hunk map).
 
-=== the same thing said in counts, so a reader does not have to trust the diff alone ===
-    leg|assets|mcp|skills|subagents|tools|conns|installs
-    base(v18t1)|342|21|260|57|0|338|1
-    head(v18t2)|342|21|260|57|0|338|1
-    (2 rows)
+=== 4. THE CONTROL THAT SETTLES IT: same image, reversed arrival order ===
+    The BASE image was run once more with the same eight bodies posted in REVERSE order. If the
+    ordering belonged to the image, the base image would have to keep producing the base ordering.
+      ### image=r45c-base schema=prdct11935_v18t2 order=REVERSED  2026-08-23T16:34:54Z
+        pod=endpoint-asset-ingestion-7f78f9c76c-hm6bb image=localhost:5001/onyx/endpoint-asset-ingestion:r45c-base
+          08.json -> 200
+          07.json -> 200
+          06.json -> 200
+          05.json -> 200
+          04.json -> 200
+          03.json -> 200
+          02.json -> 200
+          01.json -> 200
+        SETTLED 342|338
+          AgentToMcp|Claude Code (coder)|Context7 MCP Server|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "codebase-agents"}]}
+          AgentToMcp|Claude Code (coder)|Local MCP Server (node)|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "autonomous-workflow"}]}
+          AgentToMcp|Claude Code (coder)|mcp-remote MCP Server|{"sources": [{"kind": "direct"}]}
+          AgentToMcp|Claude Code (coder)|mcp-remote MCP Server|{"sources": [{"kind": "direct"}]}
+          McpToMcp|mcp-remote MCP Server|Tavily MCP Server|{"sources": [{"kind": "direct"}]}
 
-=== VERDICT ===
-    The AWS lane, driven through its real front door with identical bytes, writes exactly the same
-    rows on the head image as on the frozen-base image. Combined with the diff audit (at11-01) and
-    the per-cell render diffs (at11-08), that is the evidence behind the PR body's claim that this
-    PR changes no behaviour on an AWS cell.
+    It does not. On the SAME base image, reversing the arrival order flips Context7 and Local MCP
+    Server (node) to the HEAD leg's ordering, and takes mcp-remote/Tavily somewhere else again. The
+    field follows arrival order on either image. This PR shifts timing slightly — one more function
+    call per message, a parser looked up instead of hard-coded — and that is enough to change which
+    of three objects lands last.
 
-=== HEAD-MOVE NOTE (appended 2026-08-23T13:50:09Z) ===
-    The images driven above were built from ecf60f81c7. The branch head then moved once, to
-    12461e0002f512cd1d89cac9509fedb9833b92eb, for a TEST-ONLY commit ("Pin the cloud in the aws-arm service tests").
-    That commit is not in the images and cannot be: the prod Dockerfile copies pyproject.toml,
-    uv.lock and ./src, and nothing else.
-      $ git diff --name-only ecf60f81c7..12461e0002f512cd1d89cac9509fedb9833b92eb
-        backend_python/tests/endpoint_asset_ingestion/test_service.py
-      $ git diff --stat ecf60f81c7..12461e0002f512cd1d89cac9509fedb9833b92eb -- backend_python/src backend_python/pyproject.toml \
-                          backend_python/uv.lock infra docs
-        (empty)
-    So every shipping byte these legs exercised is the head's shipping byte.
+=== 5. THE ORDER-INDEPENDENT COMPARISON ===
+    Normalising that one field (sort the array canonically, then sort the lines) asks the question
+    that matters: WHAT was written, rather than in what order the eight objects happened to arrive.
+    The normaliser is evidence/at11-04-normalize-dump.py — 20 lines, no other field touched.
+      BASE image v18t1  vs  HEAD image v18t2         0 changed lines
+      BASE image v18t1  vs  HEAD image v18t1         0 changed lines
+      BASE image v18t2  vs  HEAD image v18t2         0 changed lines
+      BASE image v18t1  vs  BASE image v18t2         0 changed lines
+    All four normalised dumps are byte-identical:
+563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b        dump-base.norm
+563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b        dump-head-KEEP.norm
+563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b        dump-ctrl.norm
+563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b        dump-ctrl2.norm
+
+=== 6. VERDICT, stated without rounding ===
+    The AWS lane writes the SAME ROWS on the head image as on the merge-base image — same assets,
+    same servers, same tools, same skills, same subagents, same connections, same sources, same
+    dedup state, same installation history. The single observable difference is the element order
+    inside one JSON array, and that order is decided by which of three objects lands last, on
+    either image, as section 4 demonstrates by flipping it on the base image alone.
+
+    A GAP THIS FOUND, reported rather than absorbed. That last-object-wins replace makes a
+    multi-object scan's connection provenance depend on delivery order — on AWS today, and on
+    Azure after this PR. It is pre-existing (mcp_writer.py is unchanged here) and the owner ruled
+    this ticket Azure enablement only, so it is NOT fixed in this PR. It belongs with the other
+    writer-parity items the round-45 ruling puts out of scope.
