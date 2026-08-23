@@ -1,6 +1,6 @@
 RE-FETCHED LIVE AT AUDIT TIME — this file is the PR body as the API returns it, not a local draft.
   command:   curl -H 'Authorization: Bearer $GH_TOKEN' https://api.github.com/repos/onyxsecurity/onyx/pulls/12329 | jq -r .body
-  fetched:   2026-08-23T21:53:24Z
+  fetched:   2026-08-23T21:58:14Z
   pr:        https://github.com/onyxsecurity/onyx/pull/12329
   onyx head: 2b60fdc4df25188104e737e6311087681355eff8
   bytes:     252183
@@ -770,7 +770,7 @@ artifact had been re-captured on the current head. That was not true, and it has
   `at5-01/02` were **also** re-captured on this head, because `0cfbd4240c` rewrote one of the two refusal
   messages they quote and a `required_evidence` artifact must quote what ships. Both gen-2 images were
   rebuilt from `0cfbd4240c` for that capture (the clone Deployments had been left on the round-5 image).
-- **86** of the ledger's **144** artifact rows are not CURRENT — that count is read out of
+- **88** of the ledger's **146** artifact rows are not CURRENT — that count is read out of
   [`evidence/at10-04-evidence-provenance.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-04-evidence-provenance.txt) as this body is written, not restated from
   memory (the previous "70 of 85" was a stale restatement, which is exactly the failure this bullet
   exists to prevent). That file is *generated*
