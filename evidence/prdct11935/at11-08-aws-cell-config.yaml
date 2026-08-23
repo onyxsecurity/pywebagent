@@ -1,0 +1,41 @@
+alert_processing_asb:
+  fully_qualified_namespace: ""
+  queue_name: ""
+alert_processing_sqs:
+  aws_region: ${region}
+  endpoint: ""
+  queue_url: ${alert_processing_queue_url:=}
+asset_ingestion_asb:
+  fully_qualified_namespace: ""
+  queue_name: ""
+asset_ingestion_s3:
+  aws_region: ${region}
+  endpoint: ""
+asset_ingestion_sqs:
+  aws_region: ${region}
+  dlq_url: ${endpoint_asset_ingestion_dlq_url:=}
+  endpoint: ""
+  queue_url: ${endpoint_asset_ingestion_queue_url:=}
+  visibility_timeout: 600
+  wait_time_seconds: 20
+concurrency: 5
+database:
+  host: ${rds_endpoint}
+  name: postgres
+  port: 5432
+  ssl_mode_disabled: false
+error_backoff_seconds: 5
+logging:
+  level: INFO
+  render_json: true
+max_messages: 10
+releases_kvs:
+  kvs_arn: ${releases_kvs_arn:=}
+  writer_role_arn: ${releases_kvs_writer_role_arn:=}
+telemetry:
+  otlp_endpoint: groundcover-sensor.groundcover.svc.cluster.local:4317
+  service_name: endpoint-asset-ingestion
+temporal_server:
+  host: temporal-frontend.mgmt.svc.cluster.local
+  namespace: ${temporal_namespace}
+  port: 7233
