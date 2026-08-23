@@ -1,7 +1,7 @@
 # PRDCT-11935 at1-07 — CUTOVER GUARD: the gen-1 lane off, the new lane still lands a fresh scan
-# FILE LAST WRITTEN 2026-08-23T20:22:54Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T20:24:50Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T20:10:44Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T20:05:17Z–20:24:35Z (the paused window, the restore, and the final whole-box restore sweep)
 #
 # RE-MEASURED THIS ROUND on the current shipped head. This is the footgun the ticket exists to close:
 # an Azure tenant that follows the documented cutover order (disable the old scheduled lane, enable
@@ -209,8 +209,74 @@ $ kubectl -n onyxd get deploy endpoint-asset-ingestion scanner-event-consumer mc
     RESTORE VERDICT: schedule Paused=false and firing again (NextRunTime 15 seconds from now); all
     five deployments back at replicas=1 / ready=1; the KEDA ScaledObject PAUSED=False with the
     paused-replicas annotation removed; deploy/eai-azure 1/1.
-    ONE COSMETIC RESIDUE, disclosed: `temporal schedule toggle` writes its --reason into the
-    schedule's `notes` field, so the schedule's notes now read "PRDCT-11935 at1-07 window closed
-    (round 49)" where they previously read "r39d at6-04c closed". The notes field is free-text
-    annotation on a harness object; the schedule's spec, state and paused flag are byte-identical to
-    the pre-window readback in §1.
+    ONE COSMETIC RESIDUE was left at this point and has since been cleaned up: `temporal schedule
+    toggle` writes its --reason into the schedule's `notes` field, so the notes briefly read
+    "PRDCT-11935 at1-07 window closed (round 49)" (and later "…at1-06 window closed…", from the
+    at1-06 guard's own window) where they originally read "r39d at6-04c closed". Restored:
+
+  ### FINAL RESIDUE CLEANUP — restore the schedule's original free-text notes
+  ### (temporal schedule toggle writes its --reason into state.notes; the original text was
+  ###  'r39d at6-04c closed'. A pause/unpause pair with that exact reason restores it. The
+  ###  schedule is paused for <3s, well inside its own 60s interval.)
+  2026-08-23T20:23:46Z
+  2026-08-23T20:23:46Z
+  ### readback — identical to the pre-window state in at1-07 §1 (Paused=false, Notes="r39d at6-04c closed")
+  
+            ScheduleId                WorkflowType        Paused         Notes         RunningWorkflows      NextRunTime       LastRunTime                           Specification                          
+    scanner-collector-schedule  ScannerCollectorWorkflow  false   r39d at6-04c closed  []                13 seconds from now  46 seconds ago  {"interval":[{"interval":"60s","phase":"0s"}],"jitter":"0s"}  
+
+    FINAL STATE = PRE-WINDOW STATE: Paused=false, Notes="r39d at6-04c closed",
+    Specification {"interval":[{"interval":"60s","phase":"0s"}],"jitter":"0s"} — byte-identical to
+    the §1 readback taken before anything was touched, and the schedule is firing again
+    (NextRunTime 13 seconds from now, LastRunTime 46 seconds ago).
+
+=================== 6. FINAL WHOLE-BOX RESTORE SWEEP (after every at1 window) ===================
+
+$ git -C /home/coder/onyx status --porcelain ; git -C /home/coder/onyx rev-parse HEAD
+    (no output — the repo was not touched by this run)
+    2b60fdc4df25188104e737e6311087681355eff8
+
+$ kubectl -n onyxd get deploy endpoint-asset-ingestion scanner-event-consumer mcp-gateway-event-consumer temporal-scanner-worker temporal-general-worker eai-azure -o custom-columns=NAME:.metadata.name,REPLICAS:.spec.replicas,READY:.status.readyReplicas,IMAGE:.spec.template.spec.containers[0].image
+    NAME                         REPLICAS   READY   IMAGE
+    endpoint-asset-ingestion     1          1       localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+    scanner-event-consumer       1          1       localhost:5001/onyx/scanner-event-consumer:r46b-head
+    mcp-gateway-event-consumer   1          1       localhost:5001/onyx/mcp-gateway-event-consumer:r46b-head
+    temporal-scanner-worker      1          1       localhost:5001/onyx/temporal-scanner-worker:tilt-9019cb2915c24a19
+    temporal-general-worker      1          1       localhost:5001/onyx/temporal-general-worker:tilt-73039ae7d7226fd1
+    eai-azure                    1          1       localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+
+$ kubectl -n onyxd get deploy | grep -c r49flagoff        # the at1-06 clone must be gone
+    0
+
+$ kubectl -n onyxd get scaledobject endpoint-asset-ingestion -o custom-columns=NAME:.metadata.name,PAUSED:...,READY:...
+    NAME                       PAUSED   READY
+    endpoint-asset-ingestion   False    True
+$ kubectl -n onyxd get scaledobject endpoint-asset-ingestion -o jsonpath={.metadata.annotations} | grep -c paused-replicas
+    0   (the paused-replicas annotation is ABSENT)
+
+$ kubectl -n onyxd exec deploy/onyx-temporal-admintools -- tctl --namespace default schedule describe --sid scanner-collector-schedule
+    
+              ScheduleId                WorkflowType        Paused         Notes         RunningWorkflows      NextRunTime       LastRunTime                           Specification                          
+      scanner-collector-schedule  ScannerCollectorWorkflow  false   r39d at6-04c closed  []                49 seconds from now  10 seconds ago  {"interval":[{"interval":"60s","phase":"0s"}],"jitter":"0s"}  
+
+$ temporal workflow count --query "WorkflowType='ScannerCollectorWorkflow' AND StartTime > '2026-08-23T20:19:18Z'"   # gen-1 firing again
+    Total: 5
+
+$ /tmp/prdct11935/azure-lane-liveness.sh
+    OK   SAS expiry 2026-08-24T19:05Z (1360m left)
+    OK   vector pod onyx-onyxd-vector-0 Ready
+    OK   vector last 15m: no auth/drop errors
+         renew-hook state: ok fresh 2026-08-24T19:05Z 22h 2026-08-23T20:17:01Z
+    LANE: GREEN
+
+$ ls -d ~/.claude/skills/r49-at1* 2>&1
+    ls: cannot access '/home/coder/.claude/skills/r49-at1*': No such file or directory
+
+    EVERYTHING THIS RUN TOUCHED IS BACK: five deployments at 1/1 on their original images, the
+    at1-06 clone deleted, the KEDA ScaledObject unpaused with its annotation removed, the gen-1
+    schedule unpaused AND its original notes text restored, gen-1 collector workflows firing
+    again, the Azure lane GREEN, and all four marker skills removed.
+
+=== DELTA SUMMARY, both sides on one line each (added round 48 so each pair is quotable as one fact) ===
+    ScannerTenantWorkflow 63 -> 0 started in the paused window
+    ScannerCollectorWorkflow 10 -> 0 started in the paused window
