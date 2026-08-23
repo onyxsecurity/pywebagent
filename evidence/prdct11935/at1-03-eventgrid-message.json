@@ -1,66 +1,287 @@
 {
- "_file_last_written": "2026-08-21T18:50:08Z",
- "_what_this_is": "the REAL Event Grid BlobCreated delivery on the lab Service Bus queue endpoint-asset-ingestion-prdct11935, PEEKED (not consumed) while the consumer was paused, then joined to the consumer's own settlement of the SAME message_id",
- "_why_recaptured": "round-28 gate G7: the previous revision was a real delivery but from the 2026-08-18 window (eventTime 2026-08-18T16:41:45Z), while at1-02/04/05 document the 2026-08-20 run, and its message_id joined to no settlement in at1-04 \u2014 so the plan's 'as received by the consumer' half was unproven. This capture is from the SAME window as the at1 run it closes, and carries the consumer join inline.",
- "_captured_at": "2026-08-21T17:49:31Z",
- "_peeked_at": "2026-08-21T17:21:49.529179+00:00",
+ "_header": [
+  "# PRDCT-11935 at1-03 \u2014 the REAL Event Grid BlobCreated delivery on the lab Service Bus queue, PEEKED",
+  "# onyx head 2b60fdc4df25188104e737e6311087681355eff8 \u00b7 image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head \u00b7 captured 2026-08-23T20:08:13Z"
+ ],
+ "_what_this_is": "the REAL Event Grid BlobCreated deliveries on the lab Service Bus queue endpoint-asset-ingestion-prdct11935, PEEKED non-destructively while the consumer was held at zero, then joined to the SAME message_id's settlement by the real shipping consumer on the head image. Nothing here is synthesized: the bodies are Azure Event Grid's own, the application_properties are Event Grid's own (aeg-*), and the Label/subject is the delivery-attribute mapping at1-01 shows.",
+ "_re_measured": "RE-MEASURED THIS ROUND on the current shipped head 2b60fdc4df. The previous revision was captured 2026-08-21T17:49Z on a superseded commit/image (prdct11935-r26).",
+ "_how_the_consumer_was_held": {
+  "problem": "deploy/eai-azure is KEDA-managed: ScaledObject/endpoint-asset-ingestion targets it with minReplicaCount=1, so `kubectl scale deploy/eai-azure --replicas=0` is reverted by the operator within ~10s (measured this round: scaled to 0 at 19:47:33Z, a fresh pod was Running at 19:47:44Z, and it ate the delivery before it could be peeked).",
+  "sanctioned_pause": "kubectl -n onyxd annotate scaledobject/endpoint-asset-ingestion autoscaling.keda.sh/paused-replicas=\"0\" --overwrite",
+  "paused_at_utc": "2026-08-23T20:05:35Z",
+  "pods_gone_at_utc": "2026-08-23T20:05:45Z",
+  "resumed_by": "kubectl -n onyxd annotate scaledobject/endpoint-asset-ingestion autoscaling.keda.sh/paused-replicas-",
+  "resumed_at_utc": "2026-08-23T20:08:25Z",
+  "restored_state_readback": "ScaledObject PAUSED=False, deploy/eai-azure replicas=1 ready=1 (see at1-07 restore receipt)"
+ },
  "_window": {
-  "scan_run_id": "333b21ef-714b-4b8c-84ad-eaec81bc2799",
-  "scan_started_utc": "2026-08-21T17:20:03Z",
-  "scan_completed_utc": "2026-08-21T17:21:10Z",
-  "consumer_paused_for_the_peek": true,
-  "note": "the consumer was held at zero replicas (KEDA paused-replicas=0) so the message waited in the queue and could be peeked non-destructively; it was then resumed and consumed the very same message, which is the join below"
+  "scan_run_id": "9e971fab-4f73-4a7e-8215-4ddea134a22c",
+  "scan_started_utc": "2026-08-23T20:05:48Z",
+  "scan_completed_utc": "2026-08-23T20:06:56Z",
+  "peeked_at_utc": "2026-08-23T20:08:13.897205+00:00",
+  "consumer_pod_that_then_consumed": "eai-azure-7c4f9bd78c-2ss7g",
+  "consumer_image": "localhost:5001/onyx/endpoint-asset-ingestion:r46b-head",
+  "gen1_schedule": "paused for the whole window (at1-07)",
+  "other_writers": "endpoint-asset-ingestion / scanner-event-consumer / mcp-gateway-event-consumer / temporal-scanner-worker / temporal-general-worker all at 0 replicas"
  },
- "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log",
- "application_properties": {
-  "aeg-subscription-name": "TO-BYOC-EVENTS",
-  "aeg-delivery-count": "0",
-  "aeg-data-version": "",
-  "aeg-metadata-version": "1",
-  "aeg-event-type": "Notification"
- },
- "message_id": "42d4007e-acbd-4b12-8a2d-26ad83f67d5e",
- "delivery_count_at_peek": 0,
- "enqueued_time_utc": "2026-08-21 17:21:09.869000+00:00",
- "body": {
-  "topic": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st",
-  "subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log",
-  "eventType": "Microsoft.Storage.BlobCreated",
-  "id": "841a17d8-901e-006c-0a91-318e5c06f9a7",
-  "data": {
-   "api": "PutBlob",
-   "clientRequestId": "73bc2cd4-070b-45e1-b16a-68132e79aa41",
-   "requestId": "841a17d8-901e-006c-0a91-318e5c000000",
-   "eTag": "0x8DEFFA8978B453D",
-   "contentType": "application/x-ndjson",
-   "contentLength": 1075861,
-   "blobType": "BlockBlob",
-   "accessTier": "Default",
-   "url": "https://prdct11935st.blob.core.windows.net/ingestion/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log",
-   "sequencer": "00000000000000000000000000048CF90000000000005d14",
-   "storageDiagnostics": {
-    "batchId": "afa7f011-6006-0025-0091-31ccb7000000"
-   }
-  },
-  "dataVersion": "",
-  "metadataVersion": "1",
-  "eventTime": "2026-08-21T17:21:09.527453Z"
- },
- "_consumer_join": {
-  "_what": "the SAME message_id, settled by the real shipping consumer on the head image",
-  "pod": "eai-azure-66d8f8595d-ch96k",
-  "image": "localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26",
-  "completed_message_lines": [
-   "eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.408724Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=266 message_id=42d4007e-acbd-4b12-8a2d-26ad83f67d"
-  ],
-  "object_processing_lines": [
-   "eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.405778Z [info     ] Scanner installations inserted [python_temporal_worker.integrations.desktop_agent_creator.activities] count=1 filename=activities.py func_name=insert_scanner_insta",
-   "eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.407836Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=61750",
-   "eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.408114Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_secon"
+ "_peek_command": "python /tmp/prdct11935/sb.py peek 80   (azure-servicebus receiver.peek_messages \u2014 non-destructive: it does not lock, settle or increment delivery_count)",
+ "_peek_summary": {
+  "messages_on_the_queue_at_peek": 23,
+  "of_which_this_tenant": 2,
+  "the_rest": "21 deliveries for tenant=11935b00-0000-4000-8000-000000000b02 with the 'parity-' key prefix \u2014 the cm's separate azure_blob_parity_tb sink, a different tenant and a different sink. Their message ids and subjects are listed under _all_messages_on_the_queue_at_peek so the peek is shown unfiltered.",
+  "delivery_count_at_peek_for_every_message": [
+   0
   ]
  },
- "_also_documented_by": {
-  "at7-01": "this same object key carried this window's fresh skill + subagent subject",
-  "at7-02": "the payload records inside it, and the derived-not-copied identity proof"
- }
+ "_the_deliveries_for_this_at": [
+  {
+   "message_id": "9d0d018d-bce8-4ae3-bbe7-4d44c37566d7",
+   "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log",
+   "delivery_count": 0,
+   "enqueued_time_utc": "2026-08-23 20:06:15.983000+00:00",
+   "dead_letter_reason": null,
+   "dead_letter_error_description": null,
+   "application_properties": {
+    "aeg-subscription-name": "TO-BYOC-EVENTS",
+    "aeg-delivery-count": "0",
+    "aeg-data-version": "",
+    "aeg-metadata-version": "1",
+    "aeg-event-type": "Notification"
+   },
+   "body": {
+    "topic": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st",
+    "subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log",
+    "eventType": "Microsoft.Storage.BlobCreated",
+    "id": "86ab2506-f01e-0027-093a-33720f0646a8",
+    "data": {
+     "api": "PutBlob",
+     "clientRequestId": "ffd1aec6-f29b-4ade-8332-1b4406aed8b5",
+     "requestId": "86ab2506-f01e-0027-093a-33720f000000",
+     "eTag": "0x8DF0151FCD8B0E1",
+     "contentType": "application/x-ndjson",
+     "contentLength": 680904,
+     "blobType": "BlockBlob",
+     "accessTier": "Default",
+     "url": "https://prdct11935st.blob.core.windows.net/ingestion/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log",
+     "sequencer": "00000000000000000000000000048CFA0000000000e3dcbe",
+     "storageDiagnostics": {
+      "batchId": "0589b886-e006-0066-003a-332aeb000000"
+     }
+    },
+    "dataVersion": "",
+    "metadataVersion": "1",
+    "eventTime": "2026-08-23T20:06:15.5947981Z"
+   }
+  },
+  {
+   "message_id": "43087038-6d06-428d-92b6-c8e2a45bec5f",
+   "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log",
+   "delivery_count": 0,
+   "enqueued_time_utc": "2026-08-23 20:07:11.588000+00:00",
+   "dead_letter_reason": null,
+   "dead_letter_error_description": null,
+   "application_properties": {
+    "aeg-subscription-name": "TO-BYOC-EVENTS",
+    "aeg-delivery-count": "0",
+    "aeg-data-version": "",
+    "aeg-metadata-version": "1",
+    "aeg-event-type": "Notification"
+   },
+   "body": {
+    "topic": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st",
+    "subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log",
+    "eventType": "Microsoft.Storage.BlobCreated",
+    "id": "86aba93d-f01e-0027-143a-33720f0645fe",
+    "data": {
+     "api": "PutBlob",
+     "clientRequestId": "6d8f4293-72e4-4d00-815b-ea4003794054",
+     "requestId": "86aba93d-f01e-0027-143a-33720f000000",
+     "eTag": "0x8DF01521DF182C3",
+     "contentType": "application/x-ndjson",
+     "contentLength": 3058551,
+     "blobType": "BlockBlob",
+     "accessTier": "Default",
+     "url": "https://prdct11935st.blob.core.windows.net/ingestion/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log",
+     "sequencer": "00000000000000000000000000048CFA0000000000e3dd8d",
+     "storageDiagnostics": {
+      "batchId": "058b085a-e006-0066-003a-332aeb000000"
+     }
+    },
+    "dataVersion": "",
+    "metadataVersion": "1",
+    "eventTime": "2026-08-23T20:07:11.1212739Z"
+   }
+  }
+ ],
+ "_consumer_join": {
+  "_what": "the SAME message_ids, settled by the real shipping consumer on the head image",
+  "pod": "eai-azure-7c4f9bd78c-2ss7g",
+  "image": "localhost:5001/onyx/endpoint-asset-ingestion:r46b-head",
+  "per_message": {
+   "9d0d018d-bce8-4ae3-bbe7-4d44c37566d7": {
+    "object_key": "tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log",
+    "completed_message_line": [
+     "2026-08-23T20:08:41.874881Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=9d0d018d-bce8-4ae3-bbe7-4d44c37566d7 span_id=361efb8b1c04ba33 trace_flags=01 trace_id=01f975092bb5ac447372d0a354c492a6"
+    ],
+    "ingested_scanner_object_line": [
+     "2026-08-23T20:08:41.872730Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=152 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log' span_id=361efb8b1c04ba33 tenant_schema=onyx_security tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=01f975092bb5ac447372d0a354c492a6"
+    ],
+    "asset_ingestion_record_handled_line": [
+     "2026-08-23T20:08:41.873008Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=143.983315 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log' span_id=361efb8b1c04ba33 tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=01f975092bb5ac447372d0a354c492a6"
+    ]
+   },
+   "43087038-6d06-428d-92b6-c8e2a45bec5f": {
+    "object_key": "tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log",
+    "completed_message_line": [
+     "2026-08-23T20:08:44.613933Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=43087038-6d06-428d-92b6-c8e2a45bec5f span_id=b3578e13b659bd9e trace_flags=01 trace_id=6507d3614be6d1c09a303e61fb2309a8"
+    ],
+    "ingested_scanner_object_line": [
+     "2026-08-23T20:08:44.612994Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=152 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log' span_id=b3578e13b659bd9e tenant_schema=onyx_security tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=6507d3614be6d1c09a303e61fb2309a8"
+    ],
+    "asset_ingestion_record_handled_line": [
+     "2026-08-23T20:08:44.613272Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=91.453932 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log' span_id=b3578e13b659bd9e tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=6507d3614be6d1c09a303e61fb2309a8"
+    ]
+   }
+  }
+ },
+ "_all_messages_on_the_queue_at_peek": [
+  {
+   "message_id": "77d6de31-84fa-41ee-a3b2-87357d2718bc",
+   "enqueued_time_utc": "2026-08-23 20:05:50.447000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515549-2c666f9d-4b5f-44df-a602-408ec39ebff7.log"
+  },
+  {
+   "message_id": "a24e2d80-ca35-4f61-83d5-40c5be2d8ec9",
+   "enqueued_time_utc": "2026-08-23 20:05:51.353000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515550-0110126b-0c31-4094-9971-e1f8914e4c65.log"
+  },
+  {
+   "message_id": "4b42efc7-7fae-49dd-80ac-0f42bd711ffc",
+   "enqueued_time_utc": "2026-08-23 20:05:52.385000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515551-7aef8a21-10d7-4d69-9b1e-b9dfb4a7ac5c.log"
+  },
+  {
+   "message_id": "142d1c50-6c29-458d-9896-137975c798b9",
+   "enqueued_time_utc": "2026-08-23 20:05:53.417000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515553-b1caa94c-f19a-401f-93ae-b46f35934a32.log"
+  },
+  {
+   "message_id": "137092fe-fa70-49ec-8b27-a49ba8e181d6",
+   "enqueued_time_utc": "2026-08-23 20:05:54.448000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515554-3b0ccde8-864f-4b2d-8d89-cfd4796b4458.log"
+  },
+  {
+   "message_id": "8bd3be8e-0c15-443e-9216-c349e7005020",
+   "enqueued_time_utc": "2026-08-23 20:05:56.995000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515556-a3c4776c-231b-46b1-93b7-ee0e95f83e88.log"
+  },
+  {
+   "message_id": "67e8b568-18b8-4e31-b735-88c7b0c2b54a",
+   "enqueued_time_utc": "2026-08-23 20:05:58.010000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515557-d098a289-b0f3-4324-82f5-26516923efaa.log"
+  },
+  {
+   "message_id": "3abd0973-0903-46ec-a6e9-721a4d5a4a3e",
+   "enqueued_time_utc": "2026-08-23 20:05:59.042000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515558-9c316dd1-fdda-407f-9159-eb32d27a1fee.log"
+  },
+  {
+   "message_id": "5ad69e9d-2e8c-4c3d-961d-5ae0606c7a72",
+   "enqueued_time_utc": "2026-08-23 20:06:00.073000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515559-6e2f2b7c-108b-4715-8993-7058e0c5d25b.log"
+  },
+  {
+   "message_id": "ce0c26cc-22a1-4ddf-9e34-5e8a08e1e711",
+   "enqueued_time_utc": "2026-08-23 20:06:01.121000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515560-49623d94-aeff-4d0d-bb7c-e6e5d7099740.log"
+  },
+  {
+   "message_id": "b9a94141-2c74-4c55-a63d-8261221a9507",
+   "enqueued_time_utc": "2026-08-23 20:06:06.356000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515565-ccc8b2ff-ff65-46ee-999a-8f0c5fb87ed3.log"
+  },
+  {
+   "message_id": "1188073e-34ab-458a-a0c1-1e3e787e77dc",
+   "enqueued_time_utc": "2026-08-23 20:06:09.388000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515568-e227d5f3-8275-43f8-981b-492017a1d05d.log"
+  },
+  {
+   "message_id": "941edf39-eb27-48eb-97d0-2f1255b6df86",
+   "enqueued_time_utc": "2026-08-23 20:06:10.560000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515570-9529833d-ad38-4ba8-a0e3-b0be7a7cd96a.log"
+  },
+  {
+   "message_id": "bac64106-2461-4b56-9bb5-ede94ded8690",
+   "enqueued_time_utc": "2026-08-23 20:06:11.466000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515571-4bf8c8c8-6037-4c6b-92ab-b99fe1251967.log"
+  },
+  {
+   "message_id": "9d0d018d-bce8-4ae3-bbe7-4d44c37566d7",
+   "enqueued_time_utc": "2026-08-23 20:06:15.983000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log"
+  },
+  {
+   "message_id": "10a3406f-b9ce-4dd8-8c43-cfde4711a38e",
+   "enqueued_time_utc": "2026-08-23 20:06:47.942000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515607-a783139c-15e8-4e90-af85-dd597a0fb978.log"
+  },
+  {
+   "message_id": "34ca0a4d-058a-4541-8b61-c3fd08f563ef",
+   "enqueued_time_utc": "2026-08-23 20:06:49.303000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515608-e36b52a0-aa47-4c76-9c06-c8a06b1e50f0.log"
+  },
+  {
+   "message_id": "dcac9451-806a-4a85-b602-664c6751ce79",
+   "enqueued_time_utc": "2026-08-23 20:06:52.460000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515611-e70e52f9-5872-455a-89a5-78b58dd5899e.log"
+  },
+  {
+   "message_id": "0e7d09f5-e1fe-41ed-8120-b02f6296dd4e",
+   "enqueued_time_utc": "2026-08-23 20:06:53.430000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515613-0569e5b9-08b7-4529-bcbe-de1896c4f624.log"
+  },
+  {
+   "message_id": "3bbb966b-907d-42fd-9fe7-a5ba0d1411b8",
+   "enqueued_time_utc": "2026-08-23 20:06:54.570000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515614-884f7898-535f-4aa5-8920-4dfef94ddbb4.log"
+  },
+  {
+   "message_id": "e1253924-f67a-4da2-8bdd-05d70332e2c0",
+   "enqueued_time_utc": "2026-08-23 20:06:55.635000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515615-c4e4aeec-ed30-4d53-8687-9ab2f4341e65.log"
+  },
+  {
+   "message_id": "abf91294-10a0-4c90-b042-dd6f1468b691",
+   "enqueued_time_utc": "2026-08-23 20:06:56.680000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787515616-9e574805-516a-44d0-accc-83b851d8166f.log"
+  },
+  {
+   "message_id": "43087038-6d06-428d-92b6-c8e2a45bec5f",
+   "enqueued_time_utc": "2026-08-23 20:07:11.588000+00:00",
+   "delivery_count": 0,
+   "subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log"
+  }
+ ]
 }
