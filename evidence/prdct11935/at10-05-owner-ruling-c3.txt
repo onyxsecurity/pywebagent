@@ -1,0 +1,108 @@
+# PRDCT-11935 at10-05 — the round-45 owner-ruling statements, quoted from the LIVE re-fetched PR body
+# FILE LAST WRITTEN 2026-08-23T19:03:21Z
+# captured 2026-08-23T19:03:21Z · onyx head 2b60fdc4df25188104e737e6311087681355eff8
+#
+# $ curl -H 'Authorization: Bearer $GH_TOKEN' https://api.github.com/repos/onyxsecurity/onyx/pulls/12329 | jq -r .body
+#   -> 259215 bytes, fetched 2026-08-23T19:03:21Z
+#
+# Five statements the ruling requires. Each is GREPPED out of those bytes, not retyped, so this file
+# cannot drift from the document it describes.
+
+  [PRESENT] 1. C13 is NO LONGER claimed as proven
+        still live on every cell not yet cut over"*. It is not on the drop list and it is not the SQS→queue
+        line either. It was kept because reverting it restores a sentence that is factually wrong (those
+        Temporal units are not retired), but it is the owner's to overrule.
+        
+        **2. C13 is NO LONGER CLAIMED AS PROVEN by this PR.** Every C13 parity claim below this banner —
+        including the "direction rule is met absolutely" language in Design Decisions and in the C13 section —
+        is **withdrawn**. Stated plainly, and without hedging:
+        
+        > **The new lane diverges from gen-1. It does not write seeded Claude connectors, it does not derive
+
+  [PRESENT] 2a. divergence — seeded Claude connectors
+        **2. C13 is NO LONGER CLAIMED AS PROVEN by this PR.** Every C13 parity claim below this banner —
+        including the "direction rule is met absolutely" language in Design Decisions and in the C13 section —
+        is **withdrawn**. Stated plainly, and without hedging:
+        
+        > **The new lane diverges from gen-1. It does not write seeded Claude connectors, it does not derive
+        > mcpb extension provenance, and it does not stamp `scanner_version`.** That divergence is real, it is
+        > unfixed in this PR, it is **out of scope for this ticket**, and it is **tracked separately**. The
+        > owner will rule it an accepted gap.
+
+  [PRESENT] 2b. divergence — mcpb extension provenance
+        **2. C13 is NO LONGER CLAIMED AS PROVEN by this PR.** Every C13 parity claim below this banner —
+        including the "direction rule is met absolutely" language in Design Decisions and in the C13 section —
+        is **withdrawn**. Stated plainly, and without hedging:
+        
+        > **The new lane diverges from gen-1. It does not write seeded Claude connectors, it does not derive
+        > mcpb extension provenance, and it does not stamp `scanner_version`.** That divergence is real, it is
+        > unfixed in this PR, it is **out of scope for this ticket**, and it is **tracked separately**. The
+        > owner will rule it an accepted gap.
+        
+        The fixes are not re-added anywhere, and no separate PR was opened to carry them —
+
+  [PRESENT] 2c. divergence — the scanner_version stamp
+        including the "direction rule is met absolutely" language in Design Decisions and in the C13 section —
+        is **withdrawn**. Stated plainly, and without hedging:
+        
+        > **The new lane diverges from gen-1. It does not write seeded Claude connectors, it does not derive
+        > mcpb extension provenance, and it does not stamp `scanner_version`.** That divergence is real, it is
+        > unfixed in this PR, it is **out of scope for this ticket**, and it is **tracked separately**. The
+        > owner will rule it an accepted gap.
+        
+        The fixes are not re-added anywhere, and no separate PR was opened to carry them —
+        [`at11-06-single-pr.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-06-single-pr.txt)
+
+  [PRESENT] 3. out of scope for this ticket
+        is **withdrawn**. Stated plainly, and without hedging:
+        
+        > **The new lane diverges from gen-1. It does not write seeded Claude connectors, it does not derive
+        > mcpb extension provenance, and it does not stamp `scanner_version`.** That divergence is real, it is
+        > unfixed in this PR, it is **out of scope for this ticket**, and it is **tracked separately**. The
+        > owner will rule it an accepted gap.
+        
+        The fixes are not re-added anywhere, and no separate PR was opened to carry them —
+        [`at11-06-single-pr.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-06-single-pr.txt)
+
+  [PRESENT] 4. tracked separately
+        > **The new lane diverges from gen-1. It does not write seeded Claude connectors, it does not derive
+        > mcpb extension provenance, and it does not stamp `scanner_version`.** That divergence is real, it is
+        > unfixed in this PR, it is **out of scope for this ticket**, and it is **tracked separately**. The
+        > owner will rule it an accepted gap.
+        
+        The fixes are not re-added anywhere, and no separate PR was opened to carry them —
+        [`at11-06-single-pr.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-06-single-pr.txt)
+
+  [PRESENT] 5. the no-AWS-cell-behaviour-change heading
+        what was measured**, not as a claim this PR makes; read it with this banner attached.
+        
+        What at6 still stands behind, unchanged by the ruling, is the narrower and load-bearing claim: **the
+        same writer, fed the same bytes, writes the same rows on either transport.**
+        
+        ---
+        
+        ## This PR changes NO behaviour that runs on an AWS cell
+        
+        The ruling asks for this to be proven and stated. It is stated here, and the proof is four independent
+        lines of evidence rather than one.
+        
+        **1. Nothing in the diff can reach an AWS cell's behaviour.** All 40 files walked individually in
+        [`at10-22-scope-revert.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-22-scope-revert.txt)
+
+=== the tracker is NAMED beside 'tracked separately' — the round-39 gate's specific objection ===
+          1 1104:86bbhqxe8
+          1 1104:PRDCT-12061
+          1 1113:86bbj2pqn
+          1 1113:PRDCT-12070
+          1 2002:86bbhqxe8
+          1 2002:PRDCT-12061
+          1 2003:86bbhqxe8
+          1 2003:PRDCT-12061
+          1 2005:86bbhqxe8
+          1 2005:PRDCT-12061
+          1 511:PRDCT-12061
+          1 63:86bbj2pqn
+          1 63:PRDCT-12070
+
+=== and the AWS statement cites at11 evidence rather than asserting ===
+    at11-* evidence links in the body: 12
