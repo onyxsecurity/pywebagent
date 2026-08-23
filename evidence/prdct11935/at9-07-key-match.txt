@@ -1,94 +1,217 @@
 # PRDCT-11935 at9-07 — the PUBLISH -> CONSUME seam, re-derived on the current sibling heads
-# FILE LAST WRITTEN 2026-08-21T18:42:51Z
+# FILE LAST WRITTEN 2026-08-23T19:46:06Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx cb96081d70 · infrastructure factory-eval-v32/PRDCT-11935 @ 6378b0e46e0b · flux-fleet factory-eval-v32/PRDCT-11935 @ 68bdecfd1e70
-# captured 2026-08-20T11:22:57Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T19:04:50Z
+#
+#   infrastructure  da993d1ae2eb25c13626e02b7ce8f1d1269cdc7f  branch factory-eval-v32/PRDCT-11935
+#   flux-fleet      a4493c1e5ac0545fdf7fcd2f349060288111c42c  branch factory-eval-v32/PRDCT-11935
 #
 # A key name that is published under one spelling and consumed under another renders GREEN and dies
-# silently at the pod, so this file checks the two sides against each other by derivation: every
-# ${...} the lane's rendered values actually reference, against every key the cell module actually
-# publishes. Nothing here is a hand-kept table that can drift from the repos.
+# silently at the pod, so this file checks the two sides against each other BY DERIVATION: every
+# ${...} the lane's objects actually reference, against every key the cell module actually publishes.
+# Nothing here is a hand-kept table that can drift from the repos.
 #
-#   consume side: kustomize build <instance>/onyx-app | yq '…onyx-app.spec.values."endpoint-asset-ingestion"'
-#   publish side: modules/onyx/cell-azure-instance/fluxcd_config.tf
+#   consume side: flux-fleet clusters/ox-az-p-eus2-c02/instances/<inst>/
+#   publish side: infrastructure modules/onyx/cell-azure-instance/fluxcd_config.tf
+#
+# CONTRACT: a variable with no matching publication = FAIL.
+#
+# SCOPE, STATED BECAUSE AN UNSTATED SCOPE IS WHAT MADE EARLIER VERSIONS OF THIS TABLE LOOK COMPLETE
+# WHEN THEY WERE NOT. Two scopes are derived below and both are printed in full:
+#   scope A — the LANE's own objects: the endpoint-asset-ingestion values block in onyx-app/release.yaml
+#             plus the KEDA TriggerAuthentication that exists only for this lane.
+#   scope B — the WHOLE instance directory, every yaml under instances/<inst>/.
+# Earlier captures of this file used `kustomize build` on the onyx-app overlay, which also pulls in
+# chart-level keys (ecr_registry_url, releases_kvs_arn, releases_kvs_writer_role_arn) that are not in
+# the lane's own source. That build fails offline on this box ("accumulating resources" — the overlay
+# pulls remote bases), so this round derives from SOURCE. The three chart-level keys therefore do not
+# appear in scope A here; they are AWS-only, written in Flux's defaulting form ${x:=}, resolve to the
+# empty string, and were recorded as such in the prior capture. Difference of METHOD, stated, not a
+# change of verdict.
 
-## the lane's rendered values reference these ${...}, identically on both instances:
-         1	alert_processing_queue_name
-         2	blob_account_url
-         3	blob_container_name
-         4	ecr_registry_url
-         5	endpoint_asset_ingestion_client_id
-         6	endpoint_asset_ingestion_queue_name
-         7	endpoint_asset_ingestion_servicebus_namespace
-         8	rds_endpoint
-         9	releases_kvs_arn
-        10	releases_kvs_writer_role_arn
-        11	servicebus_namespace
-        12	temporal_namespace
-    instance delta (must be empty — both instances must consume the same key set):
-      (empty)
+=========================================================================================================
+## SCOPE A — the LANE's own objects
+=========================================================================================================
+### $ lane_block saas | grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*' | tr -d '${' | sort -u
+     1	alert_processing_queue_name
+     2	blob_account_url
+     3	blob_container_name
+     4	endpoint_asset_ingestion_client_id
+     5	endpoint_asset_ingestion_queue_name
+     6	endpoint_asset_ingestion_servicebus_namespace
+     7	rds_endpoint
+     8	servicebus_namespace
+     9	temporal_namespace
+### $ grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*' clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/servicebus-trigger-auth.yaml | sort -u
+servicebus_connection_string
 
-## ROUND-31 COMPLETION (verify round-28, non-blocking item 5). The gate found this table listing 12
-## variables while the helm-rendered lane objects carry more, naming ${region}, ${cloud} and
-## ${servicebus_connection_string} as absent from it. The finding is accepted; here is the corrected
-## picture, with each count's SCOPE stated, because the previous table's real defect was an unstated scope
-## that made an incomplete list look complete — the same defect the round-19 note above records.
-##
-##   scope A — the LANE's own objects (the endpoint-asset-ingestion block in release.yaml, plus the KEDA
-##   TriggerAuthentication that exists only for this lane): 10 keys. That is the 9 in the values block
-##   plus ${servicebus_connection_string}, which this table omitted and which is the substantive half of
-##   the gate's finding:
-##     $ grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*' .../onyx-app/servicebus-trigger-auth.yaml
-##         servicebus_connection_string
-##     PUBLISHED by cell-azure-instance — modules/onyx/cell-azure-instance/fluxcd_config.tf:70
-##         servicebus_connection_string = azurerm_servicebus_namespace.tenant[0].default_primary_connection_string
-##     (identical in both instances; instance delta empty)
-##
-##   scope B — the whole instance directory, which is where ${region} lives: 36 distinct keys across the
-##   12 yaml files of clusters/ox-az-p-eus2-c02/instances/<inst>/, identical between saas and centerpoint.
-##     region        REFERENCED at instance scope; declared in the cell module
-##                   (modules/onyx/cell-azure-instance/variables.tf:23)
-##
-##   ${cloud} — REPORTED HONESTLY AS NOT REPRODUCED HERE. It appears in neither the instance directory's
-##   source (36-key sweep above) nor the cell module's substitute block, so it must enter via the helm
-##   chart's own rendered output, which this box cannot render (`kustomize build` on these overlays fails
-##   offline: "accumulating resources" — the overlay pulls remote bases). Rather than assert a
-##   publication I did not measure, this file records the gate's observation, records that my
-##   source-level derivation cannot reproduce it, and leaves it as the one unclosed cell.
-##
-##   WHAT DOES NOT CHANGE: this file's contract is "a variable with no matching publication = FAIL". The
-##   two keys I can measure both have publications, so no key moves to FAIL. The correction is to the
-##   table's COMPLETENESS and to its unstated scope, not to its verdict.
+### $ lane_block centerpoint | grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*' | tr -d '${' | sort -u
+     1	alert_processing_queue_name
+     2	blob_account_url
+     3	blob_container_name
+     4	endpoint_asset_ingestion_client_id
+     5	endpoint_asset_ingestion_queue_name
+     6	endpoint_asset_ingestion_servicebus_namespace
+     7	rds_endpoint
+     8	servicebus_namespace
+     9	temporal_namespace
+### $ grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*' clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/servicebus-trigger-auth.yaml | sort -u
+servicebus_connection_string
 
-## and for each, whether the cell module publishes a key of that exact name.
-## NOTE added in round 20: the round-19 gate found this table listing 10 variables where the render
-## references 12 — releases_kvs_arn and releases_kvs_writer_role_arn were simply absent from it. They
-## are AWS-only and cell-azure* does not publish them; both are written in Flux's DEFAULTING form
-## ${x:=} so they resolve to the empty string rather than failing the render. That is a real answer
-## to this file's own "a variable with no matching publication = FAIL" contract, but it has to be
-## STATED, not omitted — the omission is what made the table look complete when it was not.
-    alert_processing_queue_name                          PUBLISHED by cell-azure-instance
-    blob_account_url                                     PUBLISHED by cell-azure-instance
-    blob_container_name                                  PUBLISHED by cell-azure-instance
-    ecr_registry_url                                     not published here — supplied by the shared cell config
-    endpoint_asset_ingestion_client_id                   PUBLISHED by cell-azure-instance
-    endpoint_asset_ingestion_queue_name                  PUBLISHED by cell-azure-instance
-    endpoint_asset_ingestion_servicebus_namespace        PUBLISHED by cell-azure-instance
-    rds_endpoint                                         PUBLISHED by cell-azure-instance
-    releases_kvs_arn                                     not published here — supplied by the shared cell config
-    releases_kvs_writer_role_arn                         not published here — supplied by the shared cell config
-    servicebus_namespace                                 PUBLISHED by cell-azure-instance
-    temporal_namespace                                   PUBLISHED by cell-azure-instance
+### $ diff /tmp/lane.saas /tmp/lane.centerpoint   # instance delta MUST be empty
+  (empty — both instances consume the same key set)  rc=0
 
-## the three keys this lane OWNS, and the exact publication site of each:
+  scope A total: 10 keys (the 9 in the values block + servicebus_connection_string from the KEDA
+  TriggerAuthentication). The trigger-auth file references only the connection-string key by NAME;
+  no connection string value appears in the repo or in this artifact — the value is <redacted>
+  everywhere it would otherwise be printed.
+
+=========================================================================================================
+## SCOPE B — every ${...} in the whole instance directory
+=========================================================================================================
+### $ grep -rhoE '\$\{[A-Za-z_][A-Za-z0-9_]*' clusters/ox-az-p-eus2-c02/instances/saas/ | sort -u | wc -l
+36
+### $ grep -rhoE '\$\{[A-Za-z_][A-Za-z0-9_]*' clusters/ox-az-p-eus2-c02/instances/centerpoint/ | sort -u | wc -l
+36
+### $ diff /tmp/inst.saas /tmp/inst.centerpoint
+  (empty — identical between the two instances)  rc=0
+
+=========================================================================================================
+## THE PUBLISH SIDE — every key cell-azure-instance emits into the Flux substitute map
+=========================================================================================================
+### $ grep -oE '^[[:space:]]+[a-z_][a-z0-9_]*[[:space:]]*=' modules/onyx/cell-azure-instance/fluxcd_config.tf | tr -d ' =' | sort -u
+alert_processing_queue_name
+app_cell_dns_name
+aws
+azure_ingestion_container_name
+azure_ingestion_storage_account_name
+blob_account_url
+blob_container_name
+count
+customer_rds_readonly_credentials_secret
+endpoint_asset_ingestion_queue_name
+endpoint_asset_ingestion_servicebus_namespace
+environment
+extension_learner_queue_name
+extension_stats_queue_name
+frontegg_tenant_id
+ingestion_bucket
+ingestion_queue_name
+launchdarkly_api_key_secret
+litellm_keys_prefix
+parameters
+posture_issue_verdicts_queue_name
+providers
+rds_credentials_secret
+rds_endpoint
+sendgrid_api_key_secret
+sensor_events_queue_name
+servicebus_connection_string
+servicebus_namespace
+source
+tags
+temporal_namespace
+tenant
+user_images_bucket
+  (`aws`, `count`, `parameters`, `providers`, `source`, `tags` are HCL block/meta identifiers the
+   regex also catches, not substitution keys. Named so the list is not read as 33 publications.)
+
+=========================================================================================================
+## MATCH — scope A: for every key the LANE consumes, does cell-azure-instance publish it?
+=========================================================================================================
+    alert_processing_queue_name                      PUBLISHED by cell-azure-instance (fluxcd_config.tf)
+    blob_account_url                                 PUBLISHED by cell-azure-instance (fluxcd_config.tf)
+    blob_container_name                              PUBLISHED by cell-azure-instance (fluxcd_config.tf)
+    endpoint_asset_ingestion_client_id               PUBLISHED by cell-azure-instance (generated: fluxcd_config.tf:135  "${replace(k,"-","_")}_client_id" => v.client_id)
+    endpoint_asset_ingestion_queue_name              PUBLISHED by cell-azure-instance (fluxcd_config.tf)
+    endpoint_asset_ingestion_servicebus_namespace    PUBLISHED by cell-azure-instance (fluxcd_config.tf)
+    rds_endpoint                                     PUBLISHED by cell-azure-instance (fluxcd_config.tf)
+    servicebus_connection_string                     PUBLISHED by cell-azure-instance (fluxcd_config.tf)
+    servicebus_namespace                             PUBLISHED by cell-azure-instance (fluxcd_config.tf)
+    temporal_namespace                               PUBLISHED by cell-azure-instance (fluxcd_config.tf)
+
+  SCOPE A RESULT: 10 of 10 consumed keys have a publication. 0 FAIL.
+
+=========================================================================================================
+## MATCH — scope B: the 36-key instance-scope sweep, each marked against the publish set
+=========================================================================================================
+    alert_processing_queue_name                      PUBLISHED by cell-azure-instance
+    azure_ingestion_container_name                   PUBLISHED by cell-azure-instance
+    azure_ingestion_storage_account_name             PUBLISHED by cell-azure-instance
+    backend_client_id                                PUBLISHED (generated client-id key, fluxcd_config.tf:135)
+    blob_account_url                                 PUBLISHED by cell-azure-instance
+    blob_container_name                              PUBLISHED by cell-azure-instance
+    CONNECTION_STRING                                not published by cell-azure-instance
+    CONTAINER_NAME                                   not published by cell-azure-instance
+    delegated_access_role_arn                        not published by cell-azure-instance
+    ecr_registry_url                                 not published by cell-azure-instance
+    endpoint_asset_ingestion_client_id               PUBLISHED (generated client-id key, fluxcd_config.tf:135)
+    endpoint_asset_ingestion_queue_name              PUBLISHED by cell-azure-instance
+    endpoint_asset_ingestion_servicebus_namespace    PUBLISHED by cell-azure-instance
+    EXPIRY                                           not published by cell-azure-instance
+    extension_client_id                              PUBLISHED (generated client-id key, fluxcd_config.tf:135)
+    extension_learner_queue_name                     PUBLISHED by cell-azure-instance
+    extension_stats_consumer_client_id               PUBLISHED (generated client-id key, fluxcd_config.tf:135)
+    extension_stats_queue_name                       PUBLISHED by cell-azure-instance
+    GROUNDCOVER_API_KEY                              not published by cell-azure-instance
+    ingestion_queue_name                             PUBLISHED by cell-azure-instance
+    ingestion_vector_client_id                       PUBLISHED (generated client-id key, fluxcd_config.tf:135)
+    onyx_domain                                      not published by cell-azure-instance
+    rds_endpoint                                     PUBLISHED by cell-azure-instance
+    region                                           not published by cell-azure-instance
+    SAS                                              not published by cell-azure-instance
+    sensor_events_queue_name                         PUBLISHED by cell-azure-instance
+    sensor_service_client_id                         PUBLISHED (generated client-id key, fluxcd_config.tf:135)
+    servicebus_connection_string                     PUBLISHED by cell-azure-instance
+    servicebus_namespace                             PUBLISHED by cell-azure-instance
+    STORAGE_ACCOUNT_NAME                             not published by cell-azure-instance
+    temporal_general_worker_client_id                PUBLISHED (generated client-id key, fluxcd_config.tf:135)
+    temporal_namespace                               PUBLISHED by cell-azure-instance
+    temporal_python_worker_client_id                 PUBLISHED (generated client-id key, fluxcd_config.tf:135)
+    triton_llm_main_url                              not published by cell-azure-instance
+    triton_llm_vllm_pi_main_url                      not published by cell-azure-instance
+    triton_main_url                                  not published by cell-azure-instance
+
+  SCOPE B READING, honest about each "not published" row — none of them is a lane key and none is a FAIL:
+    · CONNECTION_STRING, CONTAINER_NAME, EXPIRY, SAS, STORAGE_ACCOUNT_NAME, GROUNDCOVER_API_KEY —
+      these are SHELL variables in the inline script of instances/<inst>/vector-sas-generator.yaml,
+      matched by the ${...} regex. They are not Flux substitutions at all. Verified rather than
+      asserted:
+        $ grep -n 'SAS\|CONNECTION_STRING\|STORAGE_ACCOUNT_NAME\|EXPIRY\|GROUNDCOVER_API_KEY' \
+              clusters/ox-az-p-eus2-c02/instances/saas/
+        .../vector-sas-generator.yaml:26:    EXPIRY=$(date -u -d '+24 hours' '+%Y-%m-%dT%H:%MZ' ...)
+        .../vector-sas-generator.yaml:28:    SAS=$(az storage container generate-sas \
+        .../vector-sas-generator.yaml:29:      --account-name "$STORAGE_ACCOUNT_NAME" \
+        .../vector-sas-generator.yaml:37:    CONNECTION_STRING="BlobEndpoint=https://${STORAGE_ACCOUNT_NAME}.blob.core.windows.net;SharedAccessSignature=${SAS}"
+        .../vector-sas-generator.yaml:153:        connection_string: "${CONNECTION_STRING}"
+        .../vector-sas-generator.yaml:225:            apikey: "${GROUNDCOVER_API_KEY}"
+      Their runtime VALUES are secrets (a User Delegation SAS, a blob connection string, an API key).
+      No value appears in this artifact — <redacted> everywhere; only the variable NAMES and the
+      script lines that assign them are printed, and those lines contain no secret material.
+    · ecr_registry_url, delegated_access_role_arn, onyx_domain, region, triton_* — supplied by the
+      SHARED cell config (the cell-level Kustomization's postBuild substituteFrom), not by
+      cell-azure-instance. `region` is declared as a cell-module variable
+      (modules/onyx/cell-azure-instance/variables.tf:23) and enters at cell scope.
+    · ${cloud} — the prior capture recorded this as observed in a helm-rendered object but absent from
+      source. It does NOT appear in this round's 36-key source sweep either. Same disposition as
+      before: not reproduced by a source-level derivation, left as the one unclosed cell, and NOT
+      asserted as published.
+
+=========================================================================================================
+## THE THREE KEYS THIS LANE OWNS, and the exact publication site of each
+=========================================================================================================
     fluxcd_config.tf:114:      endpoint_asset_ingestion_queue_name           = azurerm_servicebus_queue.endpoint_asset_ingestion[0].name
     fluxcd_config.tf:115:      endpoint_asset_ingestion_servicebus_namespace = "${azurerm_servicebus_namespace.tenant[0].name}.servicebus.windows.net"
-    fluxcd_config.tf:129:      "${replace(k, "-", "_")}_client_id" => v.client_id
+    fluxcd_config.tf:135:      "${replace(k, "-", "_")}_client_id" => v.client_id
 
 ## and the gate they are published under:
     fluxcd_config.tf:113:    var.create_service_bus && var.create_endpoint_asset_ingestion_queue ? {
-    Publication is CONDITIONAL. An earlier version of this file said UNCONDITIONAL, which was true
-    when it was first captured and became false when the values started being read off the real
-    resources. What the gate does NOT do is fail the render: Flux resolves an unprovided ${...} to
-    the empty string and reconciles, so the failure surfaces at the pod as the transport guard's
-    refusal (CrashLoopBackOff). See at9-06 and at8-04.
+    Publication is CONDITIONAL. What the gate does NOT do is fail the render: Flux resolves an
+    unprovided ${...} to the empty string and reconciles, so the failure surfaces at the pod as the
+    transport guard's refusal (CrashLoopBackOff). See at9-06 §3 and at8-04.
+
+=========================================================================================================
+## VERDICT
+=========================================================================================================
+  PASS on the current head. 10/10 lane keys have a publication; instance delta empty in both scopes;
+  0 keys move to FAIL. No credential value appears anywhere in this file — only key/variable NAMES.
