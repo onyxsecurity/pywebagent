@@ -1,0 +1,65 @@
+# PRDCT-11935 at11-05 — gen-1 is UNTOUCHED by this PR, and still running on the stack
+# FILE LAST WRITTEN 2026-08-23T13:50:09Z
+# merge-base c2a5bb6c586ac8fba9893a1350fe9c6c6d2e6267 · head 12461e0002f512cd1d89cac9509fedb9833b92eb · captured 2026-08-23T12:48:13Z
+
+=== 1. Zero diff hunks on the gen-1 path. Each pathspec is proven NON-EMPTY against the tree first,
+===    so an empty diff means 'nothing changed', never 'nothing matched'.
+    backend/                                                                       tracked=2145  changed=0
+    backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/  tracked=39    changed=0
+    backend_python/src/scanner_event_consumer_service/consumer/dispatcher.py       tracked=1     changed=0
+    backend_python/src/common_core/services/feature_flags/consts.py                tracked=1     changed=0
+
+    The gen-1 workflow itself, by symbol:
+      backend/service/temporal/worker/pkg/general/scanner_collector/tenant_workflow.go             diff lines vs merge-base: 0
+      backend/service/temporal/worker/pkg/general/scanner_collector/object_workflow.go             diff lines vs merge-base: 0
+      backend/service/temporal/worker/pkg/general/scanner_collector/workflow.go                    diff lines vs merge-base: 0
+      backend/service/temporal/worker/pkg/general/scanner_collector/post_inventory.go              diff lines vs merge-base: 0
+
+    Whole-repo sanity: the diff touches these top-level trees and no others —
+      backend_python/pyproject.toml
+      backend_python/src
+      backend_python/tests
+      backend_python/uv.lock
+      docs/architecture
+      docs/decisions
+      docs/monitoring
+      infra/helm
+
+=== 2. gen-1 is LIVE on the stack under the head deploy (pre-leg capture) ===
+    $ kubectl -n onyxd exec deploy/onyx-temporal-admintools -- temporal workflow list \
+        --address onyx-temporal-frontend:7233 --namespace default \
+        --query "WorkflowType='ScannerTenantWorkflow'" --limit 10
+    captured 2026-08-23T12:49:05Z
+         Status                                 WorkflowId                                       Type             StartTime  
+        Completed  scanner-tenant-11935a26-0000-4000-8000-000000000a26-20260823T124900Z  ScannerTenantWorkflow  3 seconds ago
+        Completed  scanner-tenant-11935b26-0000-4000-8000-000000000b26-20260823T124900Z  ScannerTenantWorkflow  4 seconds ago
+        Completed  scanner-tenant-11935f18-0000-4000-8000-000000000102-20260823T124900Z  ScannerTenantWorkflow  4 seconds ago
+        Completed  scanner-tenant-11935f18-0000-4000-8000-000000000101-20260823T124900Z  ScannerTenantWorkflow  4 seconds ago
+        Completed  scanner-tenant-11935b18-0000-4000-8000-0000000018b2-20260823T124900Z  ScannerTenantWorkflow  4 seconds ago
+        Completed  scanner-tenant-11935a00-0000-4000-8000-000000000a01-20260823T124900Z  ScannerTenantWorkflow  4 seconds ago
+        Completed  scanner-tenant-61750f27-8fbd-42a4-80cf-4191cfb2371a-20260823T124900Z  ScannerTenantWorkflow  4 seconds ago
+        Completed  scanner-tenant-11935a18-0000-4000-8000-0000000018a1-20260823T124900Z  ScannerTenantWorkflow  5 seconds ago
+        Completed  scanner-tenant-11935b00-0000-4000-8000-000000000b02-20260823T124900Z  ScannerTenantWorkflow  5 seconds ago
+        Completed  scanner-tenant-11935a26-0000-4000-8000-000000000a26-20260823T124800Z  ScannerTenantWorkflow  1 minute ago 
+
+    Workers backing it, same moment:
+      temporal-general-worker      1/1 ready  image=localhost:5001/onyx/temporal-general-worker:tilt-73039ae7d7226fd1
+      temporal-scanner-worker      1/1 ready  image=localhost:5001/onyx/temporal-scanner-worker:tilt-9019cb2915c24a19
+
+=== 3. gen-1 is STILL LIVE after the controlled legs (post-leg capture) ===
+    The AWS-lane base-vs-head legs (at11-02/03) run with gen-1 scaled to 0 on purpose: gen-1 writes
+    to the same tenants from the same objects, so leaving it on would mean measuring two writers
+    instead of one. That is the same isolation the at6 transport legs use. It is a measurement
+    control, not a claim about gen-1 — gen-1 is untouched by the diff (section 1) and running
+    before (section 2) and after (here) the legs.
+    captured 2026-08-23T13:47:46Z
+        Status                                WorkflowId                                       Type             StartTime   
+        Running  scanner-tenant-11935f18-0000-4000-8000-000000000102-20260823T132300Z  ScannerTenantWorkflow  47 seconds ago
+        Running  scanner-tenant-11935f18-0000-4000-8000-000000000102-20260823T134000Z  ScannerTenantWorkflow  51 seconds ago
+        Running  scanner-tenant-11935f18-0000-4000-8000-000000000102-20260823T133900Z  ScannerTenantWorkflow  55 seconds ago
+        Running  scanner-tenant-11935a00-0000-4000-8000-000000000a01-20260823T132300Z  ScannerTenantWorkflow  1 minute ago  
+        Running  scanner-tenant-11935f18-0000-4000-8000-000000000102-20260823T132900Z  ScannerTenantWorkflow  1 minute ago  
+        Running  scanner-tenant-11935f18-0000-4000-8000-000000000101-20260823T132700Z  ScannerTenantWorkflow  1 minute ago  
+
+      temporal-general-worker      1/1 ready
+      temporal-scanner-worker      1/1 ready
