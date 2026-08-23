@@ -1,13 +1,13 @@
-# PRDCT-11935 at8-02 — the lane's RENDERED objects on the centerpoint instance, at the flux PR HEAD
-# FILE LAST WRITTEN 2026-08-21T22:08:49Z
+# PRDCT-11935 at8-02 — the lane's RENDERED objects on the centerpoint instance, RE-RENDERED on the shipped heads
+# FILE LAST WRITTEN 2026-08-23T19:01:24Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# flux-fleet branch factory-eval-v32/PRDCT-11935 @ cab40f0e42 · onyx branch a2486bb33f · re-rendered 2026-08-21T22:08:49Z
+# flux-fleet branch factory-eval-v32/PRDCT-11935 @ a4493c1e5ac0 · onyx head 2b60fdc4df25188104e737e6311087681355eff8 · re-rendered 2026-08-23T18:57:57Z
 #
-# RE-RENDERED IN ROUND 20. The version this replaces was captured at flux 396980bac on
-# 2026-08-18T19:40 — many commits behind the PR head — and still printed
-# 'asset_ingestion_s3: aws_region: us-east-1', which is NOT what the branch renders. It did not
-# evidence the shipped state. This is the render of the head the PR actually carries, which now
-# also carries main's PRDCT-4368 comment-free instance files.
+# WHY IT WAS RE-RENDERED. The round-39 gate found this capture stamped on onyx a2486bb33f — 50
+# commits and two owner rulings behind the shipped head — and flux-fleet#2307 was CONFLICTING at
+# the time. Both moved: flux-fleet's branch merged main (conflict in versions.yaml resolved by
+# taking main's 1.1.874 -> 1.1.877 bump AND carrying this lane's new pin forward with it), and the
+# onyx chart is the one this PR ships. This is the render of those two heads.
 
 ## $ kustomize build --load-restrictor LoadRestrictionsNone clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app
 ##   | yq '…HelmRelease onyx-app .spec.values."endpoint-asset-ingestion"'
@@ -89,7 +89,7 @@
   fullnameOverride: endpoint-asset-ingestion
   image:
     repository: ${ecr_registry_url}/onyx/endpoint-asset-ingestion
-    tag: 1.1.874
+    tag: 1.1.877
   nodeSelector:
     kubernetes.io/arch: amd64
   podLabels:
@@ -107,28 +107,20 @@
     name: endpoint-asset-ingestion
   team: discovery
 
-## the AWS-only leaves, read out of THAT render — neither resolves into the pod:
-  asset_ingestion_s3:
-    aws_region: ""
-    endpoint: ""
-  asset_ingestion_sqs:   <-- NOT PRESENT in spec.values at all; drop-aws-only-values.yaml removes it
-                             (`has("asset_ingestion_sqs")` on this render -> false)
+## the decisive keys, called out
+     enabled                              : true
+     configMap.data.cloud                 : azure
+     asset_ingestion_asb.namespace        : ${endpoint_asset_ingestion_servicebus_namespace}
+     asset_ingestion_asb.queue_name       : ${endpoint_asset_ingestion_queue_name}
+     blob.account_url                     : ${blob_account_url}
+     image.tag                            : 1.1.877
+     asset_ingestion_sqs present?         : false   <- the AWS-only leaf drop-aws-only-values.yaml removes
+     eks role-arn anywhere in the render  : 2
 
-## ROUND-32 CORRECTION (verify round-29, GAP 3). The line above used to read `asset_ingestion_sqs: null`.
-## That was an artifact of the QUERY, not the render: asking yq for a key a map does not contain prints
-## null. The key is absent, and it matters that the distinction be got right, because the literal null is a
-## state the real service image REFUSES TO BOOT ON — which is exactly why drop-aws-only-values.yaml uses
-## `op: remove` here rather than `op: add … value: null`, and says so in its own comment.
-##
-## AND WHAT THE POD ACTUALLY READS is one level further on: removing a key from spec.values does not stop
-## the CHART's default for it reappearing in the rendered ConfigMap. Rendered through infra/helm/onyx-app,
-## the shipped /app/config.yaml on this instance carries the chart's all-blank stanza —
-##     asset_ingestion_sqs:
-##       aws_region: ""
-##       dlq_url: ""
-##       endpoint: ""
-##       queue_url: ""
-##       visibility_timeout: 600
-##       wait_time_seconds: 20
-## — blank on every leaf, never null, with `us-east-1` occurrences 0 in the lane's block. Both shapes were
-## booted on the head image to settle which one ships: evidence/at8-05-render-and-boot.txt.
+## the workloads this actually renders (helm template of the onyx-app chart at this onyx head)
+     helm template exit                   : 0   (6151 lines)
+     ServiceAccount         endpoint-asset-ingestion
+     ConfigMap              endpoint-asset-ingestion
+     Service                endpoint-asset-ingestion
+     Deployment             endpoint-asset-ingestion
+     ScaledObject           endpoint-asset-ingestion
