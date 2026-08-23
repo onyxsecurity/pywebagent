@@ -1,0 +1,148 @@
+# PRDCT-11935 at11-09 — OWNER RULING #2 (round 46): the queue-layer abandon/pool work, dropped as superseded
+# FILE LAST WRITTEN 2026-08-23T17:32:37Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade
+# head       2b60fdc4df25188104e737e6311087681355eff8
+# captured   2026-08-23T17:12:34Z
+#
+# main landed an overlapping abandon_message while this PR was open. The owner ruled: drop yours, do
+# NOT merge the two designs. Every check below is the ruling's own words turned into a command.
+
+=== 1. client.py, sqs.py, consumer_pool.py — OUT OF THIS PR ENTIRELY ===
+    Two independent ways of saying it: zero hunks against the merge-base, and byte-identical to
+    origin/main. Both are printed because they fail differently — the first would miss a change that
+    main also made, the second would miss a file that never existed on either side.
+      client.py          hunks vs merge-base = 0     diff lines vs origin/main = 0
+      sqs.py             hunks vs merge-base = 0     diff lines vs origin/main = 0
+      consumer_pool.py   hunks vs merge-base = 0     diff lines vs origin/main = 0
+
+=== 2. asb.py — _system_properties is the ONLY hunk this PR contributes ===
+    $ git diff <merge-base>..HEAD -- backend_python/src/common_core/services/queue/asb.py
+      @@ -2,6 +2,8 @@
+      +from datetime import datetime
+      +from typing import Any
+      @@ -43,6 +45,28 @@ class ASBProducerConfig(BaseCustomSettings):
+      +def _system_properties(asb_msg: Any) -> dict[str, str]:
+      +    """Broker-set delivery facts, under the same ``_sys_*`` names the SQS client publishes.
+      +
+      +    Handlers are transport-agnostic and read these to meter redeliveries (a delivery count
+      +    above one means the queue is re-presenting the message) and message age (how long it sat
+      +    in the queue). Service Bus counts *prior* deliveries, SQS counts *this* receive, so the
+      +    count is normalized to SQS's 1-based meaning; without this normalization the same handler
+      +    would silently report zero redeliveries on the Azure lane.
+      +    """
+      +    properties: dict[str, str] = {}
+      +
+      +    delivery_count = getattr(asb_msg, "delivery_count", None)
+      +    if isinstance(delivery_count, int):
+      +        properties["_sys_ApproximateReceiveCount"] = str(delivery_count + 1)
+      +
+      +    enqueued_at = getattr(asb_msg, "enqueued_time_utc", None)
+      +    if isinstance(enqueued_at, datetime):
+      +        properties["_sys_SentTimestamp"] = str(int(enqueued_at.timestamp() * 1000))
+      +
+      +    return properties
+      +
+      +
+      @@ -165,6 +189,7 @@ class ASBQueueClient:
+      +            properties.update(_system_properties(asb_msg))
+
+    Hunk headers only, so the shape is legible without reading the body:
+      @@ -2,6 +2,8 @@
+      @@ -43,6 +45,28 @@ class ASBProducerConfig(BaseCustomSettings):
+      @@ -165,6 +189,7 @@ class ASBQueueClient:
+      hunks = 3
+      any abandon_message hunk in that diff? 0 line(s)  (0 = none)
+
+=== 3. THE OWNER'S CRITICAL TRAP — exactly ONE definition each ===
+    The owner's words: 'asb.py and client.py merge CLEANLY with no conflict markers and end up with
+    TWO abandon_message definitions each ... Python takes the LAST one, so main's -> None silently
+    wins while any caller of yours doing `if released_immediately:` gets None, is always falsy, and
+    the Azure backoff silently never fires. Tests can still pass.'
+    This trap DID fire on this branch — the first merge produced two definitions in each file. It was
+    caught by comparing the protocol surface against main, not by a test, which is exactly the point.
+    $ grep -n 'def abandon_message' backend_python/src/common_core/services/queue/asb.py
+        253:    async def abandon_message(self, msg: ReceivedMessage) -> None:
+        definitions = 1
+    $ grep -n 'def abandon_message' backend_python/src/common_core/services/queue/client.py
+        96:    async def abandon_message(self, msg: ReceivedMessage) -> None:
+        definitions = 1
+    $ grep -n 'def abandon_message' backend_python/src/common_core/services/queue/sqs.py
+        247:    async def abandon_message(self, msg: ReceivedMessage) -> None:
+        definitions = 1
+
+    And no conflict marker survives anywhere in the PR:
+        <<<<<<< / >>>>>>> in the head tree = 0
+
+=== 4. THE TOTAL BOOL-RETURN CHECK — every added line mentioning abandon_message( , with a verdict ===
+    A bare call or a def is fine. An assignment, walrus, return, assert, condition, boolean
+    expression, comprehension, argument position or bool annotation is a FAIL: it would be reading a
+    value main's -> None contract does not provide.
+      [bare statement call] await client.abandon_message(ReceivedMessage(id="m-1", body="{}", properties={}, _handle=handle))
+      [declaration] async def abandon_message(self, msg: ReceivedMessage) -> None:
+      added lines mentioning abandon_message( : 2   FAILING: 0
+
+=== 5. THE FOUR MAIN-SIDE MEMBERS — present, and not touched by this PR ===
+      QueueClient.abandon_message -> None (protocol)
+        present in head (async def abandon_message) = 1     hunks this PR puts on that file = 0
+      SQSQueueClient.abandon_message -> None (no-op)
+        present in head (async def abandon_message) = 1     hunks this PR puts on that file = 0
+      ASBQueueClient.abandon_message -> None (cancels renewal)
+        present in head (async def abandon_message) = 1     hunks this PR puts on that file = 3
+      ConsumerPool batch mode + _abandon_batch_best_effort
+        present in head (_abandon_batch_best_effort) = 3     hunks this PR puts on that file = 0
+      batch_handler / max_buffer_messages present on head consumer_pool.py = 13 / 5
+
+=== 6. PACING IS ABSENT — the design's whole symbol set, at zero ===
+    'PACING IS DEFERRED, NOT DROPPED ... Do NOT re-add it in this PR.' error_backoff_seconds is
+    deliberately NOT in this set: that is main's own poll-error backoff, not this PR's design.
+      symbol                                                in the diff  head tree  origin/main
+      redelivers_immediately                                          0          0            0
+      released_immediately                                            0          0            0
+      TestHandlerErrorBackoff                                         0          0            0
+      _capped_failing_client                                          0          0            0
+      test_immediate_release_backs_off_between_attempts               0          0            0
+      test_deferred_release_does_not_stall_the_worker                 0          0            0
+      _pace_immediate_redelivery                                      0          0            0
+      TOTAL diff hits across the design symbol set: 0   (0 = the design is not in this PR)
+      These are real symbol names, not typos that grep to nothing by accident: every one of them was
+      present on this branch at 4ac8a3f538 and was removed by the round-46 commits. Two commits back:
+        4ac8a3f538 hits for redelivers_immediately: 5 file(s)
+        4ac8a3f538 hits for _pace_immediate_redelivery: 1 file(s)
+        4ac8a3f538 hits for TestHandlerErrorBackoff: 1 file(s)
+
+=== 7. TESTS — the design's tests gone, the kept ones present ===
+      test_consumer_pool.py diff lines vs origin/main = 0   (0 = byte-identical)
+      the design symbol set over EVERY test file in the diff, one section per file:
+        test_asb_client.py                           0 hits across all 7 design symbols
+        test_blob_event.py                           0 hits across all 7 design symbols
+        test_asb_settlement.py                       0 hits across all 7 design symbols
+        test_asb_system_properties.py                0 hits across all 7 design symbols
+        test_transport_guard.py                      0 hits across all 7 design symbols
+        test_event_parser.py                         0 hits across all 7 design symbols
+        test_message_handler.py                      0 hits across all 7 design symbols
+        test_cloud_config.py                         0 hits across all 7 design symbols
+        test_service.py                              0 hits across all 7 design symbols
+        test_config.py                               0 hits across all 7 design symbols
+        test_config.py                               0 hits across all 7 design symbols
+        test_service.py                              0 hits across all 7 design symbols
+      kept, and present:
+        _system_properties unit tests                test_asb_system_properties.py: 4 match(es)  exists=True
+        the two _system_properties client tests      test_asb_client.py: 4 match(es)  exists=True
+        class TestASBSettlement                      test_asb_client.py: 1 match(es)  exists=True
+        ASB settlement suite                         test_asb_settlement.py: 3 match(es)  exists=True
+
+=== 8. docs/decisions/README.md — 0067 then 0071, in numeric order ===
+    The ruling asked for both rows in numeric order and a re-check that 0067 was still free for ours.
+    It is not: main took 0067, and then took 0072 as well. Per the ruling's own contingency this
+    record renumbered to the next free number, 0069 — a real gap, which an author adding a record
+    cannot take out from under it, because they pick max+1.
+      106:| [0065](0065-the-mdm-device-owner-outranks-every-endpoint-reported-address.md) | The MDM device owner outranks every endpoint-reported address | Accepted |
+      107:| [0066](0066-a-mask-rule-on-a-hooks-protected-agent-records-an-alert.md) | A Mask rule on a hooks-protected coding agent records an Alert | Accepted |
+      108:| [0067](0067-a-build-publishes-into-the-registry-its-environment-pulls-from.md) | A build publishes into the registry its environment pulls from | Accepted |
+      109:| [0068](0068-enforcement-identifies-the-user-from-the-device.md) | Enforcement identifies the requesting user from the device, not from the address the endpoint reports | Accepted |
+      110:| [0069](0069-the-declared-cloud-decides-the-ingestion-transport.md) | The declared cloud decides the ingestion transport, and a mismatch refuses to boot | Accepted |
+      111:| [0071](0071-a-slug-per-customer-a-proxy-endpoint-per-cell.md) | A slug per customer, a proxy endpoint per cell — DNS picks the cell, the header picks the instance | Accepted |
+      112:| [0072](0072-red-team-alerts-are-ignored-with-a-system-reason.md) | Red-team alerts are ordinary Ignored alerts, keyed on a system `red_team` reason | Accepted |
+      index rows = 71   out-of-order pairs = 0   0067 row present = True   0071 row present = True
+      this PR's record: docs/decisions/0069-the-declared-cloud-decides-the-ingestion-transport.md
