@@ -1,7 +1,7 @@
 # PRDCT-11935 at10-22 — OWNER SCOPE CORRECTION: the revert, and proof it changes nothing on AWS
-# FILE LAST WRITTEN 2026-08-23T17:32:37Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T17:35:20Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T17:30:25Z
+# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T17:35:18Z
 #
 # The ticket owner ruled PRDCT-11935 Azure ENABLEMENT ONLY — not a bug-fix PR. The old-lane parity
 # work this branch had accumulated comes back out; the Azure transport stays. A SECOND owner ruling
@@ -216,12 +216,12 @@
 
     the eai-azure consumer settling Event Grid messages off Service Bus (the asb.py path — this is
     the Azure transport, not SQS):
-      2026-08-23T17:30:11.941525Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_se
-      2026-08-23T17:30:11.942194Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=1aa4bffc-1440-42ee-a5f2-aeb3e4d
-      2026-08-23T17:30:12.887800Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_se
-      2026-08-23T17:30:12.888374Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=700a0dae-f0a4-4079-a346-0940c69
-      2026-08-23T17:30:13.866529Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_se
-      2026-08-23T17:30:13.867823Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=bfa29191-820b-49b8-b945-b1747c0
+      2026-08-23T17:30:11.941525Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.438439 outcome=processed s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787506209-600d7285-94b9-4d97-96af-b50f88b7dfbb.log'
+      2026-08-23T17:30:12.887800Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.436779 outcome=processed s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787506212-2d45a397-7364-4461-bdc6-ba1ff29668d2.log'
+      2026-08-23T17:30:13.866529Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.436128 outcome=processed s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-23/parity-1787506213-c4444109-ccad-4935-9d5c-ccbe26b14658.log'
+      2026-08-23T17:30:11.942194Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=1aa4bffc-1440-42ee-a5f2-aeb3e4df98f2
+      2026-08-23T17:30:12.888374Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=700a0dae-f0a4-4079-a346-0940c69d826c
+      2026-08-23T17:30:13.867823Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=bfa29191-820b-49b8-b945-b1747c0d5dee
 
     and the row the marker skill produced, read back from the tenant DB:
       240487 | r46-final-smoke-20260823172858 | AssetTypeSkill | AssetStatusDiscovered | 2026-08-23 17:29:07.691307+00
