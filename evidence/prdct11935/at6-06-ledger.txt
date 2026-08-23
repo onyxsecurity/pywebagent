@@ -1,5 +1,5 @@
 # PRDCT-11935 at6-06 — the closure table, the transport-divergence ledger, and the OWNER-ACCEPTED GAP
-# FILE LAST WRITTEN 2026-08-23T19:42:28Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T19:48:36Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T19:42:28Z
 #
