@@ -1,0 +1,50 @@
+# PRDCT-11935 at1-11 — the SHIPPED head drives the full Azure chain and CREATES rows
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch f4b3e9dfb2 · pod eai-azure-5c8b9bcd55-qfk8h · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r24 · captured 2026-08-20T15:53:54Z
+#
+# RE-DRIVEN IN ROUND 20 on the head this PR ships, in the env setup repaired for it:
+#   · the branch's own tenant migration is applied through the repo's real migrate Job, so the
+#     install-evidence columns the shipped extractor writes exist (env_setup.md §12, GAP-7).
+#   · exactly ONE consumer reads this queue — every stale probe deployment and every stale
+#     byoc-events subscription was deleted, so a row here has one possible writer (GAP-16).
+#   · the queue itself was rebuilt to the authored TF shapes (PT5M lock, P14D TTL,
+#     dead_lettering_on_message_expiration=true, max_delivery 5).
+# Round 19's gate found NO capture in the run was on the shipped head. This one is.
+
+## the front door refuses an unauthenticated post (Kong key-auth), before anything else
+    $ curl -X POST http://ingest-onyx:8080/mcp-scanner -d '{}'   (no api key)  ->  HTTP 401
+
+## high-water marks BEFORE the scan — nothing at or below these ids can be claimed as new
+    agent_skills max_id=39622 · agent_subagents max_id=11671 · assets max_id=57625
+
+## the scan, through the real front door (scanner binary -> Kong -> vector -> Blob -> Event Grid -> SB)
+    $ onyx-scanner scan --endpoint http://ingest-onyx:8080/mcp-scanner --api-key <key>   rc=0
+    Scan run completed
+    payloads_sent": 3
+    "skills_total": 98
+
+## the writer's settlement classes in this window, on the shipped head
+         17 outcome=processed
+    (processed_with_failures is the class this round ADDED; a non-zero count here would mean an
+     object was acked while a slice it carried was abandoned — see at6-01 and the metrics below)
+
+## and the rows it CREATED — every id strictly above the marks above
+      id   |            name             |                          skill_md_hash                           
+    -------+-----------------------------+------------------------------------------------------------------
+     40645 | lab-r20-head-20260820155354 | c00e89f4943e8088fe659a84027e18ab85ba84c6e9dd5d3ee00b8872638b8c93
+    (1 row)
+    
+      id   |            name             |                         subagent_md_hash                         
+    -------+-----------------------------+------------------------------------------------------------------
+     11907 | lab-r20-head-20260820155354 | 0350094870b683d63176a1c85515a2a012c2c436e27a319212c5a63ede251c2c
+    (1 row)
+    
+
+## FIDELITY — the machine's own sha256 of each file, against the value the product computed
+    c00e89f4943e8088fe659a84027e18ab85ba84c6e9dd5d3ee00b8872638b8c93  /home/coder/prdct11935-lab/.claude/skills/lab-r20-head-20260820155354/SKILL.md
+    0350094870b683d63176a1c85515a2a012c2c436e27a319212c5a63ede251c2c  /home/coder/prdct11935-lab/.claude/agents/lab-r20-head-20260820155354.md
+
+## the settlement counters the shipped head exposes, read off the live pod
+    asset_ingestion_objects_total{outcome="processed",tenant_schema="prdct11935_tb"} 12.0
+    asset_ingestion_objects_total{outcome="processed",tenant_schema="onyx_security"} 5.0

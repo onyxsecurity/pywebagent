@@ -1,0 +1,90 @@
+# PRDCT-11935 at1-09 — the LaunchDarkly rule that gates this lane, verified through the REAL server SDK
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch 0665ecc545 · captured 2026-08-20T17:42:33Z
+#
+# The flag-ON legs of at1/at2/at6/at7 all depend on one dev rule. It is verified here against
+# LaunchDarkly itself — the same Development environment the pods' SDK key reads — not asserted
+# from the UI and not inferred from behaviour.
+
+## 1. the rule as LD serves it right now:
+{
+ "on": true,
+ "fallthrough": {
+  "variation": 1
+ },
+ "rules": [
+  {
+   "_id": "8ceca464-34e0-4b72-8b8f-3dd34e9df2fe",
+   "variation": 0,
+   "clauses": [
+    {
+     "_id": "a9873c04-af16-4fe8-b101-73ccfa8da068",
+     "attribute": "agent_key",
+     "op": "in",
+     "values": [
+      "agent-prdct10872"
+     ],
+     "contextKind": "tenantUUID",
+     "negate": false
+    }
+   ],
+   "trackEvents": false
+  },
+  {
+   "_id": "61ae80aa-a926-4252-98f3-1f6d3034c29e",
+   "variation": 0,
+   "clauses": [
+    {
+     "_id": "05f95402-9aae-4d30-a009-30c630f6cc80",
+     "attribute": "agent_key",
+     "op": "in",
+     "values": [
+      "agent-prdct11935"
+     ],
+     "contextKind": "tenantUUID",
+     "negate": false
+    }
+   ],
+   "trackEvents": false
+  },
+  {
+   "_id": "6a17f975-a071-47a3-96d7-f39ab4572a78",
+   "variation": 0,
+   "clauses": [
+    {
+     "_id": "912bf2b2-d06b-4942-a268-26974803ce28",
+     "attribute": "service_identity",
+     "op": "in",
+     "values": [
+      "agent-prdct11935"
+     ],
+     "contextKind": "tenant",
+     "negate": false
+    }
+   ],
+   "trackEvents": false,
+   "description": "PRDCT-11935 agent dev lane (service_identity scope; router can't express this)"
+  }
+ ]
+}
+
+## 2. the identity the running consumer presents, read off the live deployment:
+    ONYX__FEATURE_FLAGS__SERVICE_IDENTITY = agent-prdct11935
+    ONYX__FEATURE_FLAGS__LAUNCHDARKLY_SDK_KEY -> secretKeyRef launchdarkly-sdk-key/sdk-key
+      (the key is a secret reference, so it has no inline value to print — which is the point: the pod
+       reads the real Development SDK key, the same environment section 1 was fetched from)
+    The rule's clause matches on service_identity, and this deployment presents exactly the value the
+    rule names, so the flag resolves TRUE for this consumer and for nothing else on the box.
+
+## 3. and the pod acting on it — the writer's own settlements for at7's tenant inside this window:
+    2026-08-20T17:29:11   outcome=processed                tenant=61750f27…  object=1787246951-9c49a841-91d8-4337-9400-2dac7574aaf5.log
+    2026-08-20T17:29:39   outcome=processed                tenant=61750f27…  object=1787246952-88e61ceb-4b15-4af1-a0ae-f882c9a5eff0.log
+    2026-08-20T17:30:06   outcome=processed                tenant=61750f27…  object=1787247002-68a23a64-5903-415c-97d9-d750fc35319d.log
+    2026-08-20T17:30:06   outcome=processed                tenant=61750f27…  object=1787247003-106adf25-f009-4649-b7b4-207d6b4ed3de.log
+    2026-08-20T17:30:06   outcome=processed                tenant=61750f27…  object=1787247004-c5cb1f1d-651b-42ea-a0ed-667d19bf4d2a.log
+    2026-08-20T17:30:06   outcome=processed                tenant=61750f27…  object=1787247005-51d65082-df66-43e6-a835-31c47d1440b4.log
+
+    Every one is `outcome=processed`, on the tenant at7 asserts (61750f27…), from objects whose keys
+    carry the `source=mcp-scanner/` prefix the Service Bus rule matches. The flag being TRUE for this
+    consumer is what let those objects be ingested at all.

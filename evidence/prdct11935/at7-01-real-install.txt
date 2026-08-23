@@ -1,0 +1,134 @@
+# PRDCT-11935 at7-01 — the REAL install THIS HEAD WINDOW was given, by each tool's own installer
+# FILE LAST WRITTEN 2026-08-21T19:29:46Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T17:47:51Z · tenant onyx_security
+#
+# WHY THIS FILE WAS RE-CAPTURED (round-28 gate, G4). The previous revision documented the W21 window —
+# header `onyx branch 0665ecc545 · image :prdct11935-r24 · captured 2026-08-20T16:56:00Z`, subjects
+# onyx-lab-mcp 1.3.0 / lab-w21-20260820165641 / session 20260820_170223_4c6d94 — while every other at7
+# artifact cites the later head window. Because this file is the contracted carrier of "installer output
+# + the on-machine artifacts (MCP config, skill file + sha256, subagent file + sha256, session id)", the
+# head window had NO installer output and NO on-disk digest for its skill or subagent, and the
+# head-window subagent digest was stated bare in at7-08 and captured nowhere. That file had since been
+# deleted by the lifecycle leg, so it was not re-derivable. The fix is not a re-wording: a FRESH subject
+# was installed in the head window by the real installers, digested on disk, driven through the real
+# front door, and read back out of the product. Everything below is from that window.
+#
+# Nothing here is a fixture and nothing was hand-seeded. Each artifact was produced by the tool that owns
+# it, on this machine, inside the window.
+
+=================== 1. THE SUBJECT THIS WINDOW MINTED ===================
+    window stamp    20260821170102   — every subject name carries it, so the assets MUST be
+                                     creates, not matches against an earlier round's rows
+    skill           ~/prdct11935-lab/.claude/skills/lab-r31-20260821170102/SKILL.md
+    subagent        ~/prdct11935-lab/.claude/agents/lab-r31-20260821170102.md
+    MCP bundle      onyx-lab-r31-20260821170102 1.0.0
+
+=================== 2. INSTALLER OUTPUT — the MCP bundle, packed by Anthropic's own MCPB CLI ===================
+    $ npx -y @anthropic-ai/mcpb@2.1.2 pack . onyx-lab-r31-20260821170102-1.0.0.mcpb
+        Validating manifest...
+        Manifest schema validation passes!
+        
+        📦  onyx-lab-r31-20260821170102@1.0.0
+        Archive Contents
+           1023B manifest.json
+             91B package.json
+           2.0kB server/index.js
+        
+        Archive Details
+        name: onyx-lab-r31-20260821170102
+        version: 1.0.0
+        filename: onyx-lab-r31-20260821170102-1.0.0.mcpb
+        package size: 1.6kB
+        unpacked size: 3.1kB
+        shasum: 4b85b06d8bcf410fca000e17cee9ce9e38edb17c
+        total files: 3
+        ignored (.mcpbignore) files: 0
+        
+        Output: /home/coder/prdct11935-lab/mcpb-r31-src/onyx-lab-r31-20260821170102-1.0.0.mcpb
+    manifest declares 5 tools: lab_echo, lab_time, lab_hostname, lab_search, lab_verify
+        (read from the bundle's own manifest.json — these are the names the scanner maps onto
+        scannerSupplied.tools, so the MCP-tools class's fidelity value starts here)
+    sha256 of the packed bundle, computed here by sha256sum rather than taken from the packer:
+        f7a8e4c17cc07f64558884312b3832373cec44817163e93d6423ab67a87da00d
+
+    Installed the way Claude Desktop materialises a bundle — extracted into
+    ~/.config/Claude/Claude Extensions/onyx-lab-r31-20260821170102/ with the enable flag the scanner reads:
+        <ClaudeExtensions>/onyx-lab-r31-20260821170102/package.json
+        <ClaudeExtensions>/onyx-lab-r31-20260821170102/manifest.json
+        <ClaudeExtensions>/onyx-lab-r31-20260821170102/server/index.js
+        --- enable flag the scanner reads ---
+        /home/coder/.config/Claude/Claude Extensions Settings/onyx-lab-r31-20260821170102.json -> {"isEnabled": true}
+    That is exactly the layout claude_desktop_extensions.go reads (:86-87 resolve the two directories,
+    :118 reads <bundleId>.json for isEnabled, :137 reads manifest.json, :208-218 map manifest.tools onto
+    the payload's scannerSupplied.tools and set AppID = "mcpb:" + bundleID).
+    DISCLOSED, unchanged from earlier rounds: Claude Desktop has no Linux build, so the packed .mcpb was
+    extracted into the exact directory layout Desktop extracts it to rather than clicked through a
+    Desktop install. The bundle, its manifest and its node server are real and came from the official
+    packer.
+
+=================== 3. MCP CONFIG — written by the runtime's OWN command, never hand-edited ===================
+    $ codex mcp add r31-filesystem -- npx -y @modelcontextprotocol/server-filesystem /home/coder/prdct11935-lab
+        Added global MCP server 'r31-filesystem'.
+    and the config as codex itself left it (~/.codex/config.toml):
+        [mcp_servers.r31-filesystem]
+        command = "npx"
+        args = ["-y", "@modelcontextprotocol/server-filesystem", "/home/coder/prdct11935-lab"]
+
+=================== 4. THE ON-DISK DIGESTS — computed in THIS window by sha256sum ===================
+    --- on-disk digests (sha256sum, this window) ---
+    4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714  /home/coder/prdct11935-lab/.claude/skills/lab-r31-20260821170102/SKILL.md
+    066bb2f01784ee10a4abd215f62e7ed93a8994e56ef9f429189308985e66df6d  /home/coder/prdct11935-lab/.claude/agents/lab-r31-20260821170102.md
+    /home/coder/prdct11935-lab/.claude/skills/lab-r31-20260821170102/SKILL.md 562 bytes  mtime=2026-08-21 17:01:02.728345815 +0000
+    /home/coder/prdct11935-lab/.claude/agents/lab-r31-20260821170102.md 404 bytes  mtime=2026-08-21 17:01:02.730345780 +0000
+
+=================== 5. ONE REAL USAGE SESSION, produced by talking to the runtime ===================
+    $ hermes chat -q "Reply with exactly this token and nothing else: <nonce>" --cli
+        Resume this session with:
+        Session:        20260821_170115_b805f3
+        Messages:       2 (1 user, 0 tool calls)
+    The model endpoint is this box's own LiteLLM; the session lands in ~/.hermes/state.db, which is what
+    the linux DSL spec's collectSessions block reads.
+
+=================== 6. THE HEAD-WINDOW OBJECT KEY THAT CARRIED IT THROUGH THE REAL FRONT DOOR ===================
+    A real onyx-scanner run POSTed to http://ingest-onyx:8080/mcp-scanner (Kong key-auth) landed this
+    subject as a real Azure blob, which real Event Grid announced and the real consumer ingested:
+        scan_run_id   333b21ef-714b-4b8c-84ad-eaec81bc2799   (scan 2 of this window, 17:20:03-17:21:10Z)
+        object key    tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log
+                      1075861 bytes · carries the subject name lab-r31-20260821170102
+    This is the SAME object at1-03 documents end-to-end — its Service Bus message body, its Label, and
+    the consumer's own `Completed message` line for it. One object, three artifacts, one window.
+
+=================== 7. WHAT THE PRODUCT INDEPENDENTLY REPRODUCED — the identity tie ===================
+    The digests in §4 were computed on disk by sha256sum. The values below were computed by the Python
+    lane from the payload, through no shared code path, so their equality cannot come from copying:
+
+      skill     asset 242558  lab-r31-20260821170102  AssetTypeSkill
+                agent_skills.skill_md_hash   = 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714
+                on-disk sha256 of SKILL.md   = 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714   IDENTICAL
+
+      subagent  asset 242613  lab-r31-20260821170102  AssetTypeSubAgent
+                agent_subagents.subagent_md_hash = 066bb2f01784ee10a4abd215f62e7ed93a8994e56ef9f429189308985e66df6d
+                on-disk sha256 of the .md file   = 066bb2f01784ee10a4abd215f62e7ed93a8994e56ef9f429189308985e66df6d   IDENTICAL
+
+      mcp       asset 242372  "Onyx Lab R31 MCP"  version 1.0.0  unique_identifier
+                mcpb:onyx-lab-r31-20260821170102::1.0.0, matching the manifest the packer wrote
+
+    d-c2-fid-subagents is tied to the subagent digest above — computed on disk in the head window, read
+    back out of the product in the head window, byte-identical.
+
+    The read-back, verbatim:
+           id   |          name          |      type      |                          skill_md_hash                           
+        --------+------------------------+----------------+------------------------------------------------------------------
+         242558 | lab-r31-20260821170102 | AssetTypeSkill | 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714
+        (1 row)
+        
+           id   |          name          |       type        |                         subagent_md_hash                         
+        --------+------------------------+-------------------+------------------------------------------------------------------
+         242613 | lab-r31-20260821170102 | AssetTypeSubAgent | 066bb2f01784ee10a4abd215f62e7ed93a8994e56ef9f429189308985e66df6d
+        (1 row)
+        
+           id   |       name       | version |            unique_identifier            
+        --------+------------------+---------+-----------------------------------------
+         242372 | Onyx Lab R31 MCP | 1.0.0   | mcpb:onyx-lab-r31-20260821170102::1.0.0
+        (1 row)

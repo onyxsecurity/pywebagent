@@ -1,0 +1,42 @@
+# PRDCT-11935 at7-24 — the LIFECYCLE removals — each subject removed by the tool that owns it
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch 0665ecc545 · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r24 · pod eai-azure-5c8b9bcd55-qfk8h · captured 2026-08-20T17:29:02Z · tenant schema onyx_security
+#
+# The lane in the pod sha256-matches the 44 lane files at 0665ecc545; origin/main is contained in that head.
+#
+
+# Nothing was deleted in the database. Every removal below happened on the MACHINE, and the lane was
+# then left to decide for itself across three further real scans.
+
+AT7 W21 LIFECYCLE START 2026-08-20T17:23:20Z
+AT7 W21 LIFECYCLE REMOVALS DONE 2026-08-20T17:23:21Z
+scanner exit=0
+AT7 W21 LIFECYCLE SCAN END 2026-08-20T17:24:32Z
+AT7 W21 LIFECYCLE SCAN-2 START 2026-08-20T17:26:24Z
+scanner exit=0
+AT7 W21 LIFECYCLE SCAN-3 START 2026-08-20T17:29:02Z
+scanner exit=0
+
+=== what was removed, in order
+ 1. the MCP bundle          rm -rf "~/.config/Claude/Claude Extensions/onyx-lab-mcp"
+                            rm -rf "~/.config/Claude/Claude Extensions Settings/onyx-lab-mcp.json"
+                            (the two paths claude_desktop_extensions.go:86-87 reads; removing them is
+                             what Desktop's own uninstall does)
+ 2. the codex MCP servers   $ codex mcp remove w21-filesystem   -> "Removed global MCP server 'w21-filesystem'."
+                            $ codex mcp remove w21-memory       -> "Removed global MCP server 'w21-memory'."
+                            w21 entries left in ~/.codex/config.toml: 0
+ 3. the skill + subagent    rm -rf .claude/skills/lab-w21-20260820165641  and  .claude/agents/lab-w21-20260820165641.md
+ 4. runtime OpenCode        $ npm uninstall -g opencode-ai       (then, when the scan showed detection
+                            keys on the CONFIG DIR and not the binary, rm -rf ~/.config/opencode)
+ 5. runtime OpenClaw        $ npm uninstall -g openclaw  + rm -rf ~/.config/openclaw ~/.openclaw
+                            OpenClaw is the control pair: its PRE-removal frame is at7-27, its
+                            POST-removal frame at7-21 — same asset, same route.
+
+=== the machine really changed, as the scanner itself reports it (agents_detected per scan)
+    16:56 scan #1   7 agents · 5 mcp servers · 265 skills     <- everything installed
+    17:02 scan #2   7 agents · 5 mcp servers · 265 skills     <- + the real hermes session
+    17:23 scan #3   5 agents · 2 mcp servers · 264 skills     <- bundle, codex servers, skill, subagent gone
+    17:26 scan #4   4 agents · 2 mcp servers · 185 skills     <- opencode's config gone
+    17:29 scan #5   3 agents                                  <- openclaw gone
+    agent_names on the last scan: ["claude-code", "codex", "hermes-agent"]

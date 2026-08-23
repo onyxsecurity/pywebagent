@@ -1,0 +1,31 @@
+# PRDCT-11935 at7-03 — DB rows, class DESKTOP AGENT
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T03:39:18Z · tenant onyx_security
+#
+# RE-CAPTURED ON THE HEAD-EXACT IMAGE (gate G7). Round 23's gate found 19 of 21 at7 artifacts still
+# declared 0665ecc545 with image r24/r25 — the commit before the round-24 sender fix, on images built
+# before it. Every row below was re-driven on :prdct11935-r26, which is built from a2486bb33f and proven
+# byte-exact (4741/4741 head .py files, evidence/at6-12-image-provenance.txt).
+# gen-1 was quiesced for the window (schedule PAUSED + zero pods), so each class is attributable to the
+# lane under test — the receipt is evidence/at7-00-isolation.txt.
+#
+
+## THE CLASS COUNT, as the DB reports it (this is the `created_in_window = 0` the PR body cites): the
+## runtimes on this machine were inventoried by earlier windows, so this window RE-OBSERVES them rather
+## than creating them, and that is shown rather than papered over:
+##     AssetTypeDesktopAgent   created_in_window = 0    (re-observed: last_scanned_at advanced below)
+##     AssetTypeMCP            created_in_window = 1
+##     AssetTypeSkill          created_in_window = 1
+##     AssetTypeSubAgent       created_in_window = 1
+
+--- class DESKTOP AGENT (machine tie)
+  id   |         name         |         v          |              serial              |        last_scanned_at        
+-------+----------------------+--------------------+----------------------------------+-------------------------------
+    23 | Claude Code (coder)  |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:03.743466+00
+ 10656 | Claude (coder)       |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:32:10.983891+00
+ 10727 | Codex (coder)        |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:06.260268+00
+ 10729 | OpenClaw (coder)     | 2026.5.7 (eeef486) | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:07.042041+00
+ 55751 | Hermes Agent (coder) |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:32:14.768672+00
+(5 rows)
+

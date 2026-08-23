@@ -1,0 +1,35 @@
+# PRDCT-11935 at6-12 — the writer image under test was BUILT FROM THE HEAD THAT MERGES, proven byte-exact
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · captured 2026-08-21T00:46:48Z
+#
+# The head moved this round (the G15 fix is a real code change), so the image was rebuilt from the NEW
+# head and re-proven before any capture was taken. Nothing in this round's evidence rests on an image
+# whose source differs from the commit that merges.
+
+## 1. THE BUILD — the repo's own Dockerfile, from the head tree, working tree clean
+    docker build --network=host -f backend_python/Dockerfile.dev \
+      --build-arg EXTRAS=temporal-worker \
+      --build-arg SERVICE_CMD='.venv/bin/uvicorn endpoint_asset_ingestion.app:app --host 0.0.0.0 --port 8007 --reload' \
+      -t localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 .
+    (--network=host because BuildKit's own sandbox could not resolve files.pythonhosted.org on this
+     box while the host and plain containers could — a lab network quirk, not a change to the build)
+    pushed digest: sha256:17dbec7e6f2bbaebe6b78cdd2c781a6dfb4aaa18860ef15364381560273db502
+
+## 2. THE PROOF, taken from the pushed image
+    head tree : 4741 .py files      image: 4742 .py files
+    content mismatches on the 4741 head files: 0
+    the one extra image file is an EMPTY /app/src/__init__.py from the base layer:
+      4066a4067
+      > e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./__init__.py
+
+## 3. THE ROUND'S OWN CODE FIX IS IN THE IMAGE (grep inside the pushed image)
+    _send_lock in common_core/services/queue/asb.py            : 2 occurrences
+    _meter_session_alerts in ingestion/writers.py              : 2 occurrences
+
+## 4. WHERE IT RAN — both transports, one image, equal concurrency
+    eai-azure                  localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26   1
+    endpoint-asset-ingestion   localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26   1
+    config concurrency, equalised for the transport leg so it is a single-variable experiment:
+      eai-azure: concurrency: 2
+      endpoint-asset-ingestion: concurrency: 2

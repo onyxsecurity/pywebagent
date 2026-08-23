@@ -1,0 +1,24 @@
+# PRDCT-11935 at7-46 — the ROUND-28 owner-veto post, POSTED + VERIFIED LANDED
+# written 2026-08-21T09:39:39Z by research (round-28 adjudication)
+#
+# spec_interpretations (9) / d-c2-lc-agent.amendment_r28 cite this permalink as the owner-veto surfacing
+# of the round-28 plan amendment (desktop-agent lifecycle cell joins the OVERTAKEN row). at10's C3 audit
+# check (j) requires it to resolve to the posted amendment.
+
+  channel    : C0BCW4JDZB2  (the run thread)
+  thread_ts  : 1787063683.640599
+  message_ts : 1787305160.264809
+  permalink  : https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787305160264809?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+  verified   : conversations.replies re-fetch found the message in-thread (bot-authored), text below.
+
+## THE POSTED TEXT, VERBATIM (as returned by conversations.replies)
+    *PRDCT-11935 — ROUND-28 PLAN AMENDMENT (owner-visible; reply here to veto)*
+    
+    `d-c2-lc-agent` — C2 clause 5's lifecycle demand for the *desktop-agent* class ("a second scan after the artifact is removed shows it stale or marked deleted — not resurrected and not duplicated") — now *joins the round-26 OVERTAKEN row* (spec_interpretations (9); the demand's verbatim quote is untouched; the not-resurrected / not-duplicated half stays fully binding and DB-provable).
+    
+    *Why.* Round 26 carved this one class out of the OVERTAKEN treatment on the premise that the SPA renders a scan-freshness contrast ("Last Seen"). Re-measured on the head build, the premise is false: "Last Seen" binds to `updated_at`, not `last_scanned_at` (instances-table.tsx:334-335; group-overview.tsx:115 → day-granular at :216-221), and renders the identical "Aug 20, 2026" for the uninstalled runtime and every still-installed control. `desktop_agent_applications.last_scanned_at` — the real freshness column — is rendered by NO UI surface (grep frontend/ = 0 hits; its only exposure is the unrendered device-level `/v2` API timestamp, devices.py:88). The class's only lifecycle render is the `is_deleted`-gated Deleted badge ($appId.tsx:307), which no scanner-lane writer sets — and the instances table filters `is_deleted` rows out entirely. Evidence: `evidence/at7-44-last-seen-render.txt` (verify round 25), independently re-confirmed by research this round. No surface renders the state — the dispatch's "name a surface if one exists" option is empty.
+    
+    *Amended end-state (the same four-part shape the other four lifecycle classes carry since round 26):* (1) not resurrected / not duplicated — pasted per-uid SELECT; (2) not refreshed, with the class re-covered — the at7-30 `last_scanned_at` staircase-with-control (uninstalled frozen while same-machine controls advance on the same scan); (3) the HONEST product render — the uninstalled-vs-control pair with rendered "Last Seen" in-frame, annotated "no stale/deleted representation ships for this class"; presenting the frozen row, the rendered Last Seen, or the DB staircase as a product-VISIBLE stale state = FAIL; (4) the PR's C3 ledger carries the class as OVERTAKEN, citing PRDCT-12069 — whose scope I extended today to the desktop-agent class (title + body corrected: <https://app.clickup.com/t/86bbhzk2z>) — and this post's permalink.
+    
+    *Veto:* if you intended PRDCT-11935 itself to make agent staleness product-visible (rather than the follow-up PRDCT-12069), reply in this thread — that routes back to research for a re-emit with a fresh sha256. Silence at re-verify = proceed on no-objection (the round-2/21/26 precedent). The plan is re-frozen with a fresh sha256 immediately after this post.
+    

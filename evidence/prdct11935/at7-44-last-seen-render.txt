@@ -1,0 +1,90 @@
+# PRDCT-11935 at7-44 — what the product's "Last Seen" ACTUALLY renders, re-measured
+# FILE LAST WRITTEN 2026-08-21T17:43:46Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · captured 2026-08-21T09:49:04Z · tenant onyx_security
+#
+# This file makes NO staleness claim of any rendered surface. It exists because earlier rounds claimed the
+# desktop-agent class had a product-visible freshness signal; the round-24 gate refuted that and round 25
+# confirmed the refutation independently. Round 28 re-measured everything below on the current state, and
+# ONE number moved — stated here rather than left stale.
+
+## 1. WHAT THE COLUMN IS BOUND TO, in the shipped code
+   frontend/app/src/routes/ai-assets/desktop-agents/group/-components/instances-table.tsx:334-335
+
+       columnHelper.accessor("updated_at", {
+         header: "Last Seen",
+
+   The header says "Last Seen"; the accessor is **updated_at**. The group card renders the same value
+   (group-overview.tsx:216-221, fed by :115 lastSeen={group.updated_at}) through
+   formatUtcDateYearMonthLongDay(), i.e. DAY granularity.
+   `desktop_agent_applications.last_scanned_at` — the column that tracks scan freshness — is rendered by
+   NO UI surface, and the check is mechanical:
+       $ grep -rn 'last_scanned_at' frontend/ --include=*.ts --include=*.tsx | wc -l
+       0
+
+## 2. WHAT THAT MEANS IN THE DATA, re-measured at 2026-08-21T09:49:04Z
+            name         | rendered as Last Seen  |    last_scanned_at (no UI)    
+   ----------------------+------------------------+-------------------------------
+    Codex (coder)        | 2026-08-21 00:00:00+00 | 2026-08-21 09:07:48.732715+00
+    Claude Code (coder)  | 2026-08-21 00:00:00+00 | 2026-08-21 09:07:48.482855+00
+    Claude (coder)       | 2026-08-21 00:00:00+00 | 2026-08-21 09:07:48.401809+00
+    Hermes Agent (coder) | 2026-08-21 00:00:00+00 | 2026-08-21 09:07:48.356847+00
+    OpenClaw (coder)     | 2026-08-21 00:00:00+00 | 2026-08-21 08:28:13.246939+00
+    Claude Code (ubuntu) | 2026-08-21 00:00:00+00 | 2026-08-20 19:12:37.437767+00
+    OpenCode (coder)     | 2026-08-21 00:00:00+00 | 2026-08-20 19:10:12.385118+00
+   (7 rows)
+   
+
+   Every row renders the IDENTICAL "Last Seen" of 2026-08-21 — the uninstalled agent and every
+   still-installed control alike. THAT is the finding, and it is unchanged from round 24: the column
+   carries no staleness information.
+
+   ROUND-28 CORRECTION, because a number moved. Earlier revisions said OpenClaw's last_scanned_at was
+   "FROZEN at 04:33:04". It is not frozen any more — it reads 08:28:13, while the four still-installed
+   runtimes read 09:07:48. OpenClaw did not come back: it is absent from the machine three ways
+   (not on PATH, no config directories, not in `npm ls -g`) and absent from the newest scan payload,
+   whose agent list is exactly ["claude-code","claude","codex","hermes-agent"]. Something other than a
+   scan advanced that column at 08:28, and at the time this was written the writer had not been
+   identified — so the statement was scoped down to a LAG rather than a freeze.
+
+   ROUND-31 UPDATE — the writer WAS identified, and the scope-down is withdrawn. at7-30 establishes that
+   the column has no onupdate, no DB trigger, no Go writer and exactly two SQL write sites, both keyed on
+   the agent being present in an ingested payload; that no non-scanner lane claims any of these rows on
+   this tenant (all seven carry source=scanner and no integration connection); that OpenClaw stays
+   byte-identical across two further real scans with gen-1 quiesced while all four controls advance
+   twice; and — the decisive half — that re-ingesting an ARCHIVED payload which does name OpenClaw moves
+   its value on demand, alone, to the ingest wall-clock. OpenClaw was genuinely reinstalled on this
+   shared box for a window around 13:26-13:48 (the scanner's own detected-agent lists name it there), so
+   the 08:28 and 16:10 advances are late ingests of payloads from such a window, not a non-scan writer.
+     · what is proven: last_scanned_at advances if and only if an ingested scan payload names the agent,
+       stamped with the INGEST wall-clock rather than the scan clock.
+     · what is still NOT claimed: that the 16:10:48 event specifically was such an ingest — the pods that
+       ran then were reaped and their logs are gone, so at7-30 proves the mechanism and reproduces it,
+       and says exactly that rather than asserting the individual event.
+   Neither statement affects the conclusion below, because the rendered field is `updated_at`, not this
+   column, and it is identical across all seven rows either way.
+
+## 3. THE SAME THING, READ OFF THE LIVE SPA (round 28's own run, the pinned at7 recording)
+   Values read programmatically from the DOM, not off a PNG:
+     evidence/at7-21-ui-lifecycle-agent.png           the UNINSTALLED agent's group surface  -> "Aug 21, 2026"
+     evidence/at7-21b-ui-lifecycle-agent-control.png  a STILL-INSTALLED control's same surface -> "Aug 21, 2026"
+   Two surfaces, one uninstalled and one not, rendering the same day.
+
+## 4. WHAT IS AND IS NOT CLAIMED
+   CLAIMED     : the machine-side fact (openclaw uninstalled, absent from every scan payload) and the
+                 DB-side lag above. Both are measured.
+   NOT CLAIMED : that any product surface shows it. It does not. No capture in this evidence set is
+                 captioned as a product-visible stale state, and the PR says the same.
+
+## 5. CONSEQUENCE FOR THE CONTRACT — ROUTED, AND NOW RULED
+   d-c2-lc-agent was the ONE lifecycle class carved OUT of the amendment_r26 OVERTAKEN row, on the premise
+   that this class has a product-visible freshness contrast. Sections 1-3 refute that premise. Round 27
+   routed it to research rather than answering it, and in ROUND 28 research ruled: the desktop-agent class
+   JOINS the OVERTAKEN row (d-c2-lc-agent.amendment_r28; spec_interpretations (9), which supersedes entry
+   (8)'s carve-out sentence; plan re-frozen at sha256 5eb71bdae79109a2). Research re-checked the premise
+   itself before ruling and additionally rejected the one candidate surface that exposes the real column —
+   the device-level raw timestamp on the external v2 API (crud_service/api/v2_models/devices.py:88) — as
+   not a product-UI render and not a "stale or deleted" state.
+   PRDCT-12069's scope was EXTENDED to this class in the same ruling (title and body corrected; the
+   engineer's round-27 correcting comment 90140244765982 stands as the audit trail), re-fetched live as
+   evidence/at7-45-lifecycle-followup-ticket-r28.txt, and the veto post is evidence/at7-46-veto-permalink-r28.txt.
+   What this run claims is still exactly section 4: the DB measurement (at7-30) and nothing rendered.

@@ -1,0 +1,216 @@
+# PRDCT-11935 at6-18 — the V-1 test applied clause by clause to I1 and I2, on the leg's own evidence
+# FILE LAST WRITTEN 2026-08-22T03:06:12Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · captured 2026-08-22T02:55:48Z
+# plan: the ROUND-35 V-1 ruling, frozen at test_plan.sha256 5970b1b1d9828539…
+# owner-veto post (RESOLVED, not a placeholder): https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787366812940799?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+#
+# WHAT THIS IS. Directive (d1) of the round-35 ruling. at6-17 measured two lane-only identities outside the
+# closed enumeration and deliberately REFUSED to classify them, because the plan forbids engineer and verify
+# from extending the enumeration. Research then adjudicated: they are not losses, they are V-1
+# FABRICATION-CORRECTIONS, and the ruling defines a three-clause mechanical test plus four conditions that
+# engineer and verify may now APPLY (never extend). This file applies it.
+#
+# EVERYTHING BELOW IS RE-MEASURED HERE, not transcribed from the ruling. The ruling states the answers; a
+# classification I merely copied would be worthless as evidence. Every value in the clause tables was read
+# this round — the bound records out of the leg's own scan payload in the lab container, the endpoint state
+# off this machine's npx cache, the rows and the self-edge out of the two tenant schemas, the publish times
+# off registry.npmjs.org. Where a fact is NOT re-derivable (the r30 live-pair rows, destroyed by the leg's
+# own truncate) it is marked INHERITED with its source, and is not claimed as run.
+#
+# A CREDENTIAL NOTE: the tavily launcher URL carries a live API key (the PRDCT-12076 redaction-parity
+# finding). It is truncated everywhere in this file. The gen-1 side already stores it redacted; the new
+# lane does not, which is that ticket's subject and not this file's.
+
+=================== 0. PRECEDENCE — checked FIRST, as the ruling binds ===================
+    "identities are classified against the CLOSED ENUMERATION FIRST … V-1 is never consulted for it."
+    The leg's 7 TA-only identities resolve as:
+        4 × L-2 per-script rows        -> enumerated, L-2, V-1 not consulted
+        @playwright/mcp::0.0.79        -> enumerated, L-3 shape, V-1 not consulted
+        mcp-remote::0.1.43             -> outside all five entries -> V-1 test below   (I1)
+        @upstash/context7-mcp::4.0.2   -> outside all five entries -> V-1 test below   (I2)
+
+    And the precedence rule is not a formality here — the leg's own payload shows why @playwright/mcp
+    stays L-3 and cannot be V-1: its TB counterpart is `::unknown`, not a concrete coordinate, which is
+    exactly L-3's resolved-vs-nothing loss shape and exactly what V-1 clause 2 excludes.
+
+=================== 1. THE BOUND RECORDS — bound per RECORD, not per package ===================
+    Source: the leg's own scan object in the lab blob container, quoted by bucket key —
+        tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-22/parity-1787361213-fa045c8c-ac79-4a8f-9743-89d64aa9330b.log
+        (621106 bytes; downloaded and parsed this round)
+
+    The records that bind I1 and I2, verbatim from that payload (key truncated by this capture):
+      record:
+        command: /opt/coder/coder
+        args   : ['exp', 'mcp', 'server']
+        selfDependency: {"ecosystem": "go", "package": "github.com/coder/coder/v2", "relation": "SELF", "version": "v2.31.9+dirty"}
+      record:
+        command: node
+        args   : ['/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs']
+        selfDependency: {"ecosystem": "npm", "package": "@claude-ftw/autonomous-workflow", "relation": "SELF", "version": "2.10.0"}
+      record:
+        command: npx
+        args   : ['-y', '@upstash/context7-mcp', '--api-key', '[REDACTED]']
+        selfDependency: {"ecosystem": "npm", "package": "@upstash/context7-mcp", "relation": "SELF", "version": "4.0.3"}
+      record:
+        command: npx
+        args   : ['-y', 'mcp-remote', 'https://mcp.tavily.com/mcp/?tavilyApiKey=<REDACTED-BY-THIS-CAPTURE>']
+        selfDependency: {"ecosystem": "npm", "package": "mcp-remote", "relation": "SELF", "version": "0.1.30"}
+      record:
+        command: npx
+        args   : ['@playwright/mcp@latest']
+        selfDependency: {"ecosystem": "npm", "package": "@playwright/mcp", "relation": "SELF", "version": "0.0.77"}
+
+    And the same servers' launcher records as the two lanes stored them, which is the cross-lane half of
+    the binding ("same underlying server = command+args equality of the bound records across lanes; for
+    bridge wrappers, the same wrapped remote URL"):
+    --- prdct11935_ta
+          unique_identifier       | cmd |                                                              args                                                               
+    ------------------------------+-----+---------------------------------------------------------------------------------------------------------------------------------
+     @upstash/context7-mcp::4.0.2 | npx | ["-y", "@upstash/context7-mcp", "--api-key", "[REDACTED]"]
+     mcp-remote::0.1.30           | npx | ["-y", "mcp-remote@0.1.30", "https://mcp.groundcover.com/api/mcp", "54278", "--header", "[REDACTED]", "--header", "[REDACTED]"]
+     mcp-remote::0.1.43           | npx | ["-y", "mcp-remote", "https://mcp.tavily.com/mcp/?tavilyApiKey=[REDACTED]"]
+    (3 rows)
+    
+    --- prdct11935_tb
+          unique_identifier       | cmd |                                                              args                                                               
+    ------------------------------+-----+---------------------------------------------------------------------------------------------------------------------------------
+     @upstash/context7-mcp::4.0.3 | npx | ["-y", "@upstash/context7-mcp", "--api-key", "[REDACTED]"]
+     mcp-remote::0.1.30           | npx | ["-y", "mcp-remote@0.1.30", "https://mcp.groundcover.com/api/mcp", "54278", "--header", "[REDACTED]", "--header", "[REDACTED]"]
+     mcp-remote::0.1.38           | npx | ["-y", "mcp-remote", "https://mcp.tavily.com/mcp/?tavilyApiKey=<REDACTED-BY-THIS-CAPTURE>"]
+    (3 rows)
+
+    Read the mcp-remote block carefully, because it is what makes the per-RECORD binding load-bearing:
+    the leg holds mcp-remote records for TWO different servers. The groundcover one is launched
+    `mcp-remote@0.1.30` — PINNED — and both lanes key it ::0.1.30 identically. The tavily one is launched
+    bare `mcp-remote` — UNPINNED. Binding per package would have let the pinned record defeat the unpinned
+    one's clause 1; binding per record is why it does not, and the ruling says so in as many words.
+
+=================== 2. I1 — mcp-remote::0.1.43 (TA-only, controlled leg) ===================
+    bound record : command `npx`, args ["-y", "mcp-remote", "https://mcp.tavily.com/mcp/?tavilyApiKey=<REDACTED>"]
+
+    (1) UNPINNED .................................. PASS
+        The bound record's args carry `mcp-remote` with no `@x.y.z` pin, and the record has no MCPB
+        manifest version field. (The leg's OTHER mcp-remote records are pinned `mcp-remote@0.1.30`; per the
+        per-record binding they are irrelevant to this clause, and they point at a different server.)
+    (2) SERVER PRESENT IN BOTH LANES, CONCRETE-VS-CONCRETE ... PASS
+        TB holds the same underlying server — byte-identical wrapped remote URL
+        `https://mcp.tavily.com/mcp/?tavilyApiKey=…` — under `mcp-remote::0.1.38`. 0.1.38 is a CONCRETE
+        coordinate, not `::unknown`, so this is not L-3's loss shape.
+    (3) X IS NOT ENDPOINT STATE ................... PASS
+        selfDependency in the bound record = **0.1.30**; 0.1.43 ≠ 0.1.30.
+        No concrete pin exists in the bound record; no manifest version for this server.
+        And the endpoint itself, read off this machine now:
+            mcp-remote 0.1.30   (d4333ef4d4337ae5)
+              mcp-remote 0.1.38   (705d23756ff7dacc)
+              @upstash/context7-mcp 4.0.3   (eea2bd7412d4593b)
+                 lane      |      unique_identifier       |          pkg          | resolved |  status  
+            ---------------+------------------------------+-----------------------+----------+----------
+             prdct11935_ta | @upstash/context7-mcp::4.0.2 | @upstash/context7-mcp | 4.0.3    | resolved
+             prdct11935_ta | mcp-remote::0.1.43           |                       |          | resolved
+            (2 rows)
+                 lane      |      unique_identifier       |          pkg          | resolved |  status  
+            ---------------+------------------------------+-----------------------+----------+----------
+             prdct11935_tb | @upstash/context7-mcp::4.0.3 | @upstash/context7-mcp | 4.0.2    | resolved
+            (1 row)
+        0.1.43 is installed nowhere on this machine.
+
+    VERDICT: V-1 PASSES on all three clauses.
+
+=================== 3. I2 — @upstash/context7-mcp::4.0.2 (TA-only, controlled leg) ===================
+    bound record : command `npx`, args ["-y", "@upstash/context7-mcp", "--api-key", "[REDACTED]"]
+
+    (1) UNPINNED .................................. PASS  — `@upstash/context7-mcp`, no `@x.y.z`, no manifest version.
+    (2) CONCRETE-VS-CONCRETE ...................... PASS  — TB holds the same server (identical command+args)
+                                                    under `@upstash/context7-mcp::4.0.3`, concrete.
+    (3) NOT ENDPOINT STATE ........................ PASS  — selfDependency = **4.0.3**; 4.0.2 ≠ 4.0.3, and the
+                                                    npx cache on this machine reads 4.0.3
+                                                    (~/.npm/_npx/eea2bd7412d4593b). No pin, no manifest.
+
+    VERDICT: V-1 PASSES on all three clauses.
+
+    ONE MEASUREMENT THE RULING DOES NOT NAME, RECORDED BECAUSE IT REINFORCES THE THESIS RATHER THAN
+    DISTURBING IT. The lanes' own `mcp_gateway_installations.resolved_package_version` for this server is
+    INVERTED between them — TA's row says 4.0.3 while its asset keys 4.0.2; TB's says 4.0.2 while its asset
+    keys 4.0.3:
+         lane |      unique_identifier       |  rv   |          created_at           |          updated_at           
+        ------+------------------------------+-------+-------------------------------+-------------------------------
+         ta   | @upstash/context7-mcp::4.0.2 | 4.0.3 | 2026-08-22 01:15:05.674663+00 | 2026-08-22 01:15:05.674663+00
+         tb   | @upstash/context7-mcp::4.0.3 | 4.0.2 | 2026-08-22 01:13:34.905622+00 | 2026-08-22 01:24:51.244094+00
+        (2 rows)
+        The timestamps explain it: TA's row was written once at 01:15:05 and never updated; TB's was
+        created 01:13:34 and UPDATED at 01:24:51 — the async heal ran and re-sampled. So that column is
+        itself a time-sampled artifact and is NOT used here as endpoint truth. Clause 3 rests on the
+        payload's selfDependency and the npx cache, both of which say 4.0.3, and both of which I read
+        myself. Recorded rather than omitted: a reader who queried that column and found 4.0.3 on the TA
+        row could otherwise think clause 3 had been evaluated against the wrong side.
+
+=================== 4. I3 / I4 — the accumulated live-pair members, INHERITED not re-run ===================
+    mcp-remote::0.1.40 and ::0.1.41 were observed on the ACCUMULATED live pair in verify round 30 (GAP-4).
+    Their rows were destroyed by this leg's own truncate, so their per-row V-1 test is NOT re-runnable and
+    is NOT claimed run — the ruling says exactly this, and this file does not quietly upgrade it.
+
+    What IS measurable now is the mechanism correlation the ruling cites, and it is strong:
+      npm publish log for mcp-remote (registry.npmjs.org, read now):
+        0.1.30   published 2025-11-05T10:47:59.218Z
+        0.1.38   published 2026-02-05T23:21:44.895Z
+        0.1.40   published 2026-08-21T20:53:48.492Z
+        0.1.41   published 2026-08-21T21:28:14.035Z
+        0.1.42   published 2026-08-21T22:23:44.644Z
+        0.1.43   published 2026-08-21T22:33:41.704Z
+        dist-tags.latest = 0.1.43
+        mcp-remote::0.1.40  21:03 · ::0.1.41  21:49 · ::0.1.43  23:48   (2026-08-21)
+
+        coordinate   npm published (read now)        TA row created_at        latest at that moment?
+        0.1.40       2026-08-21T20:53:48Z            21:03  (live pair)       yes — published 9 min before
+        0.1.41       2026-08-21T21:28:14Z            21:49  (live pair)       yes — published 21 min before
+        0.1.42       2026-08-21T22:23:44Z            never minted             latest for only 10 minutes
+        0.1.43       2026-08-21T22:33:41Z            23:48 (live) / 01:15 (leg) yes — latest since 22:33
+
+    The 0.1.42 row is the interesting one and it is a NEGATIVE control nobody had to construct: 0.1.42 was
+    the registry's `latest` for ten minutes, no sweep fell inside that window, and correspondingly no
+    ::0.1.42 asset exists on either pair. A coordinate appears exactly when a sweep samples it.
+    (The created_at values are INHERITED from verify_report.md round 30 GAP-4; the publish times are mine,
+    read from registry.npmjs.org this round.)
+
+=================== 5. THE FOOTPRINT COROLLARY — the self-edge, measured ===================
+    The ruling classifies a V-1 row's strictly keying-derivative furniture WITH the row. On this leg that
+    furniture exists and is measured, not asserted:
+      id   | connection_type | source_asset_id | destination_asset_id | is_deleted 
+    -------+-----------------+-----------------+----------------------+------------
+     92830 | AgentToMcp      |           93848 |                94146 | f
+     92833 | McpToMcp        |           94146 |                94146 | f
+    (2 rows)
+        The psql rows above put an edge's two sides in separate COLUMNS, so neither side reads as
+        belonging to the label on its own. Restated as label/side pairs, one side per line:
+            McpToMcp 94146      source - the V-1 MCP asset (edge id 92833, the D-4-shaped self-edge)
+            McpToMcp 94146      target - the same asset; on a self-edge the two sides coincide
+            AgentToMcp 93848    source - the owning agent asset (edge id 92830)
+            AgentToMcp 94146    target - the V-1 MCP asset
+
+        `92833 McpToMcp 94146 -> 94146` is the D-4-shaped SELF-EDGE on the V-1 asset (94146 IS
+        mcp-remote::0.1.43), plus `92830 AgentToMcp 93848 -> 94146`. Both exist ONLY because the phantom
+        coordinate exists, so both are classified with the row as the same correction — never as separate
+        loss lines.
+
+=================== 6. CONDITIONS c1-c4 — where each is discharged ===================
+    c1 NON-SILENT ......... evidence/at6-06-ledger.txt carries the V-1 family row with root cause at
+                            file:line and the honesty rule (neither lane's coordinate presented as endpoint
+                            truth; the new lane's stable coordinate NOT presented as "correct"; both lanes
+                            ignore selfDependency).
+    c2 TRANSPORT-INDEPENDENT  evidence/at6-07-transport-equivalence.txt — the same-sha twin-sink leg feeds
+                            ONE payload to both transports in one window. Its measured outcome is a TRUE
+                            0-diff (both dumps share one sha256), so the V-1-aware normalization list is
+                            EMPTY and c2 is satisfied with no normalization, which is the ruling's own
+                            stated outcome for every leg measured to date.
+    c3 PRE-EXISTING ....... the root-cause files are outside this PR's diff; re-verified per file in the
+                            ruling (V8) and unchanged at this head.
+    c4 CARRIED ON PRDCT-12061  comment id 90140245277673 on 86bbhqxe8, posted and re-fetched by research at
+                            ruling time with 8/8 per-element fidelity probes:
+                            evidence/research-r35/prdct12061-comment-post.txt.
+
+=================== 7. WHAT THIS FILE DOES NOT DO ===================
+    It applies the V-1 test; it does not extend it, does not extend the loss enumeration, and does not
+    classify anything the test fails. I1 and I2 pass all three clauses on re-measured evidence, so they are
+    classified in place as fabrication-corrections exactly as the ruling licenses. Any future lane-only
+    identity that fails any clause still routes back to research with a fresh sha256 — that half of the
+    plan is unchanged and is not softened here.

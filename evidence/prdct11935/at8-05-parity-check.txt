@@ -1,0 +1,20 @@
+# PRDCT-11935 at8-05 — flux-fleet's own gates, re-run on the current branch head
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx dfe23b9e83 · flux-fleet factory-eval-v32/PRDCT-11935 @ e3fc1646ab2b · captured 2026-08-20T05:52:19Z
+#
+# Header note: an earlier version of this file pasted the FLUX sha into its onyx field. The two are
+# named separately above and both are read from their own repo at write time.
+
+## $ make check
+  ✅ no duplicate YAML keys (853 files)
+    ✓ ox-az-p-eus2-c02 onyx-app cloud delta (per-tenant values come from ${…})
+    ✓ ox-az-p-eus2-c02 onyx-app AWS-only value removals
+  ✅ no stale path references
+  ✅ cell template matches clusters/ox-aws-p-use1-c04 (17 files, 1 reviewed delta(s))
+  ✅ make check passed (164 kustomizations built + schema-validated)
+
+## $ python3 scripts/check_tenant_parity.py
+    ✓ ox-az-p-eus2-c02 onyx-app cloud delta (per-tenant values come from ${…})
+    ✓ ox-az-p-eus2-c02 onyx-app AWS-only value removals
+  PARITY_EXIT=0

@@ -1,0 +1,205 @@
+# PRDCT-11935 at10-05 — the PR's review threads: what each one was, and what was done
+# FILE LAST WRITTEN 2026-08-22T05:28:51Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# branch dfe23b9e83 · last written 2026-08-20T03:24:22Z (this file is updated whenever a
+#   thread is answered, so its stamp is the last write, not a single capture moment)
+#
+# 16 review threads are on this PR (12 from cr-onyx[bot], 4 from cursor[bot]); 0 are unanswered. Counts read from the
+# GraphQL reviewThreads API at write time — an earlier version of this line said 14/2/12, typed once
+# and never re-read, and stayed wrong after a third cursor thread arrived. None had been
+# answered. All 16 are now replied to in-thread and resolved. The disposition, which sums to
+# the same 16 rather than to a number typed separately — every thread mapped to its section by
+# re-reading all 16 first comments from the API in round 36, not by re-adding the old buckets:
+#      4  real defects fixed with code       (sections 1, 2, 2b)
+#      3  stale (closed by an earlier commit on this branch)   (section 4)
+#      1  a question answered by rendering   (section 5)
+#      7  clarity / structure / test-gap items, all applied    (section 3)
+#      1  measured first, and half of it refuted by the measurement   (section 7)
+#      —
+#     16  total, matching the API read above.
+# ROUND-36 CORRECTION, and it is the third time this block has been wrong, so the cause is named:
+#  the header line was re-read from the API and said 16 while the breakdown under it was never
+#  re-derived and still summed to 15 — the same shape as the "All 14 under a corrected 15" error the
+#  previous note records. My own corpus audit caught it (`[list-count] 'All 15 replied' vs '16
+#  threads'`). Re-deriving found TWO threads this file documented NOWHERE, not one:
+#    · cr-onyx `consumer_pool.py` "[nit] Class docstring still says the handler owns settlement" —
+#      answered and FIXED; the docstring at consumer_pool.py:55-57 now carries the exception clause
+#      and the explicit "must not add its own release … or the message would be settled twice".
+#    · cursor `writers.py` "Dropped-slice count uses marker-void set" (**Medium**) — answered and
+#      FIXED in cb96081d70, with `test_the_dropped_slice_count_is_the_agents_whose_rows_are_missing`
+#      (test_writers.py:3869). This one is added as section 2b below: an under-reported Medium-severity
+#      reviewer finding that was genuinely fixed is still an under-reported finding.
+#  Both were replied to and resolved on the PR at the time; the omission was in THIS artifact only.
+#
+# The three code fixes are three commits, each with a test that fails without it.
+
+================================================================================================
+1. REAL DEFECT — no backoff on the release path (cursor "High", cr-onyx "medium")
+================================================================================================
+Fixed in c70493626a.
+The claim: a handler exception calls abandon_message, which on Service Bus re-offers the message
+IMMEDIATELY and increments its delivery count, so a transient dependency failure cycles
+receive -> fail -> abandon at full speed and exhausts max_delivery_count, parking good work in the
+dead-letter sub-queue. The AWS lane has no such shape (abandon is a no-op; the message is invisible
+for its 600s visibility timeout).
+
+CONFIRMED, and this run's own evidence contains the proof: at6-05 section J shows
+  Abandoned message for redelivery   18:35:05.626Z
+  redelivered queue message ... receive_count=2   18:35:05.647Z
+21 ms apart. It only stopped there because the induced lock was released after one cycle.
+
+The fix, and why it is shaped this way: abandon_message now RETURNS whether the release is immediate
+(ASB True, SQS False), and the pool sleeps error_backoff_seconds only in the immediate case. Sleeping
+on the SQS path would idle a worker whose message is invisible anyway, so the AWS lane is unchanged.
+Tests: TestHandlerErrorBackoff in tests/common/services/queue/test_consumer_pool.py — both directions,
+each hard-capping its polls so a regression fails fast instead of spinning the suite.
+  before the fix: 25 abandons inside the budget (the tight loop)   after: 2
+
+================================================================================================
+2. REAL DEFECT — seeded connectors lost the agent's scanner_version (cr-onyx "medium")
+================================================================================================
+Fixed in 8342fed114.
+The claim: the Temporal lane stamps the agent's resolved scanner_version across its whole merged
+server list, seeded connectors included; the in-process lane's model_copy did not, so a seeded
+connector reached upsert_mcp_gateway_installation with scanner_version=None and the crud then took
+different gateway-version branches per lane for the same install.
+
+CONFIRMED by reading both lanes. The fix lifts resolve_scanner_version_for_agent out of workflow.py
+into its own module so BOTH lanes import one implementation — a second copy of a rule that decides
+gateway-protection state is exactly the kind of thing that drifts — and mirrors the Temporal fallback
+(`s.scanner_version or scanner_version_for_agent`), so a per-server stamp still wins.
+Test: test_seeded_connectors_carry_the_agents_scanner_version — fails on the old code with
+[None, None, None, None].
+
+  HONEST LIMIT OF THE E2E PROOF, corrected in a later round. This paragraph originally denied that the
+  lab's scanner build emits that field. It does — 3 of the run's 12 objects carry
+  "scannerVersion":"dev", and extract.py:252,612 parses it. The divergence is still not reachable on this
+  box, for a reason one step further in: crud.py:133-134 writes that value onto a row only when
+  protects_all_mcps and not gateway_tag_present, and protects_all_mcps is false for every
+  desktop_agent_users row in every schema here — so current_gw_version is NULL in both lanes either way.
+  The measurement is captured in at6-08-gateway-version-gate.txt. The unit test is the proof; the live
+  re-drive below proves only that the changed writer still ingests correctly.
+
+================================================================================================
+2b. REAL DEFECT — the dropped-slice count was the marker-void set (cursor "Medium")
+================================================================================================
+ADDED ROUND 36: answered and fixed at the time, but this file never carried the thread. Fixed in
+cb96081d70.
+
+The reviewer's point, and it was wrong in BOTH directions: `dropped_agent_slices` was
+`len(failed_identities)`, a set that exists to void re-ingest markers rather than to count abandoned
+slices.
+  · OVER-count — a non-fatal `builtin_tools` / `skills_upsert` / MCP failure joined the set even though
+    the identity row had landed, and an object-wide reconcile failure added every candidate at once. Those
+    objects metered `processed_with_failures` and logged that rows were not written, for objects that lost
+    nothing.
+  · UNDER-count — `if agent_uid is not None` meant an identity failure with NO unique identifier never
+    entered the set at all, so the exact case the class exists for could settle as a clean `processed`.
+
+The count is now taken at the two points where a slice is genuinely abandoned — identity raised, or
+identity returned no asset — so it means "rows for this agent are missing" and nothing else. Covered by
+`test_the_dropped_slice_count_is_the_agents_whose_rows_are_missing`
+(tests/endpoint_asset_ingestion/ingestion/test_writers.py:3869), which asserts the three cases come
+apart: identity-raised and no-asset are counted, a secondary-step failure on an agent that landed is not.
+
+================================================================================================
+3. STRUCTURE / CLARITY / TEST GAP — all applied (cr-onyx, seven threads)
+================================================================================================
+Fixed in 0cfbd4240c.
+  · parse_event_time moved out of the S3-specific module into its own source-agnostic
+    event_time.py, so the Event Grid parser no longer imports the AWS lane's file and no longer
+    inherits its wording — the failure log said "unparseable S3 eventTime" while running on Azure.
+  · the mcp-gateway refusal pointed operators at the SCANNER lane, a different object source with no
+    Azure routing at all; it now names the real gap and what would be needed to close it.
+  · the "Feed + fairness" paragraph asserted the SNS feed flatly, contradicting the CLOUD section two
+    lines above; qualified to "On AWS cells".
+  · a docstring referenced ScannerEventConsumerASBConfig, which this change deletes.
+  · a typo inverted its own sentence ("Go checks it either" -> "Go doesn't check it either").
+  · ADDED ROUND 36 (this file had never carried it): the ConsumerPool class docstring still said flatly
+    "The handler is responsible for message settlement (complete/dead-letter)" after the pool started
+    abandoning on a handler exception. The reviewer's point was that a handler author reading it could
+    add their own release in an `except` and DOUBLE-SETTLE. consumer_pool.py:55-57 now reads
+    "… — EXCEPT on a handler exception, where the pool releases the message for redelivery itself. A
+    handler must not add its own release in an `except` block, or the message would be settled twice." 
+  · TEST GAP: nothing covered _system_properties actually reaching ReceivedMessage.properties — the
+    existing mock's MagicMock children fail both isinstance guards, so the stamping silently produced
+    {} and the exact-equality assertion still passed. Two tests added; stubbing the merge line makes
+    them fail (KeyError: '_sys_ApproximateReceiveCount'), where before the suite stayed green.
+
+================================================================================================
+4. STALE — already fixed by 988364c282, reviewer cited the pre-fix blob (three threads)
+================================================================================================
+The Azure alert fan-out (cursor "High" + cr-onyx "medium") and the "unacked -> the queue redelivers
+does not hold on Service Bus" thread. Both were real when written and were closed by 988364c282,
+which added alert_processing_asb + cloud-selected producer construction + the transport guard's
+required=False mode, and added the abandon path itself. Every file:line in those comments resolves to
+988364c282^, not to the head. Replied with the current locations and asked for a re-review at HEAD.
+
+================================================================================================
+5. QUESTION — answered by rendering, not by assertion (cr-onyx "medium")
+================================================================================================
+"Confirm no Azure instance currently renders cloud: azure for these two consumers — if one does, this
+merge crash-loops them." Re-rendered both instances against flux-fleet#2307's head 833ddca82:
+
+    instance      release                       enabled   rendered cloud
+    saas          scanner-event-consumer        false     no key (inherits the base chart)
+    saas          mcp-gateway-event-consumer    false     no key (inherits the base chart)
+    centerpoint   scanner-event-consumer        false     no key (inherits the base chart)
+    centerpoint   mcp-gateway-event-consumer    false     no key (inherits the base chart)
+
+Neither release is deployed on an Azure cell at all, and neither overlay overrides cloud; the base
+chart's per-service cloud: "aws" (infra/helm/onyx-app/values.yaml:2230 and :2340) is what is in force.
+The refusal is reachable only by a config no cell currently renders.
+
+================================================================================================
+6. THE LANE, RE-DRIVEN ON THE FIXED CODE
+================================================================================================
+Two of the three commits change code the writer executes, so the front door was re-driven rather than
+argued about: image prdct11935-r7 built from 0cfbd4240c, gen-1's two workers scaled to 0 for the window.
+See evidence/at1-02, at1-04, at1-05 (re-captured). Summary of that run:
+  real onyx-scanner through Kong -> payloads_sent: 2, skills_total: 65, SCAN_EXIT=0
+  objects landed in both tenants, every settlement outcome=processed, object_age_seconds < 0.5s
+  scanner_installations receipt written for the run
+Suites on this head: endpoint_asset_ingestion + queue + common_core 652 passed; the shared
+desktop_agent_creator + mcp_asset_creation suites 1263 passed; task lint clean; mypy clean on all
+changed packages.
+
+================================================================================================
+7. ROUND 10 — one more thread, and the measurement that refuted half of it
+================================================================================================
+cursor[bot], "Lock renewed too late for ingest" (Medium), 2026-08-19T23:09:48Z (created_at, read from the API — an
+earlier version of this line carried a typed timestamp that was ~55 min off), branch dfe23b9e83.
+Claim: the renewal loop sleeps its configured 30 s before the first renew, so on Azure's DEFAULT 30 s
+lock duration the lock expires mid-write and a sibling worker can take the same message while
+complete/abandon fail.
+
+MEASURED FIRST — the premise does not hold for the queue this lane provisions:
+  · onyxsecurity/infrastructure modules/onyx/cell-azure-instance/service_bus.tf:188 pins
+        lock_duration = "PT5M"       max_delivery_count = 5
+    and its own comment says why: "5 minutes is the Service Bus maximum. The consumer renews the lock
+    while it works, exactly as the sibling 5-minute lanes above do."
+  · the LAB queue reads, from the Azure control plane:
+        az servicebus queue show ... --query "{lockDuration:lockDuration, maxDelivery:maxDeliveryCount}"
+        PT1M    5
+  · the consumer's configured renewal interval is 30 s (endpoint_asset_ingestion/config.py:79).
+  · lock-loss lines in ~90 minutes of ingests on this box, including objects with
+    object_age_seconds = 92.3 (LONGER than the lab's own 1-minute lock, so renewal is load-bearing
+    and demonstrably working):
+        MessageLockLost / "lock lost" / "lock expired" / "Failed to renew message lock"  ->  0
+        (the renewal itself logs at debug, which is off, so its success is visible only as the
+         absence of loss plus the successful settlement of those 92 s objects)
+So no cell in this change set runs the 30 s default the severity assumes.
+
+THE STRUCTURAL HALF WAS RIGHT, AND IS FIXED (dfe23b9e83). Correctness rested entirely on
+lock_renewal_interval_seconds < lock_duration — a relationship maintained by convention across two
+repositories and enforced nowhere — with the loop sleeping the full interval BEFORE its first renew.
+Setting the two equal reads as reasonable ("renew every five minutes on a five-minute lock") and puts
+the first renewal exactly at expiry, with precisely the consequence the reviewer describes.
+The delay is now derived from the message's own locked_until_utc: half the remaining lock, so renewal
+lands at least twice per lock period whatever the queue is configured with, falling back to the
+configured interval when the broker gives no deadline.
+
+THE TEST BITES — pre-fix loop restored in place, tests re-run, then reverted:
+    E   AssertionError: first renewal must not wait the whole lock duration, waited 300.0
+    1 failed, 1 passed, 20 deselected, 4 warnings in 10.40s
+and green again on the shipped code (2 passed).

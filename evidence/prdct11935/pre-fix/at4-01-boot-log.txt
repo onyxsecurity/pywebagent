@@ -1,0 +1,28 @@
+# at4 pre-fix — boot behavior of the UNTOUCHED base endpoint_asset_ingestion (main@67b4096f3323) under ONYX__CLOUD=azure
+#
+# SHAPE A — the AT's literal wording: ONYX__CLOUD=azure + ONLY S3/SQS config (no ASB, no blob):
+#   OUTCOME (spec nuance, reconciled below): the INHERITED Config.validate_azure_blob_config (common_core/config.py:812-819)
+#   refuses THIS shape at boot — but only because BLOB fields are missing, NOT because the transport is wrong:
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for EndpointAssetIngestionConfig
+  Value error, ONYX__BLOB__ACCOUNT_URL is required when ONYX__CLOUD=azure [type=value_error, input_value={'database': {'host': 'po...y': 'agent-prdct11935'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error
+
+ERROR:    Application startup failed. Exiting.
+#
+# SHAPE B — the real fail-open (the bug's substance): ONYX__CLOUD=azure + blob config PRESENT (lab account, as any Azure
+# operator would set) + S3/SQS-ONLY transport config. NO transport≠cloud assertion exists, so the service:
+#   - passes config validation, boots green, readiness OK ('Application startup complete', pod 1/1)
+#   - constructs an SQS consumer + S3 client against LocalStack WHILE DECLARING cloud=azure — silently reading the wrong
+#     storage/transport for its declared cloud; no error, no refusal (fail-open). Boot log:
+[2m2026-08-18T16:50:08.384988Z[0m [[32m[1minfo     [0m] [1mingestion lane selected       [0m [[0m[1m[34mendpoint_asset_ingestion.service[0m][0m [36mfilename[0m=[35mservice.py[0m [36mfunc_name[0m=[35mstart[0m [36mlane[0m=[35mscanner[0m [36mlineno[0m=[35m191[0m
+[2m2026-08-18T16:50:08.458211Z[0m [[32m[1minfo     [0m] [1mSQS client connected          [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mconnect[0m [36mlineno[0m=[35m101[0m [36mqueue_url[0m=[35mhttp://localstack:4566/000000000000/endpoint-asset-ingestion[0m
+[2m2026-08-18T16:50:08.458484Z[0m [[32m[1minfo     [0m] [1mAsset ingestion worker pool started[0m [[0m[1m[34mendpoint_asset_ingestion.service[0m][0m [36mfilename[0m=[35mservice.py[0m [36mfunc_name[0m=[35mstart[0m [36mlineno[0m=[35m204[0m
+INFO:     Application startup complete.
+#
+# RECONCILIATION NOTE (spec deviation, surfaced not silently absorbed): at4.pre_fix.expected_broken says the no-blob shape
+# 'passes config validation'. On the real base it does NOT (blob-field validator fires). The demand's substance — footguns
+# 1+3, no transport≠cloud assertion, azure-declared pod happily consuming SQS/S3 — reproduces EXACTLY in shape B, which is
+# also the operationally realistic Azure config (blob fields set). The post-fix at4 assertion (refuse when transport ≠
+# config.cloud) remains fully testable: shape B must flip from boots-green to refused.

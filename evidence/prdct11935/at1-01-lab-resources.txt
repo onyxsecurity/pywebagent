@@ -1,0 +1,79 @@
+# PRDCT-11935 Azure lab replica (provisioned 2026-08-18T16:22:15Z) — sub b3f77526 (Agents Development), region eastus2
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg
+{
+  "blobEndpoint": "https://prdct11935st.blob.core.windows.net/",
+  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st"
+}
+{
+  "endpoint": "https://prdct11935bus.servicebus.windows.net:443/",
+  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus"
+}
+/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/topics/byoc-events
+{
+  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/endpoint-asset-ingestion-prdct11935",
+  "maxDeliveryCount": 5
+}
+{
+  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/scanner-events-prdct11935",
+  "maxDeliveryCount": 5
+}
+{
+  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/mcp-gateway-events-prdct11935",
+  "maxDeliveryCount": 5
+}
+[
+  {
+    "forwardTo": "endpoint-asset-ingestion-prdct11935",
+    "name": "only-mcp-scanner"
+  },
+  {
+    "forwardTo": "mcp-gateway-events-prdct11935",
+    "name": "to-mcp-gateway-events"
+  },
+  {
+    "forwardTo": "scanner-events-prdct11935",
+    "name": "to-scanner-events"
+  }
+]
+rules(only-mcp-scanner):
+[
+  {
+    "name": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+rules(to-scanner-events):
+[
+  {
+    "name": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+rules(to-mcp-gateway-events):
+[
+  {
+    "name": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.EventGrid/systemTopics/prdct11935-blob-events
+{
+  "deliveryMappings": null,
+  "destination": "ServiceBusTopic",
+  "filter": [
+    "Microsoft.Storage.BlobCreated"
+  ]
+}
+{
+  "deliveryAttributeMappings": [
+    {
+      "name": "Label",
+      "sourceField": "subject",
+      "type": "Dynamic"
+    }
+  ],
+  "endpointType": "ServiceBusTopic",
+  "resourceId": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/topics/byoc-events"
+}

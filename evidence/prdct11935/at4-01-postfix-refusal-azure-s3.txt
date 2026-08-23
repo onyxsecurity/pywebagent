@@ -1,0 +1,50 @@
+# PRDCT-11935 at4-01 POST-FIX — ONYX__CLOUD=azure with the AWS queue configured: the service REFUSES to start
+# FILE LAST WRITTEN 2026-08-21T10:08:29Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-refuse-s3-5b94f68cf8-gpfnc
+# captured 2026-08-21T09:28:02Z
+#
+# THE IMAGE, PROVEN — not asserted. This artifact's capture ran on an image built from THIS head with the
+# repo's own Dockerfile.dev, and the proof is mechanical: every .py under /app/src sha256'd inside the
+# image against the head worktree — 4741 head files vs 4742 in the image, **one** differing line, and it
+# is an EMPTY /app/src/__init__.py the build creates (sha e3b0c44298fc… is the hash of zero bytes). No
+# source file differs. Digests: endpoint-asset-ingestion sha256:17dbec7e…, scanner-event-consumer
+# sha256:4c7af190…, mcp-gateway-event-consumer sha256:2464ec5a…. See evidence/at6-12-image-provenance.txt.
+#
+# WHY THIS FILE WAS RE-DRIVEN THIS ROUND. The round-25 gate found this artifact self-certifying as
+# head-exact while stamping `0665ecc545 / :prdct11935-r25` — an image built two lane-touching commits
+# back — and at10-04, generated from this very header, listed it as "1 lane-touching commit(s) landed
+# after it: a2486bb33f". Rather than argue that the head commit cannot reach a service that exits at
+# config validation, the capture was simply re-run on the head-exact image. Everything below is that run.
+#
+# THE SHAPE UNDER TEST: the declared cloud and the configured transport DISAGREE — azure declared,
+# the AWS SQS queue url still set. Pre-fix this booted green and consumed the wrong cloud's transport.
+
+## 1. WHAT KUBERNETES SHOWS — this deployment DOES carry a readinessProbe, so the failure is visible there
+    -- kubectl:
+    eai-azure-refuse-s3-5b94f68cf8-gpfnc   0/1   Running   0     3m30s
+    -- readinessProbe:
+    {"failureThreshold":3,"httpGet":{"path":"/health/ready","port":8007,"scheme":"HTTP"},"initialDelaySeconds":5,"periodSeconds":5,"successThreshold":1,"timeoutSeconds":1}
+    -- conditions:
+    PodReadyToStartContainers=True 
+    Initialized=True 
+    Ready=False ContainersNotReady
+    ContainersReady=False ContainersNotReady
+    PodScheduled=True
+    READY=0/1  STATUS=Running  RESTARTS=0 — and READY=0/1 is the point: this deployment
+    carries a readinessProbe, so the refusal is visible to Kubernetes itself.
+
+## 2. THE REFUSAL, verbatim from the pod's own log
+    -- the refusal, verbatim:
+    pydantic_core._pydantic_core.ValidationError: 1 validation error for EndpointAssetIngestionConfig
+      Value error, endpoint_asset_ingestion: ONYX__CLOUD=azure but the AWS queue transport is configured (ONYX__ASSET_INGESTION_SQS__QUEUE_URL='http://localstack:4566/000000000000/endpoint-asset-ingestion'). Refusing to start: this pod would use the AWS queue while declaring cloud=azure. Configure ONYX__ASSET_INGESTION_ASB__QUEUE_NAME instead, or set ONYX__CLOUD=aws. [type=value_error, input_value={'cloud': 'azure', 'blob'...y': 'agent-prdct11935'}}, input_type=dict]
+    ERROR:    Application startup failed. Exiting.
+
+## 3. IT FAILS CLOSED — measured, not inferred
+    -- did it consume ANYTHING? (must be 0 each)
+         Completed message                0
+         receive_messages                 0
+         asset_ingestion_record_handled   0
+         Dead-lettered message            0
+         dispatch                         0
+    Every settlement token is 0: the service consumed nothing on either transport. It did not
+    warn-and-continue; it exited at config validation before a queue client was ever constructed.

@@ -1,0 +1,100 @@
+# PRDCT-11935 at10-03 — CI on every PR head in this change set
+# FILE LAST WRITTEN 2026-08-22T07:05:04Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# captured 2026-08-22T07:04:57Z by the engineer, read from api.github.com — not quoted from a UI
+#
+# Read via /actions/runs?head_sha= (latest run per workflow name) plus /commits/<sha>/status for the
+# commit statuses that are NOT workflows. The app token this box holds is 403 on /check-runs and on the
+# GraphQL status rollup, so those two endpoints are the whole picture available to it.
+
+========================================================================================
+onyxsecurity/onyx#12329
+  head           a2486bb33f835af24f5850e4f4c5eb2e8b02afb9
+  mergeable      True blocked
+  vs main        ahead 27 behind 0 ahead
+  --- workflows (latest run per name)
+      success        Backend PR Validation
+      success        Backend Python Services PR Validation
+      success        CI - Agentgateway Guardrail
+      success        CI - Kong Plugin
+      success        Chrome Extension PR Validation
+      success        Daemon PR Validation
+      success        Docs Check
+      success        Frontend PR Preview (staging-native)
+      success        Frontend PR Validation
+      success        Generated Code PR Validation
+      success        Generated Files Check
+      success        Helm PR Validation
+      success        MCP Gateway PR Validation
+      success        MCP Server PR Validation
+      success        PR Eng Approval
+      success        PR Preview Environment
+      success        PR Title Validation
+      success        Preview Checks
+      success        Scanner Detector Backend E2E
+      success        Scanner PR Validation
+      success        Upstream Domain Alignment Check
+      total: 21 {'success': 21}
+  --- commit statuses (not workflows)
+      combined: success
+      success  CodeRabbit       Review skipped: free tier disabled
+
+========================================================================================
+onyxsecurity/flux-fleet#2307
+  head           b0d3e1cfbfeac83567343d6b21042ed201c85e6c
+  mergeable      True blocked
+  vs main        ahead 12 behind 2 diverged
+  --- workflows (latest run per name)
+      success        Approval Policy
+      success        Docs Check
+      success        Helm Diff Preview
+      success        Kustomize Build
+      success        PR Title Validation
+      skipped        Topaz
+      success        Validate · pull_request · factory-eval-v32/PRDCT-11935
+      total: 7 {'skipped': 1, 'success': 6}
+  --- commit statuses (not workflows)
+      combined: failure
+      failure  approval-gate    Approval policy not satisfied — see run summary
+
+========================================================================================
+onyxsecurity/infrastructure#1575
+  head           8498355f01312911ed5293e7b2621182a295c1bf
+  mergeable      True blocked
+  vs main        ahead 14 behind 0 ahead
+  --- workflows (latest run per name)
+      success        Approval Policy
+      success        Docs Check
+      success        Harness Check
+      success        Lint
+      success        PR Title Validation
+      success        Terraform Pipeline · pull_request · factory-eval-v32/PRDCT-11935
+      success        Terraform Plan Summary (no-op shim)
+      skipped        Topaz
+      total: 8 {'success': 7, 'skipped': 1}
+  --- commit statuses (not workflows)
+      combined: failure
+      failure  approval-gate    Approval policy not satisfied — see run summary
+
+========================================================================================
+MAIN'S OWN CHURN, measured — why "behind N" is not a defect here
+========================================================================================
+  onyxsecurity/onyx  ->  0 commits landed on main in the 3 hours before this capture
+  onyxsecurity/flux-fleet  ->  0 commits landed on main in the 3 hours before this capture
+  onyxsecurity/infrastructure  ->  0 commits landed on main in the 3 hours before this capture
+  flux-fleet's main receives automated image-tag bumps continuously, so a branch there is behind again
+  within minutes of any merge. "behind_by 0" is therefore a reading taken at an instant, not a property
+  a branch can hold; what IS stable and checkable is `mergeable` (no conflict) and the branch's own
+  checks. Both are reported per PR above, and each behind-count is timestamped by this file's header.
+
+READING THIS
+========================================================================================
+The `approval-gate` commit status on both siblings is the repos' CODEOWNERS **human** review
+requirement. It is red until a codeowner approves, it was red on the previous flux-fleet head too
+(so it is not a regression from the merge), and it is not something an agent can or should clear.
+Its own workflow ("Approval Policy") succeeds: the job means the evaluator ran, the verdict lives in
+the status. onyx#12329 has no such red status — its combined status is success.
+
+No check anywhere in this set is failing for an environmental reason; in particular there is no
+"flaky preview-env" being waved through: "PR Preview Environment" and "Frontend PR Preview
+(staging-native)" both succeeded on the onyx head.

@@ -1,0 +1,39 @@
+# PRDCT-11935 at9-02 — the scanner SQL rule POSITIVE, on the live lab replica
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# branch  · captured 2026-08-18T19:27:43Z
+#
+# Rule under test (mirrors the authored TF, which mirrors the existing only-extension rule):
+[
+  {
+    "action": null,
+    "rule": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+
+## the subscription and where it forwards
+{
+  "forwardTo": "endpoint-asset-ingestion-prdct11935",
+  "maxDeliveryCount": 10,
+  "name": "only-mcp-scanner"
+}
+
+## REAL Event-Grid-delivered messages that matched it — every one produced by the Kong-originated chain
+## (onyx-scanner -> Kong -> vector -> blob -> Event Grid -> byoc-events -> this rule -> the scanner queue),
+## consumed by the azure-mode writer (see evidence/at1-06-flagoff-guard.txt for the settlement of each):
+s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071305-604bff7b-9e5b-4708-877f-a1423f2aa5c2.log'
+s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071315-b44513c7-0459-4b9d-b924-e75ac00beba3.log'
+s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071325-4544ab6c-6b83-4a42-9a31-b4d617e81cc5.log'
+s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071382-ce343300-0ed7-42c7-86c7-aae9daa51a91.log'
+s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071392-faa1b2a0-9020-49d8-a5ed-64a2848ae85a.log'
+s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071403-94cdbae5-2ea9-484f-80eb-74266ad86fde.log'
+s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071413-745a7bd9-cb19-4163-ad64-9490b3de21e2.log'
+s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071423-faa24eb2-6eb0-4d55-af72-87da472cfcd4.log'
+s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071433-85307150-a2bf-4901-ab4f-adf9c4557215.log'
+s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071835-8f37e503-4fea-4e80-a564-ea59de8ba84e.log'
+
+## and the Label the rule matched on, from the real delivery captured off this queue:
+Label (sys.Label): /blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071305-604bff7b-9e5b-4708-877f-a1423f2aa5c2.log
+body.subject   : /blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071305-604bff7b-9e5b-4708-877f-a1423f2aa5c2.log
+eventType      : Microsoft.Storage.BlobCreated

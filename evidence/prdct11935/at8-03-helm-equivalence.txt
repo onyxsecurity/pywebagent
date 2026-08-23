@@ -1,0 +1,62 @@
+# PRDCT-11935 at8-03 — scripts/helm-equivalence.sh over the lane entry, at the flux PR HEAD
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# flux-fleet @ 68bdecfd1e70 · onyx branch cb96081d70 · captured 2026-08-20T11:22:08Z
+#
+# RE-RUN IN ROUND 20, AND THE HEADLINE IT REPLACES WAS FALSE. The old capture (flux 396980bac)
+# reported 'rendered objects BYTE-IDENTICAL … the Azure render never carried the AWS-only leaf into
+# the pod', which made the change look like belt-and-braces. Against a proper isolation ref at head
+# — this branch MINUS exactly the lane entries it adds — the objects DIFFER. The change is MORE
+# load-bearing than its own artifact claimed: without it the Azure pod would carry live AWS config.
+#
+# isolation ref 'tmp-no-drop' = HEAD with endpoint-asset-ingestion reverted to main's disabled stub.
+
+## $ ./scripts/helm-equivalence.sh clusters/ox-az-p-eus2-c02/instances/saas/onyx-app /home/coder/onyx/infra/helm/onyx-app tmp-no-drop
+      +      visibility_timeout: 600
+      +      wait_time_seconds: 20
+      +    blob:
+      +      account_url: ${blob_account_url}
+      +      container_name: ${blob_container_name}
+      +    cloud: azure
+      +    concurrency: 5
+      +    database:
+      +      host: ${rds_endpoint}
+      +      name: postgres
+      +      port: 5432
+      +      ssl_mode_disabled: false
+      +    error_backoff_seconds: 5
+      +    logging:
+      +      level: INFO
+      +      render_json: true
+      +    max_messages: 10
+      +    releases_kvs:
+      +      kvs_arn: ${releases_kvs_arn:=}
+      +      writer_role_arn: ${releases_kvs_writer_role_arn:=}
+      +    telemetry:
+      … truncated at 80; full diff kept at /tmp/tmp.QbdQcg0u1q/diff for this run
+  (exit 1)
+
+## $ ./scripts/helm-equivalence.sh clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app /home/coder/onyx/infra/helm/onyx-app tmp-no-drop
+      +      visibility_timeout: 600
+      +      wait_time_seconds: 20
+      +    blob:
+      +      account_url: ${blob_account_url}
+      +      container_name: ${blob_container_name}
+      +    cloud: azure
+      +    concurrency: 5
+      +    database:
+      +      host: ${rds_endpoint}
+      +      name: postgres
+      +      port: 5432
+      +      ssl_mode_disabled: false
+      +    error_backoff_seconds: 5
+      +    logging:
+      +      level: INFO
+      +      render_json: true
+      +    max_messages: 10
+      +    releases_kvs:
+      +      kvs_arn: ${releases_kvs_arn:=}
+      +      writer_role_arn: ${releases_kvs_writer_role_arn:=}
+      +    telemetry:
+      … truncated at 80; full diff kept at /tmp/tmp.PuNtRDpXyR/diff for this run
+  (exit 1)

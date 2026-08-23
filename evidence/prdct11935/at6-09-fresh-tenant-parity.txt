@@ -1,0 +1,663 @@
+# PRDCT-11935 at6-09 — the both-lane parity comparison on FRESH tenants, on the HEAD sha,
+# FILE LAST WRITTEN 2026-08-22T02:57:36Z
+#
+# ROUND-33 CITE REFRESH (S12, line-number-only). `activities.py:588-592` -> `mcp_asset_creation/activities.py:533` — `calculate_mcp_id` moved up within the same file; same function, same identity-collapse mechanism. Mirrored from the plan's
+# CORRECTION LOG under the orchestrator-authorized joint S1-S12 refresh (plan re-frozen at
+# sha256 7f26074e90cf643d...); the corrected line was re-read with sed at HEAD before this edit.
+# Nothing else in this file changed. Full mirror record: evidence/at10-07-stale-cite-refresh.txt.
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# enumerated at the at6-04 granularity for ALL THREE both-lane classes
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T03:04:31Z
+#
+# WHAT THE PLAN AMENDMENT ASKS OF THIS FILE, and why the earlier version did not satisfy it: "the at6-09
+# fresh-pair comparison must be captured on the head sha and enumerate TA-only/TB-only at the same
+# granularity as the at6-04 diffs — assets, asset_connections including metadata.sources, tools,
+# scanner_installations — for ALL THREE both-lane classes (created/matched/reingest-skip), every loss
+# line mapped to a named entry". The round-21 version compared ASSET unique_identifiers only, on one
+# leg. Comparing the other three classes is what surfaced section 4 below.
+#
+# THE IMAGE. Driven on :prdct11935-r26, built from THIS head (a2486bb33f, which carries round 24's
+# sender fix) and proven byte-exact before use — 4741/4741
+# head .py files match by sha256, 0 content mismatches (receipt: evidence/at6-12-image-provenance.txt).
+# The round-21 gate correctly refused the previous capture because :prdct11935-r24 predated the branch's
+# last merge; this is that re-capture, not a re-stamp of the old numbers.
+#
+# METHOD. Both tenants truncated to empty, then ONE Kong-originated scan per leg fanned to both lanes by
+# vector, each allowed to settle. TA = prdct11935_ta, written by the REAL gen-1 Go/Temporal lane.
+# TB = prdct11935_tb, written by the new azure-mode writer. Three legs, no reset between 2 and 3.
+#
+# HOW THE COMPARISON IS TAKEN, and why it is not a diff of dump lines. The rule being tested is
+# directional — "the new lane may ADD, it may never LOSE what the old lane writes" — so a set-difference
+# over whole lines is the wrong instrument: a row whose STATE column moved (is_deleted, .sources) shows
+# up as a loss AND an add, which is how a retained edge could read as a lost one. Rows are keyed by
+# IDENTITY (asset -> unique_identifier; edge -> type|source|destination; tool -> server|tool), and the
+# state columns of shared identities are compared separately WITH a direction. Only genuine losses are
+# held against the enumeration.
+
+
+========================================================================================================
+=== LEG: created
+========================================================================================================
+--- the scan and the settle trace
+    NOTICE:  truncate cascades to table "agents"
+    NOTICE:  truncate cascades to table "usage_sessions"
+    NOTICE:  truncate cascades to table "usage_sessions_events"
+    NOTICE:  truncate cascades to table "data_policy_assets"
+    NOTICE:  truncate cascades to table "tools"
+    NOTICE:  truncate cascades to table "ai_firewall_alerts"
+    NOTICE:  truncate cascades to table "ai_providers"
+    NOTICE:  truncate cascades to table "asset_ai_firewall_policies"
+    NOTICE:  truncate cascades to table "channels"
+    NOTICE:  truncate cascades to table "desktop_agent_applications"
+    NOTICE:  truncate cascades to table "mcp_server_tools"
+    NOTICE:  truncate cascades to table "triggers"
+    NOTICE:  truncate cascades to table "governance_policy_assets"
+    NOTICE:  truncate cascades to table "access_control"
+    NOTICE:  truncate cascades to table "asset_sources"
+    NOTICE:  truncate cascades to table "device_applications"
+    NOTICE:  truncate cascades to table "agentic_tasks"
+    NOTICE:  truncate cascades to table "topics"
+    NOTICE:  truncate cascades to table "employee_assets"
+    NOTICE:  truncate cascades to table "asset_connections"
+    NOTICE:  truncate cascades to table "mcp_servers"
+    NOTICE:  truncate cascades to table "username_assets"
+    NOTICE:  truncate cascades to table "desktop_agent_users"
+    NOTICE:  truncate cascades to table "mcp_gateway_installations"
+    NOTICE:  truncate cascades to table "asset_topic_clustering_status"
+    NOTICE:  truncate cascades to table "agent_skills"
+    NOTICE:  truncate cascades to table "scripts"
+    NOTICE:  truncate cascades to table "issue_instances"
+    NOTICE:  truncate cascades to table "collection_checkpoints"
+    NOTICE:  truncate cascades to table "activity_log"
+    NOTICE:  truncate cascades to table "agent_job_runs"
+    NOTICE:  truncate cascades to table "asset_posture_findings"
+    NOTICE:  truncate cascades to table "asset_posture_source_status"
+    NOTICE:  truncate cascades to table "asset_tags"
+    NOTICE:  truncate cascades to table "asset_inventory"
+    NOTICE:  truncate cascades to table "issue_detection_audit"
+    NOTICE:  truncate cascades to table "identities"
+    NOTICE:  truncate cascades to table "asset_vulnerabilities"
+    NOTICE:  truncate cascades to table "protected_token_hourly"
+    NOTICE:  truncate cascades to table "agent_subagents"
+    NOTICE:  truncate cascades to table "session_analyses"
+    NOTICE:  truncate cascades to table "session_sensitive_data"
+    NOTICE:  truncate cascades to table "data_sources"
+    NOTICE:  truncate cascades to table "data_source_accesses"
+    NOTICE:  truncate cascades to table "extension_usage_sessions"
+    NOTICE:  truncate cascades to table "ai_firewall_alert_violated_rules"
+    NOTICE:  truncate cascades to table "alerts_false_positive_embeddings"
+    NOTICE:  truncate cascades to table "tool_executions"
+    NOTICE:  truncate cascades to table "agentic_task_system_prompts"
+    NOTICE:  truncate cascades to table "session_embeddings"
+    NOTICE:  truncate cascades to table "topic_sessions"
+    NOTICE:  truncate cascades to table "usage_session_tools_mapping"
+    NOTICE:  truncate cascades to table "ai_guard_expected_tool_calls"
+    NOTICE:  truncate cascades to table "desktop_agent_application_custom_data"
+    NOTICE:  truncate cascades to table "identity_tools"
+    NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+    NOTICE:  truncate cascades to table "session_event_processes"
+    NOTICE:  truncate cascades to table "crowdstrike_edr_detections"
+    NOTICE:  truncate cascades to table "redteaming_alert_links"
+    NOTICE:  truncate cascades to table "file_metadata"
+    NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+    NOTICE:  ivfflat index created with little data
+    DETAIL:  This will cause low recall.
+    HINT:  Drop the index until the table has more data.
+    NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+    NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+    NOTICE:  truncate cascades to table "desktop_agent_application_custom_data"
+    NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+    NOTICE:  truncate cascades to table "mcp_gateway_installations"
+    NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+    NOTICE:  truncate cascades to table "usage_sessions"
+    NOTICE:  truncate cascades to table "extension_installations"
+    NOTICE:  truncate cascades to table "device_applications"
+    NOTICE:  truncate cascades to table "device_employees"
+    NOTICE:  truncate cascades to table "desktop_agent_users"
+    NOTICE:  truncate cascades to table "scanner_installations"
+    NOTICE:  truncate cascades to table "scanner_installations_20260721"
+    NOTICE:  truncate cascades to table "scanner_installations_20260722"
+    NOTICE:  truncate cascades to table "scanner_installations_20260723"
+    NOTICE:  truncate cascades to table "scanner_installations_20260724"
+    NOTICE:  truncate cascades to table "scanner_installations_20260725"
+    NOTICE:  truncate cascades to table "scanner_installations_20260726"
+    NOTICE:  truncate cascades to table "scanner_installations_20260727"
+    NOTICE:  truncate cascades to table "scanner_installations_20260728"
+    NOTICE:  truncate cascades to table "scanner_installations_20260729"
+    NOTICE:  truncate cascades to table "scanner_installations_20260730"
+    NOTICE:  truncate cascades to table "scanner_installations_20260731"
+    NOTICE:  truncate cascades to table "scanner_installations_20260801"
+    NOTICE:  truncate cascades to table "scanner_installations_20260802"
+    NOTICE:  truncate cascades to table "scanner_installations_20260803"
+    NOTICE:  truncate cascades to table "scanner_installations_20260804"
+    NOTICE:  truncate cascades to table "scanner_installations_20260805"
+    NOTICE:  truncate cascades to table "scanner_installations_20260806"
+    NOTICE:  truncate cascades to table "scanner_installations_20260807"
+    NOTICE:  truncate cascades to table "scanner_installations_20260808"
+    NOTICE:  truncate cascades to table "scanner_installations_20260809"
+    NOTICE:  truncate cascades to table "scanner_installations_20260810"
+    NOTICE:  truncate cascades to table "scanner_installations_20260811"
+    NOTICE:  truncate cascades to table "scanner_installations_20260812"
+    NOTICE:  truncate cascades to table "scanner_installations_20260813"
+    NOTICE:  truncate cascades to table "scanner_installations_20260814"
+    NOTICE:  truncate cascades to table "scanner_installations_20260815"
+    NOTICE:  truncate cascades to table "scanner_installations_20260816"
+    NOTICE:  truncate cascades to table "scanner_installations_20260817"
+    NOTICE:  truncate cascades to table "scanner_installations_20260818"
+    NOTICE:  truncate cascades to table "scanner_installations_20260819"
+    NOTICE:  truncate cascades to table "scanner_installations_20260820"
+    NOTICE:  truncate cascades to table "scanner_installations_20260821"
+    NOTICE:  truncate cascades to table "scanner_installations_20260822"
+    NOTICE:  truncate cascades to table "scanner_installations_20260823"
+    NOTICE:  truncate cascades to table "scanner_installations_20260824"
+    NOTICE:  truncate cascades to table "scanner_installations_20260825"
+    NOTICE:  truncate cascades to table "scanner_installations_default"
+    NOTICE:  truncate cascades to table "device_sources"
+    NOTICE:  truncate cascades to table "crowdstrike_edr_detections"
+    NOTICE:  truncate cascades to table "device_email_observations"
+    NOTICE:  truncate cascades to table "scanner_installations_20260826"
+    NOTICE:  truncate cascades to table "scanner_installations_20260827"
+    NOTICE:  truncate cascades to table "session_analyses"
+    NOTICE:  truncate cascades to table "session_sensitive_data"
+    NOTICE:  truncate cascades to table "usage_sessions_events"
+    NOTICE:  truncate cascades to table "extension_usage_sessions"
+    NOTICE:  truncate cascades to table "ai_firewall_alerts"
+    NOTICE:  truncate cascades to table "session_embeddings"
+    NOTICE:  truncate cascades to table "topic_sessions"
+    NOTICE:  truncate cascades to table "usage_session_tools_mapping"
+    NOTICE:  truncate cascades to table "mcp_gateway_installations"
+    NOTICE:  truncate cascades to table "ai_guard_expected_tool_calls"
+    NOTICE:  truncate cascades to table "file_metadata"
+    NOTICE:  truncate cascades to table "ai_firewall_alert_violated_rules"
+    NOTICE:  truncate cascades to table "alerts_false_positive_embeddings"
+    NOTICE:  truncate cascades to table "tool_executions"
+    NOTICE:  truncate cascades to table "activity_log"
+    NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+    NOTICE:  truncate cascades to table "session_event_processes"
+    NOTICE:  truncate cascades to table "redteaming_alert_links"
+    NOTICE:  ivfflat index created with little data
+    DETAIL:  This will cause low recall.
+    HINT:  Drop the index until the table has more data.
+    NOTICE:  truncate cascades to table "username_assets"
+    NOTICE:  truncate cascades to table "desktop_agent_users"
+    NOTICE:  truncate cascades to table "mcp_gateway_installations"
+    NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+    NOTICE:  truncate cascades to table "agents"
+    NOTICE:  truncate cascades to table "usage_sessions"
+    NOTICE:  truncate cascades to table "usage_sessions_events"
+    NOTICE:  truncate cascades to table "data_policy_assets"
+    NOTICE:  truncate cascades to table "tools"
+    NOTICE:  truncate cascades to table "ai_firewall_alerts"
+    NOTICE:  truncate cascades to table "ai_providers"
+    NOTICE:  truncate cascades to table "asset_ai_firewall_policies"
+    NOTICE:  truncate cascades to table "channels"
+    NOTICE:  truncate cascades to table "desktop_agent_applications"
+    NOTICE:  truncate cascades to table "mcp_server_tools"
+    NOTICE:  truncate cascades to table "triggers"
+    NOTICE:  truncate cascades to table "governance_policy_assets"
+    NOTICE:  truncate cascades to table "access_control"
+    NOTICE:  truncate cascades to table "asset_sources"
+    NOTICE:  truncate cascades to table "device_applications"
+    NOTICE:  truncate cascades to table "agentic_tasks"
+    NOTICE:  truncate cascades to table "topics"
+    NOTICE:  truncate cascades to table "employee_assets"
+    NOTICE:  truncate cascades to table "asset_connections"
+    NOTICE:  truncate cascades to table "mcp_servers"
+    NOTICE:  truncate cascades to table "username_assets"
+    NOTICE:  truncate cascades to table "desktop_agent_users"
+    NOTICE:  truncate cascades to table "mcp_gateway_installations"
+    NOTICE:  truncate cascades to table "asset_topic_clustering_status"
+    NOTICE:  truncate cascades to table "agent_skills"
+    NOTICE:  truncate cascades to table "scripts"
+    NOTICE:  truncate cascades to table "issue_instances"
+    NOTICE:  truncate cascades to table "collection_checkpoints"
+    NOTICE:  truncate cascades to table "activity_log"
+    NOTICE:  truncate cascades to table "agent_job_runs"
+    NOTICE:  truncate cascades to table "asset_posture_findings"
+    NOTICE:  truncate cascades to table "asset_posture_source_status"
+    NOTICE:  truncate cascades to table "asset_tags"
+    NOTICE:  truncate cascades to table "asset_inventory"
+    NOTICE:  truncate cascades to table "issue_detection_audit"
+    NOTICE:  truncate cascades to table "identities"
+    NOTICE:  truncate cascades to table "asset_vulnerabilities"
+    NOTICE:  truncate cascades to table "protected_token_hourly"
+    NOTICE:  truncate cascades to table "agent_subagents"
+    NOTICE:  truncate cascades to table "session_analyses"
+    NOTICE:  truncate cascades to table "session_sensitive_data"
+    NOTICE:  truncate cascades to table "data_sources"
+    NOTICE:  truncate cascades to table "data_source_accesses"
+    NOTICE:  truncate cascades to table "extension_usage_sessions"
+    NOTICE:  truncate cascades to table "ai_firewall_alert_violated_rules"
+    NOTICE:  truncate cascades to table "alerts_false_positive_embeddings"
+    NOTICE:  truncate cascades to table "tool_executions"
+    NOTICE:  truncate cascades to table "agentic_task_system_prompts"
+    NOTICE:  truncate cascades to table "session_embeddings"
+    NOTICE:  truncate cascades to table "topic_sessions"
+    NOTICE:  truncate cascades to table "usage_session_tools_mapping"
+    NOTICE:  truncate cascades to table "ai_guard_expected_tool_calls"
+    NOTICE:  truncate cascades to table "desktop_agent_application_custom_data"
+    NOTICE:  truncate cascades to table "identity_tools"
+    NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+    NOTICE:  truncate cascades to table "session_event_processes"
+    NOTICE:  truncate cascades to table "crowdstrike_edr_detections"
+    NOTICE:  truncate cascades to table "redteaming_alert_links"
+    NOTICE:  truncate cascades to table "file_metadata"
+    NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+    NOTICE:  ivfflat index created with little data
+    DETAIL:  This will cause low recall.
+    HINT:  Drop the index until the table has more data.
+    NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+    NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+    NOTICE:  truncate cascades to table "desktop_agent_application_custom_data"
+    NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+    NOTICE:  truncate cascades to table "mcp_gateway_installations"
+    NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+    NOTICE:  truncate cascades to table "usage_sessions"
+    NOTICE:  truncate cascades to table "extension_installations"
+    NOTICE:  truncate cascades to table "device_applications"
+    NOTICE:  truncate cascades to table "device_employees"
+    NOTICE:  truncate cascades to table "desktop_agent_users"
+    NOTICE:  truncate cascades to table "scanner_installations"
+    NOTICE:  truncate cascades to table "scanner_installations_20260721"
+    NOTICE:  truncate cascades to table "scanner_installations_20260722"
+    NOTICE:  truncate cascades to table "scanner_installations_20260723"
+    NOTICE:  truncate cascades to table "scanner_installations_20260724"
+    NOTICE:  truncate cascades to table "scanner_installations_20260725"
+    NOTICE:  truncate cascades to table "scanner_installations_20260726"
+    NOTICE:  truncate cascades to table "scanner_installations_20260727"
+    NOTICE:  truncate cascades to table "scanner_installations_20260728"
+    NOTICE:  truncate cascades to table "scanner_installations_20260729"
+    NOTICE:  truncate cascades to table "scanner_installations_20260730"
+    NOTICE:  truncate cascades to table "scanner_installations_20260731"
+    NOTICE:  truncate cascades to table "scanner_installations_20260801"
+    NOTICE:  truncate cascades to table "scanner_installations_20260802"
+    NOTICE:  truncate cascades to table "scanner_installations_20260803"
+    NOTICE:  truncate cascades to table "scanner_installations_20260804"
+    NOTICE:  truncate cascades to table "scanner_installations_20260805"
+    NOTICE:  truncate cascades to table "scanner_installations_20260806"
+    NOTICE:  truncate cascades to table "scanner_installations_20260807"
+    NOTICE:  truncate cascades to table "scanner_installations_20260808"
+    NOTICE:  truncate cascades to table "scanner_installations_20260809"
+    NOTICE:  truncate cascades to table "scanner_installations_20260810"
+    NOTICE:  truncate cascades to table "scanner_installations_20260811"
+    NOTICE:  truncate cascades to table "scanner_installations_20260812"
+    NOTICE:  truncate cascades to table "scanner_installations_20260813"
+    NOTICE:  truncate cascades to table "scanner_installations_20260814"
+    NOTICE:  truncate cascades to table "scanner_installations_20260815"
+    NOTICE:  truncate cascades to table "scanner_installations_20260816"
+    NOTICE:  truncate cascades to table "scanner_installations_20260817"
+    NOTICE:  truncate cascades to table "scanner_installations_20260818"
+    NOTICE:  truncate cascades to table "scanner_installations_20260819"
+    NOTICE:  truncate cascades to table "scanner_installations_20260820"
+    NOTICE:  truncate cascades to table "scanner_installations_20260821"
+    NOTICE:  truncate cascades to table "scanner_installations_20260822"
+    NOTICE:  truncate cascades to table "scanner_installations_20260823"
+    NOTICE:  truncate cascades to table "scanner_installations_20260824"
+    NOTICE:  truncate cascades to table "scanner_installations_20260825"
+    NOTICE:  truncate cascades to table "scanner_installations_default"
+    NOTICE:  truncate cascades to table "device_sources"
+    NOTICE:  truncate cascades to table "crowdstrike_edr_detections"
+    NOTICE:  truncate cascades to table "device_email_observations"
+    NOTICE:  truncate cascades to table "scanner_installations_20260826"
+    NOTICE:  truncate cascades to table "scanner_installations_20260827"
+    NOTICE:  truncate cascades to table "session_analyses"
+    NOTICE:  truncate cascades to table "session_sensitive_data"
+    NOTICE:  truncate cascades to table "usage_sessions_events"
+    NOTICE:  truncate cascades to table "extension_usage_sessions"
+    NOTICE:  truncate cascades to table "ai_firewall_alerts"
+    NOTICE:  truncate cascades to table "session_embeddings"
+    NOTICE:  truncate cascades to table "topic_sessions"
+    NOTICE:  truncate cascades to table "usage_session_tools_mapping"
+    NOTICE:  truncate cascades to table "mcp_gateway_installations"
+    NOTICE:  truncate cascades to table "ai_guard_expected_tool_calls"
+    NOTICE:  truncate cascades to table "file_metadata"
+    NOTICE:  truncate cascades to table "ai_firewall_alert_violated_rules"
+    NOTICE:  truncate cascades to table "alerts_false_positive_embeddings"
+    NOTICE:  truncate cascades to table "tool_executions"
+    NOTICE:  truncate cascades to table "activity_log"
+    NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+    NOTICE:  truncate cascades to table "session_event_processes"
+    NOTICE:  truncate cascades to table "redteaming_alert_links"
+    NOTICE:  ivfflat index created with little data
+    DETAIL:  This will cause low recall.
+    HINT:  Drop the index until the table has more data.
+    NOTICE:  truncate cascades to table "username_assets"
+    NOTICE:  truncate cascades to table "desktop_agent_users"
+    NOTICE:  truncate cascades to table "mcp_gateway_installations"
+    NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+    SCAN START 2026-08-21T02:51:10Z
+    scanner exit=0
+    SCAN END 2026-08-21T02:52:20Z
+    2026-08-21T02:52:19.235019124Z	INFO	Scan run completed	{"payloads_sent": 8, "users": 1, "agents_detected_total": 5, "mcp_servers_total": 3, "projects_total": 2, "skills_total": 205, "duration_ms": 66343, "scan_run_id": "87eccb10-20b4-4aa6-bc1b-0c3b05c587b3"}
+    02:52:20 179|273|175|285|51|51
+    02:52:40 179|273|175|285|51|51
+    02:53:00 179|273|175|285|51|51
+    SETTLED
+
+=========== RESIDUAL-LOSS LEGEND (re-stamped round 35, directive d4) ===========
+    Tags used in the LOSS/ADD blocks below, so a future leg classifies without a route-back:
+      [L-2 per-script row] / [L-2 edge]  — enumerated loss (d-c13-3.amendment_r21), the four
+                                            per-script identities the new lane collapses per-launcher.
+      [L-3 version-key row]              — enumerated loss, the resolved-vs-::unknown shape, package-
+                                            bound to @playwright/mcp by the ROUND-24 SHAPE KEYING.
+      [D-4 MISEXTRACTION-CORRECTION]     — ruled OUTSIDE the loss enumeration (round-22 ruling):
+                                            a self-edge identity, a correction rather than a loss.
+      [V-1 FABRICATION-CORRECTION]       — ADDED ROUND 35. An unpinned version-key sampling divergence:
+                                            lane-only `pkg::X` where the bound launcher record is
+                                            unpinned, the SAME underlying server is present in BOTH
+                                            lanes under a different CONCRETE coordinate, and X is not
+                                            the endpoint's own state. Ruled OUTSIDE the loss set as a
+                                            correction, WITH its keying-derivative furniture (edges and
+                                            per-asset satellite rows). Engineer and verify may APPLY
+                                            the three-clause test and its four conditions; NEITHER may
+                                            extend it, and a clause-passing row with any condition
+                                            unmet is a FAIL that routes back to research.
+                                            Definition + veto post: the ROUND-35 V-1 ruling in
+                                            test_plan.json; applied in evidence/at6-18-v1-classification.txt.
+      PRECEDENCE: classify against the CLOSED ENUMERATION FIRST — anything matching an enumerated
+                  entry takes that entry's classification, and V-1 is never consulted for it.
+      Anything matching none of these remains a LOSS line and routes back to research.
+
+=========== LEG: created ===========
+
+--- class assets:  TA(gen-1) 272 identities · TB(new) 274 · shared 267
+    LOSS  — identity in TA, ABSENT in TB: 5
+      [L-2 per-script row]  Local MCP Server (.claude/scripts/prod-db-cached.sh)|AssetTypeMCP|AssetSubTypeMCPServer|.claude/scripts/prod-db-cached.sh::ec255301bd4407d309fbce
+      [L-2 per-script row]  Local MCP Server (.claude/scripts/stg-db-cached.sh)|AssetTypeMCP|AssetSubTypeMCPServer|.claude/scripts/stg-db-cached.sh::ec255301bd4407d309fbce94
+      [L-2 per-script row]  Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs)|AssetTypeMCP|AssetSubTypeMCPServer|/ho
+      [L-3 version-key row]  Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::0.0.79|AssetStatusDiscovered|f|0.0.79|||@playwright/mcp|f
+      [L-2 per-script row]  Local MCP Server (mailosaur-mcp-server.js)|AssetTypeMCP|AssetSubTypeMCPServer|mailosaur-mcp-server.js::ec255301bd4407d309fbce94811384b0::unknown|
+    ADD   — identity only in TB: 7
+      Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::unknown|AssetStatusDiscovered|f|unknown|||@playwright/mcp|f
+      Local MCP Server (bash)|AssetTypeMCP|AssetSubTypeMCPServer|bash::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||bash
+      Groundcover MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.groundcover.com/api/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.groundcover.
+      Incident.io MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.incident.io/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.incident.io/mcp|f
+      Sentry MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.sentry.dev/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.sentry.dev/mcp|f
+      Tavily MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.tavily.com/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.tavily.com/mcp|f
+      Local MCP Server (node)|AssetTypeMCP|AssetSubTypeMCPServer|node::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||node
+
+--- class asset_connections:  TA(gen-1) 248 identities · TB(new) 249 · shared 243
+    LOSS  — identity in TA, ABSENT in TB: 5
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (.claude/scripts/prod-db-cached.sh)|f|{"sources": [{"kind": "d
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (.claude/scripts/stg-db-cached.sh)|f|{"sources": [{"kind": "di
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workf
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (mailosaur-mcp-server.js)|f|{"sources": [{"kind": "direct"}]}
+      [D-4 MISEXTRACTION-CORRECTION — RULED outside the loss enumeration (round-22 ruling)]  McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"ki
+    ADD   — identity only in TB: 6
+      AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (bash)|f|{"sources": [{"kind": "direct"}]}
+      AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (node)|f|{"sources": [{"kind": "plugin", "name": "autonomous-w
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Groundcover MCP Server|f|{"sources": [{"kind": "direct"}]}
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Incident.io MCP Server|f|{"sources": [{"kind": "direct"}]}
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Sentry MCP Server|f|{"sources": [{"kind": "direct"}]}
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Tavily MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind":
+    STATE COLUMNS on the 243 shared edge identities:
+      .sources descriptors present in TA but LOST in TB: 0
+      is_deleted t(TA) -> f(TB), i.e. the new lane RETAINS an edge gen-1 soft-deleted: 0
+        (retain is the ADD direction, not a loss — the rule is 'may add, may never lose')
+      is_deleted f(TA) -> t(TB), i.e. the new lane DELETED one gen-1 keeps: 0
+
+--- class tools:  TA(gen-1) 1 identities · TB(new) 1 · shared 1
+    LOSS  — identity in TA, ABSENT in TB: 0
+    ADD   — identity only in TB: 0
+
+--- class scanner_installations:  TA(gen-1) 2 identities · TB(new) 2 · shared 2
+    LOSS  — identity in TA, ABSENT in TB: 0
+    ADD   — identity only in TB: 0
+
+LOSS-direction findings: 10 · mapped to a named ledger entry 10 · UNMAPPED 0
+
+
+========================================================================================================
+=== LEG: matched
+========================================================================================================
+--- the scan and the settle trace
+    SCAN START 2026-08-21T02:55:40Z
+    scanner exit=0
+    SCAN END 2026-08-21T02:56:51Z
+    2026-08-21T02:56:50.447196748Z	INFO	Scan run completed	{"payloads_sent": 8, "users": 1, "agents_detected_total": 5, "mcp_servers_total": 3, "projects_total": 2, "skills_total": 205, "duration_ms": 67270, "scan_run_id": "9ee47ded-9604-4c3c-9337-d4eeca65e564"}
+    02:56:51 271|273|285|285|51|51
+    02:57:11 271|273|285|285|51|51
+    02:57:31 271|273|285|285|51|51
+    SETTLED
+
+=========== LEG: matched ===========
+
+--- class assets:  TA(gen-1) 272 identities · TB(new) 274 · shared 267
+    LOSS  — identity in TA, ABSENT in TB: 5
+      [L-2 per-script row]  Local MCP Server (.claude/scripts/prod-db-cached.sh)|AssetTypeMCP|AssetSubTypeMCPServer|.claude/scripts/prod-db-cached.sh::ec255301bd4407d309fbce
+      [L-2 per-script row]  Local MCP Server (.claude/scripts/stg-db-cached.sh)|AssetTypeMCP|AssetSubTypeMCPServer|.claude/scripts/stg-db-cached.sh::ec255301bd4407d309fbce94
+      [L-2 per-script row]  Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs)|AssetTypeMCP|AssetSubTypeMCPServer|/ho
+      [L-3 version-key row]  Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::0.0.79|AssetStatusDiscovered|f|0.0.79|||@playwright/mcp|f
+      [L-2 per-script row]  Local MCP Server (mailosaur-mcp-server.js)|AssetTypeMCP|AssetSubTypeMCPServer|mailosaur-mcp-server.js::ec255301bd4407d309fbce94811384b0::unknown|
+    ADD   — identity only in TB: 7
+      Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::unknown|AssetStatusDiscovered|f|unknown|||@playwright/mcp|f
+      Local MCP Server (bash)|AssetTypeMCP|AssetSubTypeMCPServer|bash::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||bash
+      Groundcover MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.groundcover.com/api/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.groundcover.
+      Incident.io MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.incident.io/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.incident.io/mcp|f
+      Sentry MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.sentry.dev/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.sentry.dev/mcp|f
+      Tavily MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.tavily.com/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.tavily.com/mcp|f
+      Local MCP Server (node)|AssetTypeMCP|AssetSubTypeMCPServer|node::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||node
+
+--- class asset_connections:  TA(gen-1) 248 identities · TB(new) 249 · shared 243
+    LOSS  — identity in TA, ABSENT in TB: 5
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (.claude/scripts/prod-db-cached.sh)|f|{"sources": [{"kind": "d
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (.claude/scripts/stg-db-cached.sh)|f|{"sources": [{"kind": "di
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workf
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (mailosaur-mcp-server.js)|f|{"sources": [{"kind": "direct"}]}
+      [D-4 MISEXTRACTION-CORRECTION — RULED outside the loss enumeration (round-22 ruling)]  McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"ki
+    ADD   — identity only in TB: 6
+      AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (bash)|f|{"sources": [{"kind": "direct"}]}
+      AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (node)|f|{"sources": [{"kind": "plugin", "name": "autonomous-w
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Groundcover MCP Server|f|{"sources": [{"kind": "direct"}]}
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Incident.io MCP Server|f|{"sources": [{"kind": "direct"}]}
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Sentry MCP Server|f|{"sources": [{"kind": "direct"}]}
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Tavily MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind":
+    STATE COLUMNS on the 243 shared edge identities:
+      .sources descriptors present in TA but LOST in TB: 0
+      is_deleted t(TA) -> f(TB), i.e. the new lane RETAINS an edge gen-1 soft-deleted: 0
+        (retain is the ADD direction, not a loss — the rule is 'may add, may never lose')
+      is_deleted f(TA) -> t(TB), i.e. the new lane DELETED one gen-1 keeps: 0
+
+--- class tools:  TA(gen-1) 1 identities · TB(new) 1 · shared 1
+    LOSS  — identity in TA, ABSENT in TB: 0
+    ADD   — identity only in TB: 0
+
+--- class scanner_installations:  TA(gen-1) 2 identities · TB(new) 2 · shared 2
+    LOSS  — identity in TA, ABSENT in TB: 0
+    ADD   — identity only in TB: 0
+
+LOSS-direction findings: 10 · mapped to a named ledger entry 10 · UNMAPPED 0
+
+
+========================================================================================================
+=== LEG: reingest-skip
+========================================================================================================
+--- the scan and the settle trace
+    SCAN START 2026-08-21T02:59:47Z
+    scanner exit=0
+    SCAN END 2026-08-21T03:00:57Z
+    2026-08-21T03:00:56.337192256Z	INFO	Scan run completed	{"payloads_sent": 8, "users": 1, "agents_detected_total": 5, "mcp_servers_total": 3, "projects_total": 2, "skills_total": 205, "duration_ms": 66333, "scan_run_id": "23f4af57-87fc-40b4-a92e-2a49253a706f"}
+    03:00:57 271|273|285|285|51|51
+    03:01:17 271|273|285|285|51|51
+    03:01:37 271|273|285|285|51|51
+    SETTLED
+
+=========== LEG: reingest-skip ===========
+
+--- class assets:  TA(gen-1) 272 identities · TB(new) 274 · shared 267
+    LOSS  — identity in TA, ABSENT in TB: 5
+      [L-2 per-script row]  Local MCP Server (.claude/scripts/prod-db-cached.sh)|AssetTypeMCP|AssetSubTypeMCPServer|.claude/scripts/prod-db-cached.sh::ec255301bd4407d309fbce
+      [L-2 per-script row]  Local MCP Server (.claude/scripts/stg-db-cached.sh)|AssetTypeMCP|AssetSubTypeMCPServer|.claude/scripts/stg-db-cached.sh::ec255301bd4407d309fbce94
+      [L-2 per-script row]  Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs)|AssetTypeMCP|AssetSubTypeMCPServer|/ho
+      [L-3 version-key row]  Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::0.0.79|AssetStatusDiscovered|f|0.0.79|||@playwright/mcp|f
+      [L-2 per-script row]  Local MCP Server (mailosaur-mcp-server.js)|AssetTypeMCP|AssetSubTypeMCPServer|mailosaur-mcp-server.js::ec255301bd4407d309fbce94811384b0::unknown|
+    ADD   — identity only in TB: 7
+      Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::unknown|AssetStatusDiscovered|f|unknown|||@playwright/mcp|f
+      Local MCP Server (bash)|AssetTypeMCP|AssetSubTypeMCPServer|bash::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||bash
+      Groundcover MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.groundcover.com/api/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.groundcover.
+      Incident.io MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.incident.io/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.incident.io/mcp|f
+      Sentry MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.sentry.dev/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.sentry.dev/mcp|f
+      Tavily MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.tavily.com/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.tavily.com/mcp|f
+      Local MCP Server (node)|AssetTypeMCP|AssetSubTypeMCPServer|node::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||node
+
+--- class asset_connections:  TA(gen-1) 248 identities · TB(new) 249 · shared 243
+    LOSS  — identity in TA, ABSENT in TB: 5
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (.claude/scripts/prod-db-cached.sh)|f|{"sources": [{"kind": "d
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (.claude/scripts/stg-db-cached.sh)|f|{"sources": [{"kind": "di
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workf
+      [L-2 edge — NAMED by the ROUND-23 RULING]  AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (mailosaur-mcp-server.js)|f|{"sources": [{"kind": "direct"}]}
+      [D-4 MISEXTRACTION-CORRECTION — RULED outside the loss enumeration (round-22 ruling)]  McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"ki
+    ADD   — identity only in TB: 6
+      AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (bash)|f|{"sources": [{"kind": "direct"}]}
+      AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (node)|f|{"sources": [{"kind": "plugin", "name": "autonomous-w
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Groundcover MCP Server|f|{"sources": [{"kind": "direct"}]}
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Incident.io MCP Server|f|{"sources": [{"kind": "direct"}]}
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Sentry MCP Server|f|{"sources": [{"kind": "direct"}]}
+      McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Tavily MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind":
+    STATE COLUMNS on the 243 shared edge identities:
+      .sources descriptors present in TA but LOST in TB: 0
+      is_deleted t(TA) -> f(TB), i.e. the new lane RETAINS an edge gen-1 soft-deleted: 0
+        (retain is the ADD direction, not a loss — the rule is 'may add, may never lose')
+      is_deleted f(TA) -> t(TB), i.e. the new lane DELETED one gen-1 keeps: 0
+
+--- class tools:  TA(gen-1) 1 identities · TB(new) 1 · shared 1
+    LOSS  — identity in TA, ABSENT in TB: 0
+    ADD   — identity only in TB: 0
+
+--- class scanner_installations:  TA(gen-1) 2 identities · TB(new) 2 · shared 2
+    LOSS  — identity in TA, ABSENT in TB: 0
+    ADD   — identity only in TB: 0
+
+LOSS-direction findings: 10 · mapped to a named ledger entry 10 · UNMAPPED 0
+
+
+========================================================================================================
+=== 4. THE ONE LINE A MECHANICAL LOSS TEST FLAGS — RULED A MISEXTRACTION-CORRECTION, OUTSIDE THE SET
+========================================================================================================
+Stable across all three legs, identical every time:
+
+    McpToMcp | mcp-remote MCP Server -> mcp-remote MCP Server      (TA/gen-1 only, ABSENT in TB)
+
+ADJUDICATED. The plan owner ruled on this line in round 22 (test_plan.json `d-c13-3.amendment_r21`,
+ROUND-22 RULING clause, plan sha256 2c2183fd…): the gen-1-only edge identity — covering every underlying
+row of that identity under ANY .sources state — is a **MISEXTRACTION-CORRECTION, OUTSIDE this loss
+enumeration**; "a gen-1-only edge whose ledger disposition proves fabrication is a correction, not a loss,
+so it neither fails this demand nor extends the admissible set". The sibling remodel on the SHARED
+bridge-asset rows (gen-1's Remote|Http typing vs the new lane's Local|Npm, with the hash change) carries
+the same D-4 disposition: a state-column REMODEL on shared identities, not a LOSS-direction line.
+The ruling was posted owner-visibly to the run thread under the same veto mechanics as the round-21 post.
+
+IT IS ALREADY A NAMED LEDGER ENTRY — at6-06 **D-4**, there since round 5 — and that entry classifies it
+NOT a loss, with the code on both sides. Quoting the ledger rather than re-arguing it: gen-1 asks the LLM
+to name the remote leg (workflow.py:989-1002 -> :1012-1013); when the LLM returns "mcp-remote" instead of
+the proxied URL, remote_mcp_url equals the bridge's own name, determine_mcp_server_type reads REMOTE|HTTP
+(activities.py:533), calculate_mcp_id collapses both legs onto one app_id, and the McpToMcp edge
+points at itself (workflow.py:1716-1717). The new lane derives the remote leg deterministically
+(extract_bridge_remote_url, mcp_package_extractor.py:246-268), so that collapse is impossible there.
+
+Measured on this head, in the same tenant pair:
+
+    TA (gen-1)  mcp-remote MCP Server  mcp-remote::0.1.30 · mcp-remote::0.1.38   and NO remote destinations
+    TB (new)    the same two bridge assets PLUS the four real destinations —
+                Groundcover mcp.groundcover.com/api/mcp::unknown · Incident.io mcp.incident.io/mcp::unknown
+                Sentry mcp.sentry.dev/mcp::unknown · Tavily mcp.tavily.com/mcp::unknown
+                with the bridge edges pointing AT them, carrying gen-1's own source descriptors
+                (`direct`, and `plugin: codebase-agents` on Tavily)
+
+COUNT EQUALITY IS NOT A GROUND, and an earlier version of this file leaned on it. The ruling disowns it
+in terms: "at6-09 line 526's '159 vs 159' is underived and is disowned here — totals net D-4's adds
+against L-2's enumerated losses and can prove nothing about D-4." The sentence is withdrawn rather than
+re-derived; nothing in the ruling or in this file now rests on it. What does the work is ground (ii),
+row for row: every .sources descriptor gen-1 fabricated onto a self-edge is carried VERBATIM on the new
+lane's correctly-targeted edges of the SAME bridge version — 0.1.38's [plugin codebase-agents, direct] on
+TB's Tavily edge, 0.1.30's [direct] on each of Groundcover / Incident.io / Sentry. The only absent line is
+the self-reference itself, which cannot be preserved without reproducing the misextraction.
+
+HOW THE RULING GROUNDS IT, each on named evidence (summarised; the clause is authoritative):
+  (i)   FABRICATION, FROM THE CODE ON BOTH SIDES — gen-1 asks the LLM to name the remote leg
+        (workflow.py:989-1002 -> :1012-1013); when it returns "mcp-remote" the identity collapses
+        (activities.py:533) and the edge points at itself (workflow.py:1716-1717). The new lane
+        derives it deterministically (extract_bridge_remote_url, mcp_package_extractor.py:246-268), so
+        the collapse is impossible there — on either transport, since the transport feeds the writer no
+        identity input.
+  (ii)  NO TRUE FACT IS LOST, row for row — the descriptor carriage quoted above.
+  (iii) NOT THE POLICED FAILURE — clause 3 polices the SILENT drop; D-4 has been ledgered with direction
+        and file:line causes on both sides since round 5, which is also why PRDCT-12061 rightly does not
+        carry it (unlike L-2/L-3, where real information is genuinely absent and therefore ticketed).
+  (iv)  TRANSPORT-INDEPENDENCE, measured per-D-4 on the head sha — and the ruling directed that the grep
+        move into at6-07 so this is a single-artifact check from now on. It is there:
+        evidence/at6-07-transport-equivalence.txt, section "condition (2), applied PER-D-4" — the ruled
+        identity ABSENT on both transports, the four bridge->remote edges with their .sources PRESENT and
+        byte-identical on both.
+  (v)   PRE-EXISTENCE — `git diff ef18f130b0..0665ecc545` touches neither ingestion/mcp_writer.py nor
+        common/services/mcp_package_extractor.py.
+
+SCOPE, because the ruling is deliberately narrow: it names EXACTLY this one edge identity (its rows under
+any .sources state) plus the named sibling bridge-asset remodel. The mechanical loss test stays as
+specified, and ANY other gen-1-only LOSS-direction line — including one an at6-06 entry calls a
+correction or an improvement — still routes back to research with a fresh sha256, exactly as this one
+did. Engineer and verify remain forbidden from applying the correction classification to a new line.
+
+A CORRECTION I OWE ON THIS POINT. The round-21 version of this file said the two McpToMcp self-edges were
+"GONE — they were accumulated-state artifacts of reusing the tenants". That claim came from a comparison
+that enumerated ASSET identifiers only and never looked at edges on the fresh pair. It was wrong: on a
+fresh pair, at edge granularity, they are present in gen-1 on every leg. The amendment's granularity
+requirement is exactly what exposed it.
+
+========================================================================================================
+=== 4b. THE ROUND-23 RULING'S BINDING: the descriptor-union carriage test
+========================================================================================================
+The ruling admits L-2's four edges only WITH a binding: "a descriptor present on a per-script edge and
+ABSENT from its collapse group's replacement launcher edge is a NEW loss line OUTSIDE this ruling, routed
+back to research". That is a live test, not a formality, so it is measured here on this head's created leg:
+
+    gen-1 (TA) per-script edges and their .sources
+      .claude/scripts/prod-db-cached.sh                          [direct]
+      .claude/scripts/stg-db-cached.sh                           [direct]
+      ...claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs   [plugin autonomous-workflow]
+      mailosaur-mcp-server.js                                    [direct]
+
+    new lane (TB) replacement launcher edges
+      Local MCP Server (bash)   [direct]
+      Local MCP Server (node)   [plugin autonomous-workflow, direct]
+
+    collapse group bash  = {prod-db-cached.sh, stg-db-cached.sh}
+      union of their descriptors : [direct]
+      replacement carries        : [direct]
+      present on a per-script edge but ABSENT on the replacement: NONE          -> PASS
+    collapse group node  = {bundle.cjs, mailosaur-mcp-server.js}
+      union of their descriptors : [plugin autonomous-workflow, direct]
+      replacement carries        : [plugin autonomous-workflow, direct]
+      present on a per-script edge but ABSENT on the replacement: NONE          -> PASS
+
+No descriptor is lost, so the binding holds and no new loss line is raised. The only information absent is
+the per-script ATTRIBUTION of those descriptors - which is precisely what the L-2 entry already names.
+
+NOT A LOSS, CHECKED BECAUSE IT LOOKS LIKE ONE: TA also carries an AgentToMcp edge to
+`Local MCP Server (/opt/coder/coder)`. It is NOT in the loss set - the same edge is present in TB, and on
+both transports (3 occurrences each side), so it is shared, not collapsed.
+
+========================================================================================================
+=== 5. EVERY OTHER LOSS LINE, MAPPED
+========================================================================================================
+    The other 9 of the 10 LOSS-direction findings per leg map to the amendment's own entries:
+      4  asset rows   — L-2's four per-script rows (the enumeration, verbatim)
+      4  edges        — the four AgentToMcp edges into exactly those four assets, NAMED VERBATIM by the
+                        ROUND-23 RULING, which extended the closed enumeration's L-2 entry to cover them:
+                        "THE L-2 IDENTITY FAMILY'S OWN EDGES … facets of the already-enumerated,
+                        PRDCT-12061-ticketed pre-existing loss". Round 22 reached the same conclusion at
+                        run time WITHOUT authority and the round-21 gate was right to refuse it; the
+                        authority now exists and this is what these lines cite.
+      1  asset row    — L-3's @playwright/mcp::0.0.79 vs ::unknown
+    and the state columns are clean in the loss direction on every leg:
+      .sources descriptors present in TA but LOST in TB : 0   (on 151-153 shared edge identities)
+      edges gen-1 keeps that the new lane soft-deleted   : 0
+      edges gen-1 soft-deleted that the new lane RETAINS : 2 on the reingest-skip leg — the ADD
+                        direction, which the rule permits ("may add, may never lose").
+    tools and scanner_installations: 0 losses on all three legs.
+
+    The L-2 hash-flap (the enumeration's fifth member) is a CROSS-SCAN property of the shared launcher
+    row, not a TA-vs-TB line, so it does not appear as a diff entry here; its condition-(2) proof is the
+    presence-grep of the bash::/node:: rows on both transports in at6-07, exactly as the amendment says.
+

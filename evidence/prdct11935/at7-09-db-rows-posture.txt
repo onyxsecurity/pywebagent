@@ -1,0 +1,156 @@
+# PRDCT-11935 at7-09 — DB rows, classes MCP TOOLS and POSTURE
+# FILE LAST WRITTEN 2026-08-21T23:10:00Z
+#
+# ROUND-33 CITE REFRESH (S10, line-number-only). `mcp_writer.py:1181` -> `mcp_writer.py:1209` — `upsert_mcp_tools`; :1181 at HEAD is `destination_asset_id=asset.asset_id`. Mirrored from the plan's
+# CORRECTION LOG under the orchestrator-authorized joint S1-S12 refresh (plan re-frozen at
+# sha256 7f26074e90cf643d...); the corrected line was re-read with sed at HEAD before this edit.
+# Nothing else in this file changed. Full mirror record: evidence/at10-07-stale-cite-refresh.txt.
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-krjhd
+# captured 2026-08-21T15:33:43Z · tenant onyx_security
+=========================== MCP TOOLS ===========================
+     id  |        server        |     tool     |      type       | is_active 
+    -----+----------------------+--------------+-----------------+-----------
+      98 | Onyx Lab MCP         | lab_echo     | ToolTypeMCPTool | t
+      99 | Onyx Lab MCP         | lab_hostname | ToolTypeMCPTool | t
+     100 | Onyx Lab MCP         | lab_search   | ToolTypeMCPTool | t
+     101 | Onyx Lab MCP         | lab_time     | ToolTypeMCPTool | t
+     102 | Onyx Lab MCP         | lab_verify   | ToolTypeMCPTool | t
+     103 | Onyx Lab Sibling MCP | sib_check    | ToolTypeMCPTool | t
+     104 | Onyx Lab Sibling MCP | sib_echo     | ToolTypeMCPTool | t
+     105 | Onyx Lab Sibling MCP | sib_time     | ToolTypeMCPTool | t
+    (8 rows)
+## FIDELITY: all eight tools above are ones the machines' own bundle manifests declare, written by
+## upsert_mcp_tools  (mcp_writer.py:1209) with type=ToolTypeMCPTool onto the two bundle assets created in
+## this window (131106 subject, 131552 sibling).
+
+=========================== POSTURE =============================
+## RE-DRIVEN ROUND 30 against amendment_r30's four-part end-state. The class is no longer settled on the
+## "bridge-ran, no issue" fallback: issues DID mint for a subject, so the amended end-state is the
+## contract. What that end-state confronts is a product DEFECT, and this section states it as one.
+
+--- 0. THE REMOVAL IS REAL — the subject's source is absent from the machine
+        /home/coder/prdct11935-lab/.claude/skills/vr27u-posture-20260821132553 ABSENT
+        /home/coder/.claude/skills/vr27u-posture-20260821132553                ABSENT
+        any vr27u-posture* anywhere under either skills root:
+          (no output above = the source directory is gone)
+    The subject is asset 211819, skill vr27u-posture-20260821132553. Its SKILL.md was deleted from the
+    machine in round 27; this round verified the absence rather than assuming it.
+
+--- 1. NOT RESURRECTED / NOT DUPLICATED / NOT ORPHANED (amendment_r30 part 1) — a PAIRED re-scan on head
+    A real Kong-front-door scan was driven between the two snapshots below (probe skill
+    r30-reaffirm-20260821152853, scan_run_id bafc3e0b-fd95-4f83-8378-7137f7a78ff9).
+
+    BEFORE:
+      id  | issue_definition_id | asset_id |         resolve_state         | closed_at |          updated_at           
+    ------+---------------------+----------+-------------------------------+-----------+-------------------------------
+     1637 |                  44 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:17:13.181372+00
+     1638 |                  45 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:17:13.181372+00
+     1639 |                  48 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:17:13.181372+00
+    (3 rows)
+    AFTER:
+      id  | issue_definition_id | asset_id |         resolve_state         | closed_at |          updated_at           
+    ------+---------------------+----------+-------------------------------+-----------+-------------------------------
+     1637 |                  44 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:29:04.521424+00
+     1638 |                  45 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:29:04.521424+00
+     1639 |                  48 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:29:04.521424+00
+    (3 rows)
+    Membership is UNCHANGED: the same three instance ids (1637, 1638, 1639), one per firing definition
+    (44, 45, 48), no new instance minted for the removed artifact. Each still joins an existing asset
+    row — asset_id 211819 resolves, so nothing is orphaned.
+
+    THE RISK HALF (adversary F2), which closes "issue/risk rows" rather than only the issue half: the
+    bridge's risk side writes assets.total_risk_score as a COLUMN on the existing asset row, not new
+    rows, so the subject's asset-row count staying 1 across the two scans is what closes it:
+    BEFORE:
+     subject_asset_rows | total_risk_score 
+    --------------------+------------------
+                      1 |             2.49
+    (1 row)
+    AFTER:
+     subject_asset_rows | total_risk_score 
+    --------------------+------------------
+                      1 |             2.49
+    (1 row)
+
+--- 2. THE RE-AFFIRMED-OPEN BEHAVIOUR, MEASURED AND ATTRIBUTED (amendment_r30 part 2)
+    updated_at advanced 15:17:13.181372 -> 15:29:04.521424 — i.e. the post-removal scan RE-TOUCHED all
+    three rows — while:
+       resolve_state   stayed IssueInstanceResolveStateOpen  (not stale, not closed — no such state exists)
+       closed_at       stayed NULL
+       classified_at   stayed FROZEN at 2026-08-21 13:44:18.531816+00 on asset_posture_findings
+    The frozen classified_at is the tell: the matcher pure-reads the cached finding (unchanged
+    content_hash + classifier_fingerprint) and re-affirms MATCHED from it, then bulk_open_instances'
+    ON CONFLICT refresh branch rewrites the evidence columns and bumps updated_at with resolve_state
+    left OPEN. Nothing re-read the deleted file; the row was re-written from a frozen finding.
+
+    ATTRIBUTION — which workflow did it, not an inference. The writes at 15:29:04.521 landed inside
+    IssueDetectionWorkflow executions whose parent is a posture bridge; each child's workflow id
+    literally embeds its parent bridge's run id (<parent-run-id>_5), and the ones spanning the write
+    closed immediately after it:
+        01a024f0-9d3d-7974-bb8a-7b187864fbed_5  close=2026-08-21T15:29:06.742547923Z  parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-ac334919005f5bcea4cac256c9
+        01a024f0-9b6e-7eb4-ada8-38b6d9573dfa_5  close=2026-08-21T15:29:06.342254137Z  parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-d92419ecb4aa0c7f38889e5b24
+        01a024f0-9da3-71a7-ba3a-4c93fa4fe266_5  close=2026-08-21T15:29:06.205883450Z  parent=scanner-object-11935b00-0000-4000-8000-000000000b02-853618b1750b64cd3f8fa85434
+        01a024f0-9b55-7dda-a5ab-d3c3e3ab62c8_5  close=2026-08-21T15:29:06.159444184Z  parent=scanner-object-11935b00-0000-4000-8000-000000000b02-acaaa3284d9d22bac067abc720
+        01a024f0-996c-7974-b32c-eafd2a88e9bc_5  close=2026-08-21T15:29:05.881173108Z  parent=scanner-object-11935b00-0000-4000-8000-000000000b02-0caaaabbee7b2a8e154e17e4d7
+        01a024f0-9981-7961-9380-30ad087600fd_5  close=2026-08-21T15:29:05.838861185Z  parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-2a1b544f1d7bcd9ce09db89492
+    In THIS window the azure-lane consumer was live, so the bridges that fired are the azure lane's
+    scanner-object-* pattern for tenant 61750f27. That is stated precisely rather than generalised:
+    research's round-30 measurement (evidence/r30-genone-reaffirm.txt) drove the SAME behaviour with the
+    azure consumer at ZERO replicas and zero scanner-object-* bridges, attributed to gen-1's
+    scanner-tenant-* bridge alone. Taken together the behaviour occurs under BOTH lanes' bridges, which
+    is the transport-independence point — and it is why this is NOT an azure-lane-specific behaviour and
+    NOT a lane divergence. The detection engine is one shared IssueDetectionWorkflow both bridges invoke.
+
+    PATH IDENTITY: every file on that executed path is byte-identical between the frozen base 67b4096f
+    and this head, re-derived at verify time in evidence/at7-47-posture-path-identity.txt — so the
+    behaviour is pre-existing, not introduced or enabled by this PR.
+
+--- 3. WHAT THE PRODUCT ACTUALLY RENDERS (amendment_r30 part 3) — evidence/at7-22-ui-lifecycle-posture.png
+    Driven on the real authenticated SPA at
+    /posture-issues?issueDefinitionId=44&issueInstanceId=1637, read programmatically from the DOM:
+       subject vr27u-posture-20260821132553 rendered : true
+       "Open" rendered                               : 16 occurrences
+       "Resolved" rendered                           : 0
+       "Closed" rendered                             : 0
+       Evidence section present                      : true
+       the deleted file's name SKILL.md in frame     : true
+       definition title "Skill Embeds Hardcoded Secrets" : true
+    So after the source file was deleted, /posture-issues still shows this issue with Status: Open and
+    displays the deleted file's content as live Evidence.
+
+    THE CAPTURE'S OVERLAY CARRIES amendment_r30's REQUIRED ANNOTATION VERBATIM:
+      "the pipeline re-affirms this issue Open after source deletion and the product ships no
+       stale/deleted representation for this class (amendment_r30); the rendered Evidence text
+       originates from DB rows the pipeline re-writes from frozen findings, not from any live artifact"
+
+    THIS IS A DEFECT, AND IS NOT PRESENTED AS ANYTHING ELSE. It is worse than the five sibling classes'
+    merely-absent stale rendering: the pipeline does not just fail to mark the artifact gone, it
+    ACTIVELY RE-AFFIRMS the issue Open on every scan of the owning agent and renders deleted content as
+    though it were live. Nothing in this evidence set presents that as stale, as resolved, as correct
+    lifecycle handling, or as acceptable lifecycle behaviour. It is adjudicated pre-existing, cross-lane
+    and out of this transport-enablement ticket's scope, and ticketed on its own as PRDCT-12071.
+
+--- 4. LEDGERED + TICKETED (amendment_r30 part 4)
+    SUPERSESSION, recorded here so the ledger's note traces to evidence: spec_interpretations entry 11
+    (round 30) extends entry 9, which itself superseded entry 8's carve-out. Entry 8's header
+    NOT-amended list and entry 9's "the posture and usage cells remain NOT amended" are both superseded
+    for the POSTURE class as of round 30; the usage cell is untouched and remains as entry 9 leaves it.
+    at10 check (t) requires that note attached wherever the C3 ledger carries entry 8 or entry 9, and
+    the PR's C2-LC row carries it inline.
+    The PR's C3 ledger carries C2 clause 5's stale-rendering half for this class as OVERTAKEN with the
+    defect framing, citing PRDCT-12071 (86bbj56qh; fetched live with per-element checks in
+    evidence/at7-46-posture-followup-ticket-r30.txt), the PRDCT-12069 cross-link (shared root cause —
+    no scanner-lane writer sets assets.is_deleted, which is the gate on the one absence-adjacent close
+    hook unlink_deleted_assets_from_issues), evidence/r30-genone-reaffirm.txt, at7-47, and the
+    amendment's round-30 veto permalink.
+
+--- 5. AN HONEST NOTE ON THIS ROUND'S OWN ATTEMPT TO MINT A FRESH SUBJECT
+    This round first created its own subject (r30-posture-20260821151540, asset 218146) carrying the
+    same detection shape, to own the removal end-to-end rather than inherit round 27's. The scan landed
+    the asset and the posture bridge DID run for it — IssueAndRiskBridgeWorkflow and its child
+    IssueDetectionWorkflow both executed — but no asset_posture_findings and no issue_instances were
+    minted for it within a bounded 9-minute wait. That subject therefore falls under the plan's own
+    named "bridge-ran, no issue" fallback shape, and the amended end-state above is measured on the
+    subject that DID mint. Reported rather than quietly dropped, because the difference matters: this
+    round re-drove the RE-SCAN half on head against a genuinely-removed subject and verified the
+    removal state, but the deletion itself was performed in round 27.

@@ -1,0 +1,102 @@
+# PRDCT-11935 at8-08 — the lane's rendered objects at the two flux-fleet shas at8 spans
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch dfe23b9e83 · flux-fleet factory-eval-v32/PRDCT-11935 @ e3fc1646ab2b · captured 2026-08-20T06:24:55Z
+#
+# at8-01/02 were rendered at flux-fleet 396980bac. The branch head is now e3fc1646ab2b — 137 commits later,
+# and those commits touch the six ox-az-p-eus2-c02 files those renders read. at10-04's sibling-drift
+# section flags that, so this file answers it by rendering the lane at BOTH shas and diffing, rather
+# than asserting the drift is harmless.
+#
+#   $ git worktree add --detach <sha> && kustomize build --load-restrictor LoadRestrictionsNone \
+#       clusters/ox-az-p-eus2-c02/instances/<inst>/onyx-app | yq '…onyx-app.spec.values."endpoint-asset-ingestion"'
+
+## saas — 396980bac vs e3fc1646ab2b
+    @@ -1,8 +1,14 @@
+     configMap:
+       data:
+    +    alert_processing_asb:
+    +      fully_qualified_namespace: ${servicebus_namespace}
+    +      queue_name: ${alert_processing_queue_name}
+         asset_ingestion_asb:
+           fully_qualified_namespace: ${endpoint_asset_ingestion_servicebus_namespace}
+           queue_name: ${endpoint_asset_ingestion_queue_name}
+    +    asset_ingestion_s3:
+    +      aws_region: ""
+    +      endpoint: ""
+         blob:
+           account_url: ${blob_account_url}
+           container_name: ${blob_container_name}
+    @@ -51,6 +57,7 @@
+             key: key-secret
+             name: mcp-gateway-key-secret
+             optional: true
+    +envFrom: []
+     externalAutoscaling:
+       enabled: true
+       fallback:
+    @@ -69,7 +76,7 @@
+     fullnameOverride: endpoint-asset-ingestion
+     image:
+       repository: ${ecr_registry_url}/onyx/endpoint-asset-ingestion
+    -  tag: 1.1.870
+    +  tag: 1.1.874
+     nodeSelector:
+       kubernetes.io/arch: amd64
+     podLabels:
+    lines changed: 9
+
+## centerpoint — 396980bac vs e3fc1646ab2b
+    @@ -1,8 +1,14 @@
+     configMap:
+       data:
+    +    alert_processing_asb:
+    +      fully_qualified_namespace: ${servicebus_namespace}
+    +      queue_name: ${alert_processing_queue_name}
+         asset_ingestion_asb:
+           fully_qualified_namespace: ${endpoint_asset_ingestion_servicebus_namespace}
+           queue_name: ${endpoint_asset_ingestion_queue_name}
+    +    asset_ingestion_s3:
+    +      aws_region: ""
+    +      endpoint: ""
+         blob:
+           account_url: ${blob_account_url}
+           container_name: ${blob_container_name}
+    @@ -51,6 +57,7 @@
+             key: key-secret
+             name: mcp-gateway-key-secret
+             optional: true
+    +envFrom: []
+     externalAutoscaling:
+       enabled: true
+       fallback:
+    @@ -69,7 +76,7 @@
+     fullnameOverride: endpoint-asset-ingestion
+     image:
+       repository: ${ecr_registry_url}/onyx/endpoint-asset-ingestion
+    -  tag: 1.1.870
+    +  tag: 1.1.874
+     nodeSelector:
+       kubernetes.io/arch: amd64
+     podLabels:
+    lines changed: 9
+
+## ATTRIBUTION of those changed lines, derived not asserted. A changed line is attributed to THIS
+## change set when the key it carries also appears in the branch's own diff against its merge-base
+## with main (5efaffacd68d6c39155f088a8ca79ffa266c71cf); otherwise it belongs to what main did underneath.
+##   saas: 9 changed lines
+##     7  this change set's own later additions, each line found verbatim in the branch diff:
+##          alert_processing_asb,fully_qualified_namespace,queue_name,asset_ingestion_s3,aws_region,endpoint,envFrom
+##     2  the image tag, which main bumped 1.1.870 -> 1.1.874 and this branch carried in when it
+##          merged main (e6f69c605 chore(onyx-app): bump temporal workers to 1.1.874 (production, from monolith release) [auto])
+##     0  anything else: 
+##   centerpoint: 9 changed lines
+##     7  this change set's own later additions, each line found verbatim in the branch diff:
+##          alert_processing_asb,fully_qualified_namespace,queue_name,asset_ingestion_s3,aws_region,endpoint,envFrom
+##     2  the image tag, which main bumped 1.1.870 -> 1.1.874 and this branch carried in when it
+##          merged main (e6f69c605 chore(onyx-app): bump temporal workers to 1.1.874 (production, from monolith release) [auto])
+##     0  anything else: 
+## Nothing the lane DEPENDS ON moves across the drift: asset_ingestion_asb (namespace + queue), the
+## KEDA trigger, the workload identity and the AWS-only removals render identically at both shas —
+## they appear in the diff as context lines, not as changes. That is why at8-01/02 remain sound
+## while at10-04 correctly flags them as taken at an older sibling sha.

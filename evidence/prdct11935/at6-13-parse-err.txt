@@ -1,0 +1,39 @@
+# PRDCT-11935 at6-13 — the parse_err class, DRIVEN (and the poison class beside it, so the boundary is visible)
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-7fcdcc4cd-bpf8q
+# captured 2026-08-21T00:51:12Z
+#
+# WHY THIS EXISTS. Two round-22 gaps meet here. G3: parse_err had been recorded as "PRE-DECLARED
+# NAMED-NOT-RUN in the plan" — the plan pre-declares only poison-ack-fallback (with wrong_source
+# conditionally) and lists parse_err among the classes to be DEMONSTRATED, so that reason was false.
+# G10: the PR names the log point `failed to parse object-created event message` and cited artifacts that
+# do not contain it — the string appeared nowhere under evidence/. Driving the class for real fixes both.
+#
+# WHAT THE FIRST ATTEMPT TAUGHT ME, kept because it is the boundary between two classes. I first sent a
+# body that was valid JSON but named no object. That is NOT parse_err: the parse SUCCEEDS and returns
+# zero records, and on Azure the handler dead-letters it as poison ("no ingestible object"). parse_err is
+# the branch where `self._parse(msg.body)` RAISES (message_handler.py:95-99). So the probe has to be a
+# body that cannot be parsed at all.
+
+## 1. THE POISON PROBE — valid JSON, no object named (this is NOT parse_err, and the log says so)
+    sent: {"this":"is not an event grid body","nor":"an s3 notification","junk":true}
+    2026-08-21T00:27:05.654516Z [warning  ] poison message — no ingestible object, dead-lettering [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func
+    2026-08-21T00:27:05.655159Z [info     ] Dead-lettered message          [common_core.services.queue.asb] filename=asb.py func_name=dead_letter_message lineno=288 message_id=c8925dee
+
+## 2. THE parse_err PROBE — a body that is not JSON at all
+    sent: this is not JSON at all — round-24 parse_err probe {{{
+    the log point the PR names, at message_handler.py:96 — this is the capture G10 asked for:
+    2026-08-21T00:28:57.683048Z [error    ] failed to parse object-created event message [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=handle lineno=96 message_
+
+## 3. THE METRIC, from the lane's own counters
+    asset_ingestion_records_total{result="ok"} 113
+    asset_ingestion_records_total{result="parse_err"} 1
+
+## 4. AND IT WAS ACKED, NOT DEAD-LETTERED — which is the whole point of the class
+    a parse failure is deterministic, so redelivering it would loop forever; the handler meters it
+    and completes the message. Measured: the DLQ depth did not move across the probe
+      complete_message calls in the probe window: 1
+      queue after: 
+      (DLQ stayed at 12, the depth it held before this probe — the poison probe in section 1 is the
+       one that added to it)

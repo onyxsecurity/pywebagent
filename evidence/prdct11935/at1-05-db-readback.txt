@@ -1,0 +1,40 @@
+# PRDCT-11935 at1-05 — the tenant-DB rows the AZURE lane wrote (flag ON)
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch f4b3e9dfb2 · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r24 · captured 2026-08-20T15:58:26Z
+#
+# RE-CAPTURED IN ROUND 7 on the merge head, in the same isolated window as at1-02/at1-04 above.
+#
+# Chain: onyx-scanner -> Kong (key-auth) -> vector -> lab Blob container -> Event Grid BlobCreated
+# -> byoc-events topic -> sys.Label LIKE '%source=mcp-scanner/%' -> Service Bus queue -> the azure-mode
+# endpoint_asset_ingestion pod (ONYX__CLOUD=azure, Blob reads via DefaultAzureCredential) -> these rows.
+
+## assets written into the SSO tenant this scan authenticates as (onyx_security):
+    id   |            name             |       type        |        status         |          updated_at           
+  -------+-----------------------------+-------------------+-----------------------+-------------------------------
+   58967 | lab-r20-head-20260820155354 | AssetTypeSkill    | AssetStatusDiscovered | 2026-08-20 15:54:52.840183+00
+   58986 | lab-r20-head-20260820155354 | AssetTypeSubAgent | AssetStatusDiscovered | 2026-08-20 15:54:53.005481+00
+  (2 rows)
+  
+## its MCP servers + agent rows, same window:
+   touched_mcp_servers | total 
+  ---------------------+-------
+                     2 |    29
+  (1 row)
+  
+   touched_skills | total 
+  ----------------+-------
+                1 |   194
+  (1 row)
+  
+   ingestion_state_rows 
+  ----------------------
+                     34
+  (1 row)
+  
+
+## window closed; gen-1's writers restored:
+    eai-azure                                 1
+    endpoint-asset-ingestion                  0
+    temporal-general-worker                   1
+    temporal-scanner-worker                   1

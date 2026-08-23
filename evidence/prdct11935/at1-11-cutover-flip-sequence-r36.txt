@@ -1,0 +1,38 @@
+# PRDCT-11935 at1-11 — the CUTOVER ORDERING CONTRACT, re-read at source on the head sha
+# FILE LAST WRITTEN 2026-08-22T04:59:48Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · captured 2026-08-22T04:59:48Z
+#
+# WHY. Verify r31 GAP-4: the PR body had to cite footgun 1's flip sequence at
+# feature_flags/consts.py:212-216 and cited consts.py nowhere. The plan itself disagreed with itself
+# about the line range (:202-207 in one field, :212-216 in others); research re-grepped the file in
+# round 36 and reconciled the plan to :212-216. This artifact is the independent read that the PR's
+# cite rests on — the block quoted BY LINE NUMBER out of the shipped file at this head, so the cite
+# is checkable without trusting either the plan or the body.
+
+$ git rev-parse HEAD
+a2486bb33f835af24f5850e4f4c5eb2e8b02afb9
+
+$ sed -n '212,216p' backend_python/src/common_core/services/feature_flags/consts.py
+# CUTOVER ORDERING CONTRACT (per-tenant): turn the NEW lane ON before turning the OLD
+# lane OFF — i.e. set endpoint-asset-ingestion=True FIRST, then scanner-event-driven-
+# ingestion=False. Both OFF at once = a window of DROPPED objects (neither lane
+# ingests). `scannerScheduleDisabled` must ALREADY be ON for the tenant before the flip
+# so the scheduled ScannerTenantWorkflow sweep isn't double-ingesting during the window.
+
+=== the two literal flag forms the sequence names, quoted from the block above ===
+  endpoint-asset-ingestion=True      <- the NEW lane, turned ON FIRST
+  scanner-event-driven-ingestion=False  <- the OLD lane, turned OFF SECOND
+  both OFF at once = a window of DROPPED objects (neither lane ingests)
+  scannerScheduleDisabled must ALREADY be ON for the tenant before the flip
+
+=== the flag keys those forms name, with their own line numbers at this head ===
+$ grep -n 'SCANNER_EVENT_DRIVEN_INGESTION_FLAG_KEY\|ENDPOINT_ASSET_INGESTION_FLAG_KEY' \
+    backend_python/src/common_core/services/feature_flags/consts.py
+217:SCANNER_EVENT_DRIVEN_INGESTION_FLAG_KEY = "scanner-event-driven-ingestion"
+245:ENDPOINT_ASSET_INGESTION_FLAG_KEY = "endpoint-asset-ingestion"
+
+=== why the range moved, measured rather than assumed ===
+The flag KEYS and the contract text are unchanged; the block sits lower in the file than the
+plan's old :202-207 because of unrelated insertions above it. Line 212 is the contract's first
+line and 216 its last, which is what the sed above shows: the range is exact, not approximate.

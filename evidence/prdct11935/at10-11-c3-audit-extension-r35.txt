@@ -1,0 +1,45 @@
+# PRDCT-11935 at10-11 — the ROUND-35 at10 C3 AUDIT EXTENSION, discharged
+# FILE LAST WRITTEN 2026-08-22T02:59:43Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · captured 2026-08-22T02:59:43Z
+#
+# WHAT THIS DISCHARGES. The round-35 V-1 ruling extends at10's owner-visible/C3 audit checklist with two
+# checks. Both are run HERE, first-hand, against Slack's API — not read out of research's receipt. Research
+# recorded the same facts in evidence/research-r35/veto-permalink-r35.txt; the point of an audit extension
+# is that the auditing phase re-runs it, so this file re-runs it and compares against that record.
+
+=================== CHECK (a) — the permalink RESOLVES via chat.getPermalink ===================
+    chat.getPermalink ok: True
+      permalink: https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787366812940799?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+      error: None
+
+    The resolved URL is byte-identical to the one this PR's C3 ledger row carries and to the one
+    research recorded:
+        https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787366812940799?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+    No placeholder anywhere: the URL was substituted into the ruling text BEFORE the plan sha was
+    computed (the fill-before-freeze convention), so the frozen 5970b1b1… covers this exact string.
+
+=================== CHECK (b) — the posted text is BYTE-IDENTICAL to the amendment summary ===================
+    Method: conversations.replies on the run thread (ts 1787063683.640599), the round-35 leg pulled by its
+    own ts 1787366812.940799, HTML-unescaped, compared against the "POSTED TEXT VERBATIM" block of
+    evidence/research-r35/veto-permalink-r35.txt.
+
+    ok: False  matched message: 0
+      conversations.replies ok: True   matched message: 1
+      live bytes: 3233   recorded bytes: 3233
+      BYTE-IDENTICAL: True
+
+    A TOOLING NOTE, recorded rather than worked around: the first `conversations.replies` call returned
+    `ratelimited`, and the workspace USER token returns `missing_scope` for this method. The check was
+    re-run on the bot token after a bounded wait and succeeded. Neither is a failure of the check; both are
+    recorded so a reader knows which token answered.
+
+=================== CHECK (c) — the C3 ledger row carries the RESOLVED URL ===================
+    The PR body's C3 ledger V-1 row carries the full resolved permalink above, the comment id
+    90140245277673 that discharges condition c4, and the disposition CORRECTION (not loss). Verified by
+    grep against the LIVE re-fetched body in this round's final gate, not against the local copy.
+
+=================== WHAT THIS FILE DOES NOT CLAIM ===================
+    It verifies that the ruling was posted owner-visibly, that its permalink resolves, and that the text
+    behind that permalink is the text research recorded. It does NOT claim owner approval: the veto
+    mechanics are silence-at-re-verify = proceed on no-objection, and an owner reply at any later time
+    routes via handle-feedback and can reverse the ruling class-wide. Nothing here forecloses that.

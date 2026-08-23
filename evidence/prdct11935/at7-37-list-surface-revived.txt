@@ -1,0 +1,70 @@
+# PRDCT-11935 at7-37 — the AI-Assets LIST surface: why it was frozen, how it was fixed, and the per-class captures
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch 0665ecc545 · captured 2026-08-20T22:00:39Z · tenant onyx_security
+#
+# WHAT WAS WRONG. at7's ui_proof_steps step 2 asks for each class located IN THE LIST (/ai-assets). That
+# was not obtainable on this box: the list is served from the asset_inventory READ MODEL
+# (applications-table/index.tsx:166-173), and that projection had been frozen since 2026-08-18 19:42Z —
+# 157 rows, while live assets had 316. Every asset this run produced was invisible to the browsable list,
+# and earlier rounds proved the classes only by deep-linking to the detail routes, which is not what the
+# step asks for. A broken component never softens the bar, so it was fixed rather than worked around.
+#
+# ROOT CAUSE, measured not guessed. Two faults, one behind the other:
+#   1. NOTHING WAS POLLING THE python-worker TASK QUEUE. `tctl taskqueue describe --taskqueue python-worker`
+#      returned an EMPTY poller table. The temporal-python-worker pod was 1/1 Running, 33 h old, 0
+#      restarts — but its log ends at 2026-08-19T12:12:30Z with a Postgres ConnectionRefusedError followed
+#      by its own clean "Shutting down worker..." / "Worker shut down complete". The worker had exited its
+#      run loop while the container stayed alive, so Kubernetes saw a healthy pod polling nothing. This is
+#      exactly the "a READY pod can silently fail" case the stack-health skill exists to catch.
+#   2. THE FRESHNESS SCHEDULE HAD A WEDGED EXECUTION. asset-inventory-freshness-schedule (interval 20s)
+#      held RunningWorkflows = [asset-inventory-freshness-schedule-execution-2026-08-19T09:05:20Z] with
+#      LastRunTime 1 day ago — it could never complete with no poller, and the schedule will not start a
+#      new run while one is outstanding.
+
+## 1. THE FIX — two actions, both on the env, none on the product
+    a) kubectl -n onyxd rollout restart deploy/temporal-python-worker
+    b) tctl workflow terminate --wid asset-inventory-freshness-schedule-execution-2026-08-19T09:05:20Z
+
+## 2. THE POLLER IS BACK (the same query that returned an empty table before)
+    
+               WORKFLOW POLLER IDENTITY          |   LAST ACCESS TIME    
+      15@temporal-python-worker-766f9465d6-w4mjb | 2026-08-20T22:00:02Z  
+
+## 3. THE SCHEDULE HAS NO WEDGED EXECUTION
+    
+                  ScheduleId                            WorkflowType                Paused  Notes  RunningWorkflows   NextRunTime    LastRunTime            Specification            
+      asset-inventory-freshness-schedule  AssetInventoryFreshnessScheduledWorkflow  false          []                15 minutes ago  1 day ago    {"interval":[{"interval":"20s"}]}  
+
+## 4. THE PROJECTION HAS CAUGHT UP — read model == live assets
+     inv_rows |          inv_newest           | asset_rows |         assets_newest         
+    ----------+-------------------------------+------------+-------------------------------
+          316 | 2026-08-20 21:01:47.993885+00 |        316 | 2026-08-20 21:01:47.993885+00
+    (1 row)
+    
+    Before the fix: 157 rows, newest 2026-08-18 19:42:02Z, against 316 live assets.
+
+## 5. THIS RUN'S SUBJECTS ARE NOW IN THE READ MODEL THE LIST READS
+              name          |         type          
+    ------------------------+-----------------------
+     Hermes Agent (coder)   | AssetTypeDesktopAgent
+     Onyx Lab MCP           | AssetTypeMCP
+     Onyx Lab MCP           | AssetTypeMCP
+     Onyx Lab MCP           | AssetTypeMCP
+     Onyx Lab MCP           | AssetTypeMCP
+     OpenClaw (coder)       | AssetTypeDesktopAgent
+     lab-w21-20260820165641 | AssetTypeSubAgent
+     lab-w21-20260820165641 | AssetTypeSkill
+    (8 rows)
+    
+
+## 6. THE PER-CLASS LIST CAPTURES — each located by typing into the table's own search box
+    SHOT                               SEARCH                     ROWS  HTTP  OUTLINED  ROW TEXT PRESENT
+    at7-32-list-desktop-agent.png      OpenClaw                   1     200   True      True
+    at7-33-list-mcp.png                Onyx Lab MCP               1     200   True      True
+    at7-34-list-skill.png              lab-w21-20260820165641     2     200   True      True
+    at7-35-list-subagent.png           lab-w21-20260820165641     2     200   True      True
+    at7-36-list-hermes-usage.png       Hermes Agent               1     200   True      True
+
+    Recording of the whole browser run: evidence/recordings/at7-lists-r23.{webm,trace.zip}
+    Each frame is the full surface with the located row outlined in context, not a crop.

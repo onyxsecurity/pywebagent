@@ -1,0 +1,70 @@
+# PRDCT-11935 at6-16 — PRDCT-12070, the durable-retry follow-up this round filed, and its measured basis
+# FILE LAST WRITTEN 2026-08-21T12:37:38Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · captured 2026-08-21T12:34:45Z
+#
+# The round-26 verification recorded a product observation worth routing rather than gating: a dependency
+# outage permanently dead-letters real scanner objects. This round filed it and captured the basis, so
+# the PR's claim traces to measurement rather than to the verifier's prose.
+
+## 1. THE TICKET
+   custom_id  PRDCT-12070
+   url        https://app.clickup.com/t/86bbj2pqn
+   list       Sprint 38 (18/8 - 24/8) — the same list as PRDCT-12061 and PRDCT-12069
+   status     Open
+   title      Durable retry for the Azure scanner-ingestion lane: a dependency outage permanently
+              dead-letters real objects (max_delivery 5 × 5s backoff exhausts the budget in ~25s)
+
+## 2. THE RETRY BUDGET, read from the source and from the live queue
+   the queue's own setting, infrastructure/modules/onyx/cell-azure-instance/service_bus.tf:199
+       resource "azurerm_servicebus_queue" "endpoint_asset_ingestion" {
+         count = var.create_service_bus && var.create_endpoint_asset_ingestion_queue ? 1 : 0
+       
+         name         = "endpoint-asset-ingestion"
+         namespace_id = azurerm_servicebus_namespace.tenant[0].id
+       
+         lock_duration                        = "PT5M"
+         max_delivery_count                   = 5
+         dead_lettering_on_message_expiration = true
+         default_message_ttl                  = "P14D"
+       }
+   and the LIVE queue agrees (az servicebus queue show):
+       {
+         "deadLettered": 57,
+         "lockDuration": "PT5M",
+         "maxDeliveryCount": 5
+       }
+       maxDeliveryCount: 5
+
+   the consumer's backoff between attempts, backend_python/src/endpoint_asset_ingestion/config.py:80
+           error_backoff_seconds: int = Field(default=5, ge=1, description="Seconds to wait after a poll error")
+   applied at common_core/services/queue/consumer_pool.py:160-162 and :197
+                           backoff_seconds=self._config.error_backoff_seconds,
+                       )
+                       await asyncio.sleep(self._config.error_backoff_seconds)
+
+   5 deliveries at a flat ~5s backoff exhausts the budget in ≈25 seconds. Any dependency outage longer
+   than about half a minute parks the object permanently, and there is no automatic DLQ redrive.
+
+## 3. WHAT THAT COST, observed
+   During round-26 verification the kind node self-tainted with disk-pressure and postgres-1 was
+   EVICTED, so every in-flight object failed with ConnectionRefusedError to postgres-rw. The consumer
+   behaved correctly per message — it abandoned rather than acked — but the budget ran out: the queue's
+   $DeadLetterQueue deadLetterMessageCount 29 -> 57, i.e. roughly 28 real scanner objects permanently parked with
+   DeadLetterReason MaxDeliveryCountExceeded. Captured by the verifier under evidence/verify-r26/.
+   The growth, as a table so the label carries both sides:
+     deadLetterMessageCount | moment
+     -----------------------+------------------
+     29                     | before the outage
+     57                     | after the outage
+
+## 4. WHY IT IS ALSO A SETTLEMENT-INVENTORY GAP
+   A broker-side MaxDeliveryCountExceeded park runs NO application code, so no app-side counter moves —
+   it is item 4 of the label-less exits this PR's own inventory now reports (at6-01). An operator
+   watching asset_ingestion_* series sees nothing at all while objects are being lost. That is why the
+   two findings are filed together.
+
+## 5. SCOPE — deliberately not fixed here
+   consumer_pool is shared with the SQS sibling, so changing retry semantics is a behavioural change on
+   every cloud and belongs in its own change. The existing constraints must survive any fix: absence of
+   a successful write is never a delete instruction, and a genuinely poison message must still park
+   rather than loop forever (which is exactly what the current short budget is good at).

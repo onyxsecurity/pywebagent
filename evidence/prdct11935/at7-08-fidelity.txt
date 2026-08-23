@@ -1,0 +1,53 @@
+# PRDCT-11935 at7-08 — FIDELITY per class: the machine's own value beside what the product stored
+# FILE LAST WRITTEN 2026-08-21T19:13:34Z
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T03:39:18Z · tenant onyx_security
+#
+# RE-CAPTURED ON THE HEAD-EXACT IMAGE (gate G7). Round 23's gate found 19 of 21 at7 artifacts still
+# declared 0665ecc545 with image r24/r25 — the commit before the round-24 sender fix, on images built
+# before it. Every row below was re-driven on :prdct11935-r26, which is built from a2486bb33f and proven
+# byte-exact (4741/4741 head .py files, evidence/at6-12-image-provenance.txt).
+# gen-1 was quiesced for the window (schedule PAUSED + zero pods), so each class is attributable to the
+# lane under test — the receipt is evidence/at7-00-isolation.txt.
+#
+# A class counts only when the value in the DB was produced INDEPENDENTLY by the lane from the payload
+# and equals the value the machine itself holds — identical strings, not merely similar.
+
+ class      | the machine's own value (source)                                   | what the product stored          | same
+ -----------+--------------------------------------------------------------------+----------------------------------+------
+ mcp        | onyx-lab-mcp 1.5.0 (manifest.json, packed by @anthropic-ai/mcpb)    | assets 131106 mcpb:onyx-lab-mcp::1.5.0 | yes
+ tools      | lab_echo lab_hostname lab_search lab_time lab_verify (manifest)     | tools 98-102, ToolTypeMCPTool    | yes
+ skills     | sha256 091dffb345495cabb7547ba8c21ab306114bcff3c68389df23afbd5173bfebfb | agent_skills.skill_md_hash 131278 = same | yes
+ subagents  | sha256 cacc4e6cef1596e37492b4d987a8369403902b8b09eb3d30ffeaf73a91de1f42 | assets 131332 unique_identifier subagent::<same> | yes
+ subagents  | sha256 066bb2f01784ee10a4abd215f62e7ed93a8994e56ef9f429189308985e66df6d (r31 head window, sha256sum on disk) | asset 242613 agent_subagents.subagent_md_hash = same (at7-01) | yes
+ skills     | sha256 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714 (r31 head window, sha256sum on disk) | asset 242558 agent_skills.skill_md_hash = same (at7-01) | yes
+ usage      | session 20260821_033142_faf0bc (~/.hermes/state.db, printed by CLI) | usage_sessions 2396 external_id = same | yes
+ agent      | serial ec255301bd4407d309fbce94811384b0 (scanner metadata)          | devices.device_id via desktop_agent_users | yes
+ agent ver  | the runtime's own version string for OpenClaw                        | asset 10729 version = 2026.5.7 (eeef486) (at7-03) | yes
+ posture    | this run's real asset identity — asset 211819, the subject whose source this run deleted | issue instances 1637/1638/1639, definitions 44/45/48 (at7-09) | yes
+
+# ROUND-31 CORRECTIONS TO THE TWO ROWS ABOVE.
+#   · `agent ver` is NEW. d-c2-fid-agent names the version string, and the round-28 gate found this
+#     table — the designated fidelity artifact — carrying no version value for the class at all. It does
+#     now, pointing at at7-03, which holds it.
+#   · `posture` previously read "(no CVE / credential-in-address in this shape) | bridge ran, no issue
+#     (at7-29) | n/a". That is the plan's pre-declared FALLBACK, and at7-09 explicitly refutes it:
+#     issues DID mint for a subject. The class settles under amendment_r30's four-part end-state — the
+#     same three instances persist after the source was deleted, updated_at advances 15:17:13.181372 ->
+#     15:29:04.521424 with resolve_state Open, closed_at NULL and classified_at FROZEN at
+#     2026-08-21 13:44:18.531816+00 — and it settles as a DEFECT (the pipeline re-affirms the issue Open
+#     and shows the deleted file's content as live Evidence), ledgered in the PR's C3 row and ticketed as
+#     PRDCT-12071. It is never settled here as acceptable behaviour.
+
+# The sha/id values are load-bearing: each was computed on disk by a different program (sha256sum, the
+# mcpb packer, hermes) than the one that computed the stored value (the Python lane, from the payload),
+# so their equality cannot come from copying.
+
+# ROUND-31 ADDITION — the two r31 rows exist because the round-28 gate found the head-window subagent
+# digest "stated bare in at7-08 and captured nowhere", its file since deleted and so not re-derivable.
+# A fresh subject was installed in the head window by the real installers, digested on disk with
+# sha256sum, driven through the real front door and read back out of the product (at7-01). Stronger than
+# a re-statement: at7-02 §3 shows the payload carries its OWN contentHash field (d1c7fe7a…) which the
+# product does NOT store — the stored identity is DERIVED from the content, so the disk/DB equality
+# cannot be an artefact of copying, because the one number that could have been copied is a different
+# number.

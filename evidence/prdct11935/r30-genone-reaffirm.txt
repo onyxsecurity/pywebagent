@@ -1,0 +1,180 @@
+# r30 research — premise-check 1: gen-1 (AWS lane) re-affirm measurement, CONTROLLED (azure consumer paused)
+# purpose: is the re-affirmed-Open behaviour transport-independent? (round-30 dispatch, GAP-1 adjudication)
+# captured: 2026-08-21T14:41:45Z by research (round 30)
+
+## STEP 0 — baseline: the round-27 subject (asset 211819, issues 1637-1639); source deleted 2026-08-21 ~13:47Z
+$ ls /home/coder/.claude/skills/ | grep -c vr27u-posture ; ls -d /home/coder/.claude/skills/vr27u-posture-20260821132553
+0
+ls: cannot access '/home/coder/.claude/skills/vr27u-posture-20260821132553': No such file or directory
+
+$ issue rows + posture findings baseline:
+  id  |             identifier             | asset_id |         resolve_state         | closed_at |          created_at           |          updated_at           
+------+------------------------------------+----------+-------------------------------+-----------+-------------------------------+-------------------------------
+ 1637 | skill-hardcoded-secrets            |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 13:44:18.575273+00 | 2026-08-21 14:07:12.949499+00
+ 1638 | skill-insecure-credential-handling |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 13:44:18.575273+00 | 2026-08-21 14:07:12.949499+00
+ 1639 | skill-dangerous-capability         |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 13:44:18.575273+00 | 2026-08-21 14:07:12.949499+00
+(3 rows)
+
+  id  |                 rule_id                 | verdict |         classified_at         
+------+-----------------------------------------+---------+-------------------------------
+ 1153 | skill.has_hardcoded_secrets             | t       | 2026-08-21 13:44:18.531816+00
+ 1154 | skill.has_exposure_to_untrusted_content | f       | 2026-08-21 13:44:18.531816+00
+ 1155 | skill.has_insecure_credential_handling  | t       | 2026-08-21 13:44:18.531816+00
+ 1156 | skill.has_dangerous_capability          | t       | 2026-08-21 13:44:18.531816+00
+ 1157 | skill.has_malicious_code                | t       | 2026-08-21 13:44:18.531816+00
+ 1158 | skill.has_supply_chain_attack           | f       | 2026-08-21 13:44:18.531816+00
+ 1159 | skill.has_prompt_injection              | f       | 2026-08-21 13:44:18.531816+00
+ 1160 | skill.has_sensitive_data_access         | f       | 2026-08-21 13:44:18.531816+00
+(8 rows)
+
+   id   |             name             |      type      |        status         | is_deleted |          updated_at           
+--------+------------------------------+----------------+-----------------------+------------+-------------------------------
+ 211819 | vr27u-posture-20260821132553 | AssetTypeSkill | AssetStatusDiscovered | f          | 2026-08-21 14:04:37.241423+00
+(1 row)
+
+
+## STEP 1 — ISOLATE: pause the azure-lane consumer (KEDA paused-replicas=0) so ONLY gen-1 (AWS S3/SQS/Temporal) can process the window's scan
+$ kubectl -n onyxd annotate scaledobject endpoint-asset-ingestion autoscaling.keda.sh/paused-replicas="0" --overwrite
+Warning: PollingInterval is configured but is not relevant. PollingInterval is only relevant when minReplicaCount = 0 or idleReplicaCount = 0 or useCachedMetrics is enabled
+Warning: CooldownPeriod is configured but is not relevant. CooldownPeriod is only relevant when minReplicaCount = 0 or idleReplicaCount = 0
+scaledobject.keda.sh/endpoint-asset-ingestion annotated
+$ kubectl -n onyxd get deploy eai-azure ; get pods | grep eai-azure  (after pause)
+NAME        READY   UP-TO-DATE   AVAILABLE   AGE
+eai-azure   0/0     0            0           2d19h
+(no eai-azure pods — azure lane fully down)
+
+## STEP 2 — window start marker + plant a fresh benign probe skill (defeats scanner send-dedup; also the window's re-coverage vehicle)
+T0 = 2026-08-21T14:42:28Z
+probe skill: /home/coder/.claude/skills/r30-genone-probe-144228
+$ sha256sum /home/coder/.claude/skills/r30-genone-probe-144228/SKILL.md
+b3ada825b0545e063a268ad92126a6b0f67265084777d04db633c5ffbfce6027  /home/coder/.claude/skills/r30-genone-probe-144228/SKILL.md
+removed subject still absent: 
+ls: cannot access '/home/coder/.claude/skills/vr27u-posture-20260821132553': No such file or directory
+
+## STEP 3 — REAL scan through the Kong front door (the azure consumer is DOWN; vector still fans to both sinks, but only gen-1 can consume)
+$ /tmp/onyx-scanner scan --verbose --endpoint http://ingest-onyx:8080/mcp-scanner --api-key $KEY
+2026-08-21T14:44:42.667774988Z	INFO	Built end-of-scan guard aggregate	{"scan_run_id": "07dd0716-ebf9-492e-8ff8-3fef840ce89e", "guard_scan_complete": false, "guarded_agents": 3}
+2026-08-21T14:44:43.768098238Z	DEBUG	Step done: send scan summary	{"scan_run_id": "07dd0716-ebf9-492e-8ff8-3fef840ce89e", "duration_ms": 1100}
+2026-08-21T14:44:43.76812262Z	DEBUG	Step start: send scan logs	{"scan_run_id": "07dd0716-ebf9-492e-8ff8-3fef840ce89e"}
+2026-08-21T14:44:44.841221285Z	DEBUG	Step done: send scan logs	{"scan_run_id": "07dd0716-ebf9-492e-8ff8-3fef840ce89e", "duration_ms": 1073}
+2026-08-21T14:44:44.84127116Z	INFO	Scan run completed	{"payloads_sent": 6, "users": 1, "agents_detected_total": 4, "mcp_servers_total": 6, "projects_total": 2, "skills_total": 178, "duration_ms": 64164, "scan_run_id": "07dd0716-ebf9-492e-8ff8-3fef840ce89e"}
+
+## STEP 4 — the re-touch landed in the gen-1-only window. Read-back at $(date -u +%FT%TZ):
+  id  |             identifier             | asset_id |         resolve_state         | closed_at |          created_at           |          updated_at           
+------+------------------------------------+----------+-------------------------------+-----------+-------------------------------+-------------------------------
+ 1637 | skill-hardcoded-secrets            |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 13:44:18.575273+00 | 2026-08-21 14:45:28.060216+00
+ 1638 | skill-insecure-credential-handling |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 13:44:18.575273+00 | 2026-08-21 14:45:28.060216+00
+ 1639 | skill-dangerous-capability         |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 13:44:18.575273+00 | 2026-08-21 14:45:28.060216+00
+(3 rows)
+
+  id  |                rule_id                 | verdict |         classified_at         
+------+----------------------------------------+---------+-------------------------------
+ 1153 | skill.has_hardcoded_secrets            | t       | 2026-08-21 13:44:18.531816+00
+ 1155 | skill.has_insecure_credential_handling | t       | 2026-08-21 13:44:18.531816+00
+ 1156 | skill.has_dangerous_capability         | t       | 2026-08-21 13:44:18.531816+00
+ 1157 | skill.has_malicious_code               | t       | 2026-08-21 13:44:18.531816+00
+(4 rows)
+
+
+## STEP 5 — ATTRIBUTION: every bridge + detection execution started in the window (T0=14:42:28Z .. now). The azure lane was at 0 replicas the whole time.
+$ tctl workflow list IssueAndRiskBridgeWorkflow window:
+  [94m      WORKFLOW TYPE       [0m | [94m                                WORKFLOW ID                                [0m | [94m               RUN ID               [0m | [94mTASK QUEUE[0m | [94mSTART TIME[0m | [94mEXECUTION TIME[0m | [94mEND TIME[0m  
+  IssueAndRiskBridgeWorkflow | scanner-tenant-11935a00-0000-4000-8000-000000000a01-20260821T144500Z-bridge | 01a024c8-97c0-7d0e-9f0f-0189bb77a04c | default    | 14:45:20   | 14:45:20       | 14:45:35  
+  IssueAndRiskBridgeWorkflow | scanner-tenant-11935a00-0000-4000-8000-000000000a01-20260821T144400Z-bridge | 01a024c7-ade7-7ec2-9f35-93a00bab3cfd | default    | 14:44:21   | 14:44:21       | 14:45:35  
+  IssueAndRiskBridgeWorkflow | scanner-tenant-61750f27-8fbd-42a4-80cf-4191cfb2371a-20260821T144400Z-bridge | 01a024c7-adee-7366-a679-d68abec1e668 | default    | 14:44:21   | 14:44:21       | 14:45:35  
+  IssueAndRiskBridgeWorkflow | scanner-tenant-61750f27-8fbd-42a4-80cf-4191cfb2371a-20260821T144500Z-bridge | 01a024c8-97c5-7b1c-b36f-269d5d7af340 | default    | 14:45:20   | 14:45:20       | 14:45:34  
+$ tctl workflow list IssueDetectionWorkflow window:
+  [94m    WORKFLOW TYPE     [0m | [94m                                  WORKFLOW ID                                  [0m | [94m               RUN ID               [0m | [94m TASK QUEUE  [0m | [94mSTART TIME[0m | [94mEXECUTION TIME[0m | [94mEND TIME[0m  
+  IssueDetectionWorkflow | 01a024c8-97c0-7d0e-9f0f-0189bb77a04c_5                                          | 01a024c8-97de-715f-804f-ba647ad40756 | python-worker | 14:45:20   | 14:45:20       | 14:45:34  
+  IssueDetectionWorkflow | mcp-cve-scan-onyx_security-01a024c8-55be-761b-a987-bf013e81f1fb-issue-detection | 01a024c8-8a72-7184-b140-15497df9b388 | python-worker | 14:45:17   | 14:45:17       | 14:45:34  
+  IssueDetectionWorkflow | 01a024c7-ade7-7ec2-9f35-93a00bab3cfd_5                                          | 01a024c7-ae03-7d4a-8677-6f9dbdc349e4 | python-worker | 14:44:21   | 14:44:21       | 14:45:34  
+  IssueDetectionWorkflow | 01a024c7-adee-7366-a679-d68abec1e668_5                                          | 01a024c7-ae0d-770c-8936-137cfc441bdb | python-worker | 14:44:21   | 14:44:21       | 14:45:33  
+  IssueDetectionWorkflow | mcp-cve-scan-prdct11935_ta-01a024c8-55f3-7d6f-b777-d5b4c0f9e285-issue-detection | 01a024c8-8a7e-7433-b776-e984875ccfb7 | python-worker | 14:45:17   | 14:45:17       | 14:45:32  
+  IssueDetectionWorkflow | 01a024c8-97c5-7b1c-b36f-269d5d7af340_5                                          | 01a024c8-97e6-7454-9060-5883035d84db | python-worker | 14:45:20   | 14:45:20       | 14:45:31  
+$ scanner-object-* bridges in the window (azure lane's id pattern) — count:
+0
+$ eai-azure state during the window:
+NAME        READY   UP-TO-DATE   AVAILABLE   AGE
+eai-azure   0/0     0            0           2d19h
+(no eai-azure pods)
+
+## STEP 6 — which detection stamped 14:45:28.060216: audit-set composition per distinct stamp in the window
+          updated_at           | audit_rows | assets | skill_def_rows 
+-------------------------------+------------+--------+----------------
+ 2026-08-21 14:45:28.060216+00 |       1043 |    149 |            595
+(1 row)
+
+$ the stamp that touched the subject includes its audit rows:
+ asset_id |             identifier              |          updated_at           
+----------+-------------------------------------+-------------------------------
+   211819 | skill-dangerous-capability          | 2026-08-21 14:45:28.060216+00
+   211819 | skill-exposure-to-untrusted-content | 2026-08-21 14:45:28.060216+00
+   211819 | skill-hardcoded-secrets             | 2026-08-21 14:45:28.060216+00
+   211819 | skill-insecure-credential-handling  | 2026-08-21 14:45:28.060216+00
+   211819 | skill-prompt-injection              | 2026-08-21 14:45:28.060216+00
+   211819 | skill-sensitive-data-access         | 2026-08-21 14:45:28.060216+00
+   211819 | skill-supply-chain-attack           | 2026-08-21 14:45:28.060216+00
+(7 rows)
+
+
+## STEP 7 — parent of the touching detection (gen-1: scanner-tenant-*-bridge)
+wf: 01a024c7-adee-7366-a679-d68abec1e668_5
+type: IssueDetectionWorkflow
+parent: {'workflowId': 'scanner-tenant-61750f27-8fbd-42a4-80cf-4191cfb2371a-20260821T144400Z-bridge', 'runId': '01a024c7-adee-7366-a679-d68abec1e668'}
+start: 2026-08-21T14:44:21.133462502Z close: 2026-08-21T14:45:33.410983906Z
+wf: 01a024c8-97c5-7b1c-b36f-269d5d7af340_5
+type: IssueDetectionWorkflow
+parent: {'workflowId': 'scanner-tenant-61750f27-8fbd-42a4-80cf-4191cfb2371a-20260821T144500Z-bridge', 'runId': '01a024c8-97c5-7b1c-b36f-269d5d7af340'}
+start: 2026-08-21T14:45:20.998284610Z close: 2026-08-21T14:45:31.866146117Z
+
+## STEP 8 — window sanity: the scan really re-covered the skills class (probe row landed via gen-1), nothing resurrected/duplicated for the removed subject
+   id   |          name           |                          skill_md_hash                           |          created_at           
+--------+-------------------------+------------------------------------------------------------------+-------------------------------
+ 170493 | r30-genone-probe-144228 | b3ada825b0545e063a268ad92126a6b0f67265084777d04db633c5ffbfce6027 | 2026-08-21 14:44:04.072454+00
+(1 row)
+
+ instances_for_subject | defs 
+-----------------------+------
+                     3 |    3
+(1 row)
+
+ subject_asset_rows 
+--------------------
+                  1
+(1 row)
+
+expected: probe row present (hash b3ada825...); instances_for_subject=3 (same 3, no new mints); subject_asset_rows=1
+
+## STEP 9 — RESTORE the azure lane (remove the KEDA pause annotation)
+$ kubectl -n onyxd annotate scaledobject endpoint-asset-ingestion autoscaling.keda.sh/paused-replicas-
+Warning: PollingInterval is configured but is not relevant. PollingInterval is only relevant when minReplicaCount = 0 or idleReplicaCount = 0 or useCachedMetrics is enabled
+Warning: CooldownPeriod is configured but is not relevant. CooldownPeriod is only relevant when minReplicaCount = 0 or idleReplicaCount = 0
+scaledobject.keda.sh/endpoint-asset-ingestion annotated
+NAME        READY   UP-TO-DATE   AVAILABLE   AGE
+eai-azure   1/3     3            1           2d19h
+eai-azure-66d8f8595d-fb9s7                                  0/1     Running                  0               12s
+eai-azure-66d8f8595d-krjhd                                  1/1     Running                  0               27s
+eai-azure-66d8f8595d-q5lw8                                  0/1     Running                  0               12s
+$ consumer log tail (backlog draining):
+[2m2026-08-21T14:47:10.384641Z[0m [[32m[1minfo     [0m] [1mScanner installations inserted[0m [[0m[1m[34mpython_temporal_worker.integrations.desktop_agent_creator.activities[0m][0m [36mcou
+[2m2026-08-21T14:47:10.385251Z[0m [[32m[1minfo     [0m] [1mingestion step skipped        [0m [[0m[1m[34mendpoint_asset_ingestion.telemetry.steps[0m][0m [36mfilename[0m=[35msteps.py[0m 
+[2m2026-08-21T14:47:10.385940Z[0m [[32m[1minfo     [0m] [1mingested scanner object       [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.object_processor[0m][0m [36mfilename[0m=[35mob
+[2m2026-08-21T14:47:10.386308Z[0m [[32m[1minfo     [0m] [1masset_ingestion_record_handled[0m [[0m[1m[34mendpoint_asset_ingestion.consumer.message_handler[0m][0m [36mfilename[0m=[35mmess
+[2m2026-08-21T14:47:10.386941Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.asb[0m][0m [36mfilename[0m=[35masb.py[0m [36mfunc_na
+
+## VERDICT (research r30, premise-check 1): TRANSPORT-INDEPENDENT — measured. In a window where the azure-lane consumer was at 0 replicas (zero pods, zero scanner-object-* bridges), a real Kong-front-door scan processed by gen-1 ALONE (scanner-tenant-*-bridge -> child IssueDetectionWorkflow, parentage shown in STEP 7) re-touched the deleted-source issue rows 1637/1638/1639 to updated_at=14:45:28.060216, resolve_state still IssueInstanceResolveStateOpen, closed_at NULL, asset_posture_findings.classified_at frozen at 13:44:18 — the identical re-affirmed-Open behaviour verify round 27 measured on the azure lane. One detection stamp in the whole window (1043 audit rows / 149 assets / 595 skill-definition rows) incl. the subject's 7 skill-* audit rows.
+
+## STEP 10 — frozen-base equivalence: the measured gen-1 re-affirm path is byte-identical between the frozen base (67b4096f) and the verified head
+$ git rev-parse HEAD; git merge-base --is-ancestor 67b4096f HEAD && echo base-is-ancestor
+a2486bb33f835af24f5850e4f4c5eb2e8b02afb9
+base-is-ancestor
+git diff 67b4096f..HEAD -- backend_python/src/python_temporal_worker/issue_detection : 0 lines
+git diff 67b4096f..HEAD -- backend_python/src/common/repository/issues : 0 lines
+git diff 67b4096f..HEAD -- backend_python/src/common/repository/skill.py : 0 lines
+git diff 67b4096f..HEAD -- backend_python/src/common/posture : 0 lines
+git diff 67b4096f..HEAD -- backend_python/src/common_db/models/issue_instance.py : 0 lines
+git diff 67b4096f..HEAD -- backend/service/temporal/worker/pkg/general/scanner_collector/post_inventory.go : 0 lines
+git diff 67b4096f..HEAD -- backend/service/temporal/worker/pkg/general/scanner_collector/tenant_workflow.go : 0 lines
+git diff 67b4096f..HEAD -- backend/service/temporal/worker/pkg/general/scanner_collector/issue_risk_bridge_workflow.go : 0 lines
+(the new lane's trigger _posture_trigger/IssueAndRiskBridgeWorkflow in endpoint_asset_ingestion/ingestion/writers.py: zero added/removed lines mentioning either across the range:)
+0

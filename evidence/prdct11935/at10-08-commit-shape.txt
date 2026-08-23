@@ -1,0 +1,35 @@
+# PRDCT-11935 at10-08 — the branch's own commit shape, measured (the count the body quotes)
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch 3979910bde · captured 2026-08-20T12:14:37Z
+#
+# The PR body states how many commits sit above 0cfbd4240c. That claim went stale twice while the
+# branch moved (it said 'two' when there were ten), so it is measured here and the body reads it.
+
+## how many commits sit above 0cfbd4240c, and how many of them are merges:
+## $ git rev-list --count 0cfbd4240c..HEAD
+    13
+## $ git rev-list --count --merges 0cfbd4240c..HEAD
+    4
+
+    SO: 13 commits sit above 0cfbd4240c. Of those, 4 are merges.
+
+## and each of them, oldest first:
+    31952e4d71 2026-08-19T22:46:51+00:00 4cff869511  PRDCT-11996 | Truncate long asset names in the posture-issue drawer (#12378)
+    c0a5e99722 2026-08-19T23:05:00+00:00 0cfbd4240c 31952e4d71  Merge origin/main into the Azure ingestion lane branch
+    dfe23b9e83 2026-08-19T23:36:49+00:00 c0a5e99722  Derive the Service Bus lock renewal from the lock, not from config alone
+    1f532d51f1 2026-08-20T06:35:20+00:00 31952e4d71  PRDCT-11410 | Add the sensor-to-server event channel (#12206)
+    282cbb6204 2026-08-20T06:45:09+00:00 1f532d51f1  PRDCT-10121 | Always show the block-message box in the AI-website block modals (#12260)
+    cdcd725ebb 2026-08-20T07:23:48+00:00 dfe23b9e83 282cbb6204  Merge main: one Event Grid BlobCreated parser, not two
+    5771a58ab0 2026-08-20T07:42:41+00:00 282cbb6204  PRDCT-10242 | Block an AI website from the asset table and asset page (#12263)
+    be49e37074 2026-08-20T08:15:44+00:00 5771a58ab0  PRDCT-9576 | Discover the Codex desktop app as its own AI asset (#12276)
+    f244c04494 2026-08-20T08:20:44+00:00 cdcd725ebb 5771a58ab0  Merge main — a frontend-only change, no overlap with this lane
+    c225ba9cd9 2026-08-20T08:28:52+00:00 f244c04494 be49e37074  Merge main: renumber this branch's ADR to 0064
+    cb96081d70 2026-08-20T10:50:27+00:00 c225ba9cd9  Settle an object that abandoned an agent slice under its own outcome
+    c706530347 2026-08-20T11:32:12+00:00 cb96081d70  Say which field the consumer reads, since it is no longer subject
+    3979910bde 2026-08-20T11:54:21+00:00 c706530347  Count abandoned slices where they are abandoned, not off the marker set
+
+## the whole branch against its base, for the same reason:
+    $ git rev-list --count origin/main..HEAD           ->  21
+    $ git rev-list --count --no-merges origin/main..HEAD ->  14
+    $ git rev-list --count --merges origin/main..HEAD    ->  7

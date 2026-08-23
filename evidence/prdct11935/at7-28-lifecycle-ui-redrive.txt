@@ -1,0 +1,56 @@
+# PRDCT-11935 at7-28 — the before/after UI comparison, re-measured on ROUND 26's own captures
+# FILE LAST WRITTEN 2026-08-21T07:45:46Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · captured 2026-08-21T05:00:18Z · tenant onyx_security
+#
+# Re-measured because round 26 re-captured every "after" frame on this round's real removal leg
+# (removal + step-6 runtime uninstall 04:35:57Z, second real scan 04:35:58 -> 04:37:01Z). The numbers
+# an earlier round reported belonged to the frames it replaced and are superseded by the ones below.
+
+=== METHOD ===
+Each pair is the plan's own pre-removal frame beside this round's post-removal frame — six DISTINCT
+captures, never one shown twice. Every frame carries an evidence banner along the bottom (annotation
+chrome, not product UI); the banners differ in height between passes because the caption text differs,
+so the comparison region is the product area ABOVE the tallest banner of all eight frames: y < 850.
+The banner's own top border (#e11d48) was located per frame to derive that cut rather than assumed.
+
+  at7-12-ui-skills.png                 banner border y=869      at7-16-ui-lifecycle-skills.png     y=852
+  at7-13-ui-subagents.png              banner border y=869      at7-17-ui-lifecycle-subagents.png  y=852
+  at7-11-ui-mcp.png                    banner border y=869      at7-15-ui-lifecycle-mcp.png        y=852
+  at7-10b-ui-desktop-agent-detail.png  banner border y=869      at7-21-ui-lifecycle-agent.png      y=851
+
+=== RESULT ===
+  skill            0 px differ of 1224000   PIXEL-IDENTICAL across a real deletion + a second real scan
+  subagent         0 px differ of 1224000   PIXEL-IDENTICAL across a real deletion + a second real scan
+
+  Written out for the PR body's own wording: both pairs are pixel-identical, 0 of 1,224,000 pixels
+  (1440 x 850 = 1,224,000 pixels in the compared product region).
+  mcp          47127 px differ of 1224000 (3.85%)   NOT pixel-comparable — see below
+  desktop-agent 119237 px differ of 1224000 (9.74%)  EXPECTED to differ — see below
+
+=== WHAT THAT MEANS, CLASS BY CLASS ===
+skill / subagent — the product region is byte-for-byte the same picture before and after the artifact
+  was deleted from disk and rescanned. That is the finding, stated without dressing it up: the product
+  ships no stale/deleted representation for these classes (amendment_r26), so there is nothing for the
+  surface to change. It is NOT a claim that the product renders a stale state — it renders the same
+  live state it rendered before.
+
+desktop-agent — no pixel claim is made for this pair, and round 27 corrected the REASON. The earlier
+  revision said the surface "should differ" because it renders "Last Seen". It does render a field with
+  that header, but the field is bound to updated_at, not last_scanned_at (instances-table.tsx:334-335),
+  and it renders the IDENTICAL day for the uninstalled runtime and every still-installed control
+  (at7-44). So this surface is NOT expected to move on an uninstall and does not carry the freshness
+  contrast; that contrast is a DB fact (at7-18 §CLASS: DESKTOP AGENT, at7-30). The two frames here were
+  also taken in separate capture passes, so a pixel count would measure capture drift, not product state.
+
+mcp — NOT pixel-comparable, stated rather than explained away. The two frames were taken in separate
+  capture passes and the diff is spread across ~245 rows of the detail page's table region in a pattern
+  consistent with a small vertical layout shift, not with any single field changing. Rather than guess
+  at a cause, this cell rests on the PROGRAMMATIC assertions read from the live DOM in the same run —
+  which are stronger than a pixel count because they name what they read:
+      route ai-assets/mcp/131106 · HTTP 200 · status pills rendered: ["Discovered"]
+      Deleted badges: 0 · Stale badges: 0 · subject row rendered and outlined: true
+      all five tools still listed in-frame: lab_echo lab_hostname lab_search lab_time lab_verify
+  No claim of pixel-identity is made for this pair.
+
+=== REPRODUCE ===
+Region y < 850 over the six PNGs named above; per-pixel RGB compare after .convert("RGB").

@@ -1,0 +1,134 @@
+# PRDCT-11935 at1-08 — config provenance: the live vector azure_blob sink + consumer config,
+# shown RENDERED from the same authored flux-fleet/infrastructure sources at8/at9 validate
+# FILE LAST WRITTEN 2026-08-21T22:10:54Z (ROUND 32, setup — closes verify-r29 GAP 5)
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · flux-fleet @cab40f0e4
+#
+# ROUND-32 CHANGE (the gap this closes): through round 29 the live vector azure_blob sink was
+# HAND-AUTHORED for the lab (5 deltas vs the authored render: it omitted acknowledgements.enabled,
+# the disk buffer and healthcheck.enabled:false, ran batch.timeout_secs 1 instead of 20, and added
+# blob_time_format). Round 32 REBUILT it: the running sink is now mechanically extracted from the
+# authored source and re-proven live. This file is the re-diff + the re-scan through it.
+
+=================== PART 1 — the vector azure_blob sink (REBUILT, now the render) ===================
+
+## Authored source (the same file at8 validates):
+##   ~/flux-fleet/clusters/ox-az-p-eus2-c02/instances/saas/vector-sas-generator.yaml
+##   -> data."generate-vector-config.sh" -> the `cat > /etc/vector-dynamic/vector.yaml << VECTOREOF`
+##      heredoc -> sinks.azure_blob_sink  (stanza at lines 149-194 of the file)
+##
+## Derivation is scripted, not typed: /tmp/prdct11935/r32/derive-sink.py parses that ConfigMap,
+## extracts the heredoc YAML, takes sinks.azure_blob_sink verbatim, applies EXACTLY the three
+## per-cell substitutions below, splices the result into cm/onyx-onyxd-vector as
+## sinks.azure_blob_ingestion, and asserts every OTHER sink/source/transform in the cm is
+## byte-identical before/after (parity sinks included). Copies of the script + outputs sit next to
+## this file: at1-08-derive-sink.py, at1-08-rediff.py, at1-08-rendered-sink.yaml (normalized),
+## at1-08-live-sink-readback.yaml (normalized), at1-08-rediff-output.txt.
+
+## The 3 sanctioned substitutions (authored token -> live lab value) — nothing else changed:
+   connection_string: '${CONNECTION_STRING}'  ->  'BlobEndpoint=https://prdct11935st.blob.core.windows.net;SharedAccessSignature=<user-delegation SAS, racwl, +24h>'
+       (the VALUE itself was minted by the AUTHORED generator procedure run verbatim against the
+        lab account: `az storage container generate-sas --permissions racwl --expiry +24h
+        --auth-mode login --as-user`, composed as BlobEndpoint=...;SharedAccessSignature=... —
+        the exact commands the flux-fleet script runs per-cell. Secret value kept out of artifacts.)
+   container_name:    '${CONTAINER_NAME}'     ->  'ingestion'
+   inputs:            ['s3_depth_guard']      ->  ['extract_tenant_id']
+       (the ONE Tilt-forced remap: s3_depth_guard is a transform defined in the same authored
+        heredoc, not in the Tilt-rendered cm's transform graph; the sink therefore attaches to the
+        node it feeds from in the cell — extract_tenant_id, s3_depth_guard's own input.)
+
+## RE-DIFF (live sink read back from cluster cm/onyx-onyxd-vector AFTER the restart, vs the
+## authored render; only the 3 substitutions normalized) — run 2026-08-21T21:02Z, rediff.py exit 0:
+   ## normalized diff (empty = the live sink IS the authored render):
+      (empty — byte-identical after the 3 substitutions)
+
+## Consequently the running sink now carries, from the authored stanza and from nowhere else:
+##   healthcheck.enabled: false          (authored, with the SAS rationale comment in-source)
+##   acknowledgements.enabled: true
+##   buffer: {type: disk, max_size: 21395124224, when_full: block}
+##   batch:  {max_bytes: 10485760, timeout_secs: 20, max_events: 10000}
+##   compression: none · encoding.codec: json · framing: newline_delimited
+##   blob_prefix: tenant={{ x-consumer-username }}/source={{ x-source-type }}/date=%F/{{ x-principal-suffix }}
+##   blob_append_uuid: true
+##   and NO blob_time_format (the hand-added key is gone; blob names are unchanged because %s is
+##   vector's default — observed below).
+
+## Vector boot after the cm swap (pod onyx-onyxd-vector-0 recreated 21:01:41Z, READY, 0 ERROR lines
+## since 21:06Z):
+   {"timestamp":"2026-08-21T21:01:41.028323Z","level":"DEBUG","message":"Building new sink.","component_id":"azure_blob_ingestion",...}
+   {"timestamp":"2026-08-21T21:01:41.035935Z","level":"INFO","message":"Using SAS token authentication.","target":"vector::sinks::azure_common::config","span":{"component_id":"azure_blob_ingestion",...}}
+   (that INFO line is the exact log the authored source's own comment cites: "With the check off,
+    that same string logs 'Using SAS token authentication.' and writes blobs".)
+
+## ENV REPAIR FOUND+FIXED WHILE PROVING IT (harness, not product): the first marked scan's blob
+## PUTs 403'd — AuthorizationPermissionMismatch — because the lab SP (738c6745…) held only
+## **Storage Blob Data Reader** on prdct11935st, and a user-delegation SAS can never exceed the
+## delegator's RBAC (env_setup §4 previously overstated this as Contributor). Fixed for real with
+## the SP's own User Access Administrator grant:
+##   az role assignment create --assignee 738c6745-c052-44d0-b269-e7658103466b \
+##     --role "Storage Blob Data Contributor" --scope .../storageAccounts/prdct11935st
+## Propagation observed via bounded PUT probe: 403 -> 201 after 80s. The SAME SAS then writes,
+## proving the 403 was RBAC, not the SAS or the sink.
+
+=================== PART 2 — one MARKED scan re-run THROUGH the rebuilt sink ===================
+
+## Marker: probe skill setup-r32-at108-probe-20260821210231
+##   nonce=d4f41f6f-ece9-42b6-98c3-1c28020fc2d3 · rescan nonce2=42eb7e43-f71f-4f0e-92fc-c4ad4624113a
+## Front door: real /tmp/onyx-scanner scan -> Kong key-auth (ingest-onyx:8080/mcp-scanner) ->
+## vector (the RENDERED sink) -> lab Blob -> Event Grid BlobCreated -> SB topic byoc-events ->
+## SQL-filtered subscription -> queue endpoint-asset-ingestion-prdct11935 -> azure-mode consumer
+## -> tenant DB. Scan started 2026-08-21T21:06:45Z; payloads sent 21:07:04-08Z (4 payloads).
+
+## blobs written by the rendered sink (az storage blob list, creationTime >= 21:06:45Z):
+   tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787346443-65b77d7b-c1a3-4660-9bcb-eb8f8e8d97fe.log  2026-08-21T21:07:23+00:00   649189
+   tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787346497-653dda08-337b-44dc-b8d1-c51ffed2b116.log  2026-08-21T21:08:17+00:00  2960504
+   (note the authored batching is observable: 20s timeout -> fewer/larger blobs than the old
+    1s-timeout harness sink; key template unchanged, so downstream Label filtering is unchanged.)
+## both blobs downloaded and grepped: the probe skill name + nonce2 are IN the blob bytes
+   /tmp/prdct11935/r32/1787346443-65b77d7b-….log: setup-r32-at108-probe-20260821210231 (nonce2 x1)
+   /tmp/prdct11935/r32/1787346497-653dda08-….log: (nonce2 x2)
+
+## the azure-mode consumer settled BOTH through the real EG->ASB chain (deploy/eai-azure logs):
+   2026-08-21T21:07:23.967963Z … s3_key='tenant=61750f27-…/1787346443-65b77d7b-…' … (blob fetched, mcp/skills extraction running)
+   2026-08-21T21:07:24.039551Z [info] Skill asset upsert … func_name=bulk_upsert_skills … s3_key='tenant=61750f27-…/1787346443-…'  <- carries setup-r32-at108-probe
+   2026-08-21T21:08:21.215518Z [info] asset_ingestion_record_handled … outcome=processed … s3_key='tenant=61750f27-…/1787346497-653dda08-…'
+   2026-08-21T21:08:21.217079Z [info] Completed message … message_id=ef3fc818-70a7-4b96-bdfd-e0c1c741a218
+   (zero dead-letter/poison in the window; the only 'error' strings are benign AMQP idle keep-alive
+    resets logged at INFO.)
+
+## tenant-DB readback (onyx_security.assets):
+     id   |                 name                 |      type      |        status         |          updated_at
+   -------+--------------------------------------+----------------+-----------------------+-------------------------------
+   307936 | setup-r32-at108-probe-20260821210231 | AssetTypeSkill | AssetStatusDiscovered | 2026-08-21 21:04:11.857486+00
+   308396 | setup-r32-at108-probe-20260821210231 | AssetTypeSkill | AssetStatusDiscovered | 2026-08-21 21:07:24.042434+00
+   (row 308396 is the azure-lane write: its updated_at is 3ms after the consumer's bulk_upsert_skills
+    line against the rendered sink's blob. Row 307936 is the parallel gen-1/AWS dual-write lane's
+    earlier upsert from the same probe — both lanes live, per the run's parity design.)
+
+## LANE HEALTH after the rebuild: vector 1/1 READY, 0 ERROR lines post-fix; the parity sinks
+## (azure_blob_parity_tb, s3_sink, s3_sink_parity_ta) asserted byte-identical by derive-sink.py and
+## observed still delivering (parity-* blobs processed 21:08:01-03Z); consumer settling
+## outcome=processed; Kong key-auth guard still 401 without the key.
+
+=================== PART 3 — consumer config provenance (unchanged; round-29 wording stands) ===================
+
+## cm/eai-azure is UNTOUCHED this round (resourceVersion 733615, created 2026-08-18T19:08:58Z —
+## same object the round-29 re-read quoted). Its provenance statement from round 29 stands:
+## every azure-decisive key in the live consumer config equals the authored render — cloud, blob,
+## asset_ingestion_asb, alert_processing_asb, max_messages (the keys that decide transport+storage,
+## separately proven AWS-value-free in the authored render by at8) — while the live cm itself is a
+## lab-harness config additionally carrying two INERT AWS leaves the authored Azure cell blanks
+## (asset_ingestion_s3.{aws_region,endpoint}, asset_ingestion_sqs.{aws_region,endpoint,
+## visibility_timeout,wait_time_seconds} with queue_url=""). Inert is measured, not asserted: the
+## transport guard keys on the queue URL and the live queue_url is the empty string, so the guard
+## correctly does not fire — exactly as at4 proves it DOES fire the moment a real queue_url is
+## present. Live re-read of the decisive keys 2026-08-21T21:10Z (identical to the r29 quote):
+   cloud: azure
+   asset_ingestion_asb:
+     fully_qualified_namespace: "prdct11935bus.servicebus.windows.net"
+     queue_name: "endpoint-asset-ingestion-prdct11935"
+   blob:
+     account_url: https://prdct11935st.blob.core.windows.net
+     container_name: ingestion
+   alert_processing_asb:
+     fully_qualified_namespace: "prdct11935bus.servicebus.windows.net"
+     queue_name: "alert-processing-prdct11935"

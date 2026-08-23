@@ -1,0 +1,50 @@
+# PRDCT-11935 at7-40 — the USAGE class rendered on the product surface that actually carries it
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T01:26:32Z · tenant onyx_security
+#
+# WHY THIS REPLACES THE OLD ATTEMPTS. Round-22's gate (G8) was right that the class was unproven: every
+# probe of /ai-assets/usage failed. The plan owner then adjudicated WHY, in
+# d-c2-ui-usage.amendment_r24: that route is the inventory-APPLICATION detail tree — its bare route 404s
+# by design and $appId takes an inventory application id — so /55751 and /464 were category errors, and
+# ?q=<machine session id> cannot match because the free-text search covers employee name/email and
+# prompt content only. Nothing is narrowed by the correction: the per-class UI demand stands in full,
+# on the route that actually renders a session.
+#
+# THE SURFACE: /ai-activity — the AI Activity table lists usage_sessions rows passing two gates
+# (has_content_events = true; effective asset not pending_ai_classification), and the per-session detail
+# panel opens via the activitySessionId URL param.
+
+## 1. THE SESSION THIS RUN INGESTED, and its two render gates, read from the DB
+      id  |      external_id       | has_content_events | app_id |          created_at           
+    ------+------------------------+--------------------+--------+-------------------------------
+     1389 | 20260821_002214_f12ead | t                  |  55751 | 2026-08-21 00:22:40.623473+00
+    (1 row)
+    
+    It was produced by a real hermes conversation inside the round-24 C2 attribution window and
+    written by the head-exact writer (:prdct11935-r26) — see at7-00.
+
+## 2. THE RENDER, driven in the real authenticated SPA
+    route ai-activity                                http=200  shot=at7-38-ai-activity-list.png
+        rendered 'AI Activity'    True
+        rendered 'Hermes Agent'   True
+    route ai-activity?activitySessionId=1389         http=200  shot=at7-39-ai-activity-session.png
+        rendered '#1389'          True
+        rendered 'Hermes Agent'   True
+
+## 3. WHAT THE CAPTURE SHOWS (at7-39-ai-activity-session.png)
+    · the session id the product assigns, "#1389", in the panel header
+    · "Hermes Agent (coder)" as the acting agent, and Asset Details "Hermes Agent (coder) /
+      Endpoint AI Agent" — the desktop-agent asset this run's scan created the session against
+    · the session's own conversation: the Prompt line is the text typed at the CLI
+      ("Reply with exactly this token and nothing else: …") and the Response beneath it
+    · the token itself shows as [REDACTED] — the product's own sanitization acting on message content.
+      The identity tie is therefore the session id and the conversation shape, not the token.
+
+## 4. AND THE LIST SURFACE, for the same class (at7-38-ai-activity-list.png)
+    /ai-activity renders "Showing 287 requests" with this run's rows at the top of a date-sorted table.
+
+## 5. WHAT IS NOT CLAIMED
+    /ai-assets/usage is NOT claimed to render sessions — it does not, by design, and the earlier body
+    text asserting otherwise is removed rather than left standing beside this capture.

@@ -1,0 +1,27 @@
+# PRDCT-11935 at3-04 — the sibling payload's rows, landed
+# FILE LAST WRITTEN 2026-08-21T21:53:39Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T21:53:39Z · tenant onyx_security
+#
+# RE-DRIVEN ON HEAD (round-29 gate, G7a) alongside at3-01/02/03. This is the DB half of at3's sibling
+# check: a poison message parked in the same window must not stop ordinary objects from being written.
+
+=================== THE SIBLING ===================
+    A fresh skill created on this machine for this window, then driven through the REAL front door
+    (onyx-scanner -> Kong -> vector -> Azure Blob -> Event Grid -> Service Bus -> the azure consumer):
+        subject       at3sib-20260821214753
+        scan_run_id   97fe7126-7b22-499a-a1ec-cc52b362f628
+    Its settlement line (`outcome=processed`, `Completed message`) is in at3-03.
+
+=================== THE ROWS IT WROTE ===================
+       id   |         name          |      type      |                          skill_md_hash                           
+    --------+-----------------------+----------------+------------------------------------------------------------------
+     309879 | at3sib-20260821214753 | AssetTypeSkill | 2cda7f3e3abf211bd7fa14722480377e85d1fe0a7dc5c9a901b3a6f47c6dfa6e
+    (1 row)
+    
+    2cda7f3e3abf211bd7fa14722480377e85d1fe0a7dc5c9a901b3a6f47c6dfa6e  /home/coder/prdct11935-lab/.claude/skills/at3sib-20260821214753/SKILL.md
+
+    The identity tie is the same one the fidelity class rests on: the digest on the LEFT was computed on
+    disk by sha256sum, the one in `agent_skills.skill_md_hash` was computed by the Python lane from the
+    payload, and they are identical — while, in the same window, a poison message sat parked in the
+    $DeadLetterQueue (at3-02).

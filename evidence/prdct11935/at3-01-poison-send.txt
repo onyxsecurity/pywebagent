@@ -1,0 +1,45 @@
+# PRDCT-11935 at3-01 — the malformed body as placed on the real queue, on the SHIPPED head
+# FILE LAST WRITTEN 2026-08-21T21:47:19Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-db9nv
+# captured 2026-08-21T21:47:19Z · tenant onyx_security
+#
+# RE-DRIVEN ON THE ACTUAL HEAD (round-29 gate, G7a). The previous at3-01/02/03 were stamped
+# `onyx branch f4b3e9dfb2 · image :prdct11935-r24` — head~2 — while at3-03's line 6 claimed
+# "Re-captured on the FINAL head image". That sentence was false about its own capture, and the fix is a
+# re-drive rather than a re-stamp: these three now document a poison message sent, parked and read back
+# on a2486bb33f / :prdct11935-r26, the image the PR ships.
+#
+# AND THE SECOND CLAIM IS DROPPED, NOT REPAIRED. The old premise was "the DLQ was drained to empty before
+# the send, so nothing older can be mistaken for this run" — contradicted by at3-01's own line, which
+# printed `active=0 dead_letter=6` immediately after that drain. Draining the ACTIVE queue does not empty
+# the DEAD-LETTER sub-queue, and this run has since parked 95 messages there legitimately. So this capture
+# does not claim an empty DLQ. It identifies its own message two stronger ways instead: a unique marker id
+# carried INSIDE the body (r32-poison-214512), and the broker message_id the writer's own log
+# names as it parks it. Both are matched on the way back out.
+
+=================== THE VEHICLE ===================
+    An Event-Grid-shaped body whose blob url names the CONTAINER only, so no object key can be derived
+    and no redelivery could ever change that — the lane's `no_ingestible_object` poison class. Sent to
+    the REAL lab queue with the same sys.Label the real Event Grid subscription stamps, so the
+    subscription's SQL rule would have accepted it.
+
+        marker id inside the body : r32-poison-214512
+        Label (sys.Label)         : /blobServices/default/containers/ingestion
+        blob url in the body      : https://prdct11935st.blob.core.windows.net/ingestion   (container, no object)
+
+=================== THE DRIVE, and the queue either side of it ===================
+    ## queue BEFORE the send: active=0 dead_letter=95
+    ## sent 479 bytes (marker id=r32-poison-214512) with Label=/blobServices/default/containers/ingestion
+    ## queue AFTER: active=0 dead_letter=96  (dlq delta 1)
+
+    The DLQ is NOT empty and is not claimed to be: it holds 95 messages this run parked legitimately
+    across earlier rounds. What identifies THIS message is the +1 delta together with the marker and the
+    message_id below — not an assumption about what else is in the queue.
+
+=================== THE WRITER'S DECISION, and the id it parked ===================
+    2026-08-21T21:45:18.299357Z [warning  ] poison message — no ingestible object, dead-lettering [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=handle lineno=108 message_id=67b50
+    2026-08-21T21:45:18.299862Z [info     ] Dead-lettered message          [common_core.services.queue.asb] filename=asb.py func_name=dead_letter_message lineno=288 message_id=67b505b5-7a93-4efd-9d5c-21eaecc39aeb reason='no
+
+    THE JOINING ID: 67b505b5-7a93-4efd-9d5c-21eaecc39aeb
+    at3-02 reads that exact id back out of the real $DeadLetterQueue; at3-03 carries the log lines and the
+    counter.

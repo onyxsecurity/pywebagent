@@ -1,0 +1,35 @@
+# PRDCT-11935 at7-09 — DB rows, classes MCP TOOLS and POSTURE
+# FILE LAST WRITTEN 2026-08-21T23:10:00Z
+#
+# ROUND-33 CITE REFRESH (S10, line-number-only). `mcp_writer.py:1181` -> `mcp_writer.py:1209` — `upsert_mcp_tools`; :1181 at HEAD is `destination_asset_id=asset.asset_id`. Mirrored from the plan's
+# CORRECTION LOG under the orchestrator-authorized joint S1-S12 refresh (plan re-frozen at
+# sha256 7f26074e90cf643d...); the corrected line was re-read with sed at HEAD before this edit.
+# Nothing else in this file changed. Full mirror record: evidence/at10-07-stale-cite-refresh.txt.
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T03:39:18Z · tenant onyx_security
+#
+# RE-CAPTURED ON THE HEAD-EXACT IMAGE (gate G7). Round 23's gate found 19 of 21 at7 artifacts still
+# declared 0665ecc545 with image r24/r25 — the commit before the round-24 sender fix, on images built
+# before it. Every row below was re-driven on :prdct11935-r26, which is built from a2486bb33f and proven
+# byte-exact (4741/4741 head .py files, evidence/at6-12-image-provenance.txt).
+# gen-1 was quiesced for the window (schedule PAUSED + zero pods), so each class is attributable to the
+# lane under test — the receipt is evidence/at7-00-isolation.txt.
+#
+
+=========================== MCP TOOLS ===========================
+--- class MCP TOOLS
+ id  |    server    |     tool     |      type       | is_active 
+-----+--------------+--------------+-----------------+-----------
+  98 | Onyx Lab MCP | lab_echo     | ToolTypeMCPTool | t
+  99 | Onyx Lab MCP | lab_hostname | ToolTypeMCPTool | t
+ 100 | Onyx Lab MCP | lab_search   | ToolTypeMCPTool | t
+ 101 | Onyx Lab MCP | lab_time     | ToolTypeMCPTool | t
+ 102 | Onyx Lab MCP | lab_verify   | ToolTypeMCPTool | t
+(5 rows)
+
+## FIDELITY: all five tools above are ones the machine's own bundle manifest declares, written by upsert_mcp_tools
+##  (mcp_writer.py:1209) with type=ToolTypeMCPTool onto the bundle asset created in this window.
+
+=========================== POSTURE =============================
+## Settles on the plan's own pre-declared fallback — "bridge-ran, no issue, with the workflow execution
+## shown" — evidenced in at7-29. No issue was minted for this window's assets.

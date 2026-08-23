@@ -1,0 +1,35 @@
+# PRDCT-11935 at8-07 — the two instances' rendered KEDA objects are identical modulo instance naming
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# captured 2026-08-18T19:41:33Z
+#
+# This is what lets the live arm of ONE instance (saas) cover the other by identity rather than by
+# inference: if the rendered trigger + auth differ only in the instance name, arming one arms the shape
+# of both. Any non-naming delta would require arming both.
+
+## ScaledObject + TriggerAuthentication + Secret, saas vs centerpoint (raw diff):
+--- /tmp/prdct11935/saas.keda.yaml	2026-08-18 19:41:33.676805551 +0000
++++ /tmp/prdct11935/centerpoint.keda.yaml	2026-08-18 19:41:33.707805016 +0000
+@@ -33,14 +33,14 @@
+ kind: Secret
+ metadata:
+   name: servicebus-connection
+-  namespace: saas
++  namespace: centerpoint
+ stringData:
+   connection: ${servicebus_connection_string}
+ apiVersion: keda.sh/v1alpha1
+ kind: TriggerAuthentication
+ metadata:
+   name: keda-trigger-auth-servicebus
+-  namespace: saas
++  namespace: centerpoint
+ spec:
+   secretTargetRef:
+     - key: connection
+
+## the same diff with the instance name normalised — empty output means identical modulo naming:
+   (no differences)
+
+## and the same check across the ENTIRE kustomize build of both instances:
+   whole build: identical modulo the instance name

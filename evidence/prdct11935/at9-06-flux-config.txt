@@ -1,0 +1,76 @@
+# PRDCT-11935 at9-06 — publishing the queue name + namespace into the flux config
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch dfe23b9e83 · infrastructure HEAD @ 06304eb25472 · captured 2026-08-20T06:06:27Z
+#
+# RE-CAPTURED IN ROUND 16, AND IT CORRECTS ITSELF. The version this replaces was captured
+# 2026-08-18T19:36:51Z and said the two keys are 'Emitted UNCONDITIONALLY, like the AWS side …
+# correct whether or not create_endpoint_asset_ingestion_queue is on'. That was true when it was
+# written and is FALSE of what ships: commit 3219b7ce (2026-08-19T14:56:35Z), ~19 h after that
+# capture, replaced the hardcoded strings with values read off the real resources and made the
+# publish CONDITIONAL. The artifact is regenerated from the file at the live sibling head.
+#
+# Why the run's own provenance gate could not flag this: at10-04 computed staleness from the ONYX
+# sha only, so an artifact about the infrastructure repo could never be marked stale however far
+# that repo moved. at10-04 now carries a per-artifact infrastructure and flux-fleet sha.
+
+## the authored hunk, read from modules/onyx/cell-azure-instance/fluxcd_config.tf at 06304eb25472 (lines 89-117):
+      # endpoint-asset-ingestion lane (MCP scanner) — Azure counterpart of the AWS
+      # endpoint_asset_ingestion_queue_url key. The AWS side string-composes its URL
+      # because the queue is created in a different root (data-plane-v2); here the queue
+      # lives in THIS module, so both values are read off the real resources and are
+      # published only when those resources exist. Be precise about what that costs: Flux
+      # resolves an unprovided ${...} to the EMPTY STRING and reconciles successfully, so an
+      # instance whose flux release enables the lane while
+      # create_endpoint_asset_ingestion_queue is off does NOT fail the Kustomization — it
+      # renders an empty queue name, and the failure surfaces at the pod as the transport
+      # guard's refusal to start (CrashLoopBackOff). That is why the apply ORDER matters:
+      # infrastructure first, then the flux toggle.
+      #
+      # Both keys are the lane's OWN, not the shared servicebus_namespace the extension
+      # consumers use, even though the two resolve to the same namespace today: the shared
+      # key is published only with create_ingestion_queue, so reusing it would make this
+      # lane silently depend on the EXTENSION lane's toggle.
+      #
+      # The consumer's workload-identity client id is published automatically below as
+      # endpoint_asset_ingestion_client_id (the identity is created for the same toggle),
+      # and its blob inputs come from blob_account_url / blob_container_name.
+      #
+      # No DLQ counterpart: a Service Bus queue's dead-letter sub-queue is addressed as
+      # <queue>/$deadletterqueue on the same namespace, so there is nothing extra to
+      # publish (unlike the AWS lane's separate endpoint_asset_ingestion_dlq_url).
+      var.create_service_bus && var.create_endpoint_asset_ingestion_queue ? {
+        endpoint_asset_ingestion_queue_name           = azurerm_servicebus_queue.endpoint_asset_ingestion[0].name
+        endpoint_asset_ingestion_servicebus_namespace = "${azurerm_servicebus_namespace.tenant[0].name}.servicebus.windows.net"
+      } : {},
+  
+
+## WHAT THIS MEANS, stated as the code states it. The publish is gated on
+##     var.create_service_bus && var.create_endpoint_asset_ingestion_queue
+## and the comment above it gives the reason: both values are read off the real resources, so they
+## are 'published only when those resources exist'.
+##
+## BE PRECISE ABOUT WHAT THE GATE DOES NOT DO, because an earlier version of this artifact — and the
+## comment it quoted — got it backwards. It does NOT fail the render. Flux resolves an unprovided
+## ${...} to the EMPTY STRING and the Kustomization reconciles successfully. So an instance whose
+## flux release enables the lane while the queue toggle is off gets an EMPTY queue name, and the
+## failure surfaces at the POD — the transport guard refuses to start, which is a CrashLoopBackOff.
+## That is exactly why the apply ORDER is load-bearing: infrastructure first, then the flux toggle.
+## Both the release.yaml comment and this module comment were corrected to say so (at8-04).
+
+## The load-bearing property is unchanged and is the one d-b5 actually needs: the lane binds to its
+## OWN keys, not the shared servicebus_namespace the extension consumers use. The comment says why:
+      # published only when those resources exist. Be precise about what that costs: Flux
+      # resolves an unprovided ${...} to the EMPTY STRING and reconciles successfully, so an
+      # instance whose flux release enables the lane while
+      # create_endpoint_asset_ingestion_queue is off does NOT fail the Kustomization — it
+      # renders an empty queue name, and the failure surfaces at the pod as the transport
+
+## and the AWS pattern it is the counterpart of (cell-aws-instance/fluxcd_config.tf):
+  132:      endpoint_asset_ingestion_queue_url = "https://sqs.${data.aws_region.current.name}.amazonaws.com/${data.aws_caller_identity.current.account_id}/endpoint-asset-ingestion-${var.tenant}"
+  133:      endpoint_asset_ingestion_dlq_url   = "https://sqs.${data.aws_region.current.name}.amazonaws.com/${data.aws_caller_identity.current.account_id}/endpoint-asset-ingestion-dlq-${var.tenant}"
+  (the AWS side string-composes from account+region+tenant, so it has no resource to be conditional
+   on; the Azure side reads real resource attributes, which is what forces the gate.)
+
+## the consumer's workload-identity client id rides the module's existing generic identity block:
+  129:      "${replace(k, "-", "_")}_client_id" => v.client_id

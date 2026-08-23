@@ -1,0 +1,122 @@
+# PRDCT-11935 at10-07 — the two merge-impact checks the body asserts, actually run
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch dfe23b9e83 · captured 2026-08-20T02:38:24Z
+#
+# Both of these were stated in the PR body as measurements and neither had a captured artifact.
+# They bound the claim that main's changes, merged into this branch, move nothing this run's
+# evidence depends on. Commands are shown so either can be re-run.
+
+############ 1. the display-name refactor: does any asset name change? ############
+## main lifted AGENT_DISPLAY_NAMES out of desktop_agent_creator/activities.py into
+## common/models/agent_display_names.py. Asset names come from it, so if any VALUE moved, every row dump
+## in this run would be suspect.
+##
+## CORRECTION. The first version of this section printed only the LOAD command and three bare output
+## lines, so its "48" could not be re-run from the file — and a verifier reproducing it measured 43. Both
+## numbers are right about DIFFERENT universes, which is exactly why the universe has to be named and the
+## invocation shown. Everything below is the command and its verbatim stdout.
+##
+##   $ git show 23247bd494^:backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/activities.py \
+##       > /tmp/prdct11935/pre_activities.py
+##   # lift the pre-merge map + humanizer out of it into an importable module:
+##   $ python3 -c "...extract AGENT_DISPLAY_NAMES and _prettify_app_name..." > /tmp/prdct11935/oldname_mod.py
+##   $ uv run python /tmp/prdct11935/r15-slugs.py
+##
+## and that comparison script, in full, so the numbers below are reproducible rather than asserted:
+##   """The differential display-name comparison, with every universe counted separately.
+##   
+##   Round 14's artifact printed only the LOAD command and three bare output lines, so the number could not be
+##   re-run from the file. A verifier reproducing it measured 43 where the body said 48. Both are right about
+##   different universes, which is exactly why the universe has to be stated and the invocation shown.
+##   """
+##   import importlib.util
+##   spec = importlib.util.spec_from_file_location("oldnames", "/tmp/prdct11935/oldname_mod.py")
+##   old = importlib.util.module_from_spec(spec); spec.loader.exec_module(old)
+##   from common.models.agent_display_names import prettify_app_name as new
+##   from common.models import agent_display_names as adn
+##   
+##   pre = set(old.AGENT_DISPLAY_NAMES)
+##   post = set(getattr(adn, "AGENT_DISPLAY_NAMES", {}))
+##   probes = {"claude-code", "claude_code", "cursor", "windsurf", "cline", "aider", "goose"}
+##   curated = sorted(pre | post)
+##   withprobes = sorted(pre | post | probes)
+##   
+##   def diffs(slugs):
+##       return [(s, old._prettify_app_name(s), new(s)) for s in slugs if old._prettify_app_name(s) != new(s)]
+##   
+##   print(f"    curated map, pre-merge  (AGENT_DISPLAY_NAMES in {'{}'.format('activities.py at 23247bd494^')}): {len(pre)} slugs")
+##   print(f"    curated map, shipped    (common/models/agent_display_names.py):        {len(post)} slugs")
+##   print(f"    union of the two curated maps:                                         {len(curated)} slugs")
+##   print(f"    probe slugs added by this harness (the agents this run detects):       {len(probes)} "
+##         f"({len(probes - (pre | post))} of them not already in the maps)")
+##   print(f"    UNIVERSE ACTUALLY COMPARED = curated union + probes:                   {len(withprobes)} slugs")
+##   print()
+##   print(f"    display names that CHANGED over the curated union ({len(curated)}):    {len(diffs(curated))}")
+##   print(f"    display names that CHANGED over the full universe ({len(withprobes)}): {len(diffs(withprobes))}")
+##   for s, o, n in diffs(withprobes):
+##       print(f"      {s}: {o!r} -> {n!r}")
+##   print()
+##   print(f"    claude-code (the agent this run writes): pre {old._prettify_app_name('claude-code')!r} "
+##         f"-> post {new('claude-code')!r}")
+
+## stdout:
+    curated map, pre-merge  (AGENT_DISPLAY_NAMES in activities.py at 23247bd494^): 43 slugs
+    curated map, shipped    (common/models/agent_display_names.py):        43 slugs
+    union of the two curated maps:                                         43 slugs
+    probe slugs added by this harness (the agents this run detects):       7 (5 of them not already in the maps)
+    UNIVERSE ACTUALLY COMPARED = curated union + probes:                   48 slugs
+
+    display names that CHANGED over the curated union (43):    0
+    display names that CHANGED over the full universe (48): 0
+
+    claude-code (the agent this run writes): pre 'Claude Code' -> post 'Claude Code'
+
+## READ: the two curated maps are identical in size and content-for-content — union 43, zero changed. The
+## harness also probes 7 slugs for the agents this run detects; 5 of those are not in either map, which is
+## the only reason the compared universe is 48 rather than 43. Zero names changed under EITHER universe,
+## and claude-code — the agent this run actually writes — resolves to 'Claude Code' on both sides.
+
+############ 2. the device-less-placeholder adoption hook: is it reached, and does it act? ############
+## main added an adoption hook inside process_single_agent, which the scanner lane DOES call. It returns
+## early unless placeholder_lookup_prefixes(app_definition_id) is non-empty; otherwise it looks up an
+## existing placeholder asset by those prefixes and, if it finds one, ADOPTS it by rewriting its identifier.
+##
+## CORRECTION, and the reason this file exists. The PR body previously claimed the hook was gated off for
+## every app this run writes, listing endpoint_claude_code / endpoint_cursor / endpoint_codex /
+## endpoint_opencode as all yielding an empty tuple. That was wrong twice over: the ids this run actually writes are hyphenated
+## (endpoint_claude-code, not endpoint_claude_code) and include endpoint_claude, and for BOTH of those the
+## function returns a NON-empty tuple. The claim was written from the app names in the scan rather than the
+## app_definition_ids in the database, and it was never run. Here it is run, against the ids the DB holds.
+##
+##   $ psql -c "select distinct app_definition_id from prdct11935_tb.assets
+##              where type = 'AssetTypeDesktopAgent' and app_definition_id is not null order by 1;"
+      app_definition_id   
+    ----------------------
+     endpoint_claude
+     endpoint_claude-code
+     endpoint_codex
+     endpoint_openclaw
+     endpoint_opencode
+    (5 rows)
+
+##   $ uv run python -c 'from common.models.device_less_placeholders import placeholder_lookup_prefixes ...'
+    endpoint_claude          -> ('ai_user::endpoint_claude', 'claude_desktop_by_anthropic_compliance')
+    endpoint_claude-code     -> ('ai_user::endpoint_claude-code',)
+    endpoint_codex           -> ()
+    endpoint_openclaw        -> ()
+    endpoint_opencode        -> ()
+
+## So the hook is NOT gated off for endpoint_claude or endpoint_claude-code — it runs for both. What makes
+## it a no-op here is the next step: it can only adopt a placeholder asset that already exists, and this
+## tenant holds none.
+##   $ psql -c "select count(*) from prdct11935_tb.assets where unique_identifier like 'ai_user::%'
+##              or unique_identifier like 'claude_desktop_by_anthropic_compliance%';"
+     placeholder_namespace_assets 
+    ------------------------------
+                                0
+    (1 row)
+
+## Zero placeholder-namespace assets, so the lookup returns nothing and the hook returns without touching a
+## row — which is also what the head-image re-drive shows empirically: every settlement outcome=processed,
+## no adopted or extra asset (at1-04, at1-05).

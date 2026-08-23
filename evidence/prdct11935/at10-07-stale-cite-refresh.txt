@@ -1,0 +1,119 @@
+# PRDCT-11935 at10-07 — the PR-side mirror of the AUTHORIZED S1-S12 stale-cite refresh
+# FILE LAST WRITTEN 2026-08-21T23:09:41Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · captured 2026-08-21T23:09:41Z
+# plan re-frozen by research at sha256 7f26074e90cf643d... · owner-veto post:
+#   https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787353409866929?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+#
+# WHAT THIS IS. Research (the plan's only sanctioned editor) re-emitted test_plan.json under an
+# orchestrator-authorized refresh of twelve drifted `file:line` cites, with an explicit CORRECTION LOG
+# appended to each frozen record it could not edit in place. This file is the PR half of that same
+# refresh, so plan and PR do not fork — the fork risk research's own S3 note called out.
+#
+# EVERY CORRECTED VALUE BELOW WAS RE-VERIFIED HERE, at HEAD, BY THIS FILE'S OWN GENERATOR — not carried
+# on research's word. Each row prints the line the corrected cite resolves to, read with sed at write
+# time. A cite I could not see with my own eyes does not go into the PR.
+
+=================== THE TWELVE, AND WHERE EACH LANDED ON THE PR SIDE ===================
+  S1  at3 flow
+        old  asb.py:212-217
+        new  common_core/services/queue/asb.py:283-288   (dead_letter_message)
+        HEAD asb.py:283  ->  'async def dead_letter_message(self, msg: ReceivedMessage, reason: str) -> None'
+        PR-side files mirrored: —
+
+  S2  at10 flow
+        old  service.py:15-19
+        new  endpoint_asset_ingestion/service.py:21-31   (M1 no-fairness precedent (:27))
+        HEAD service.py:27  ->  'M1 ships WITHOUT per-tenant fairness — a requester-sanctioned deviation from t'
+        PR-side files mirrored: —
+
+  S3  at1/at10 flow, seed_data, frozen amendment
+        old  consts.py:202-207
+        new  feature_flags/consts.py:212-216   (CUTOVER ORDERING CONTRACT)
+        HEAD consts.py:212  ->  '# CUTOVER ORDERING CONTRACT (per-tenant): turn the NEW lane ON before turning '
+        PR-side files mirrored: at1-12-ld-cutover-state.txt
+
+  S4  created/matched sources, at6 flow
+        old  writers.py:296,637,642 / mcp_writer.py:1024-1025
+        new  writers.py:299,667,672 / mcp_writer.py:1032   (records_written created|matched)
+        HEAD mcp_writer.py:1032  ->  'RecordsWrittenLabels(step="mcp_upsert", table="assets", tenant_schema=tenant_s'
+        PR-side files mirrored: —
+
+  S5  reingest-skip source, at6 flow
+        old  writers.py:1137 / mcp_writer.py:1519
+        new  writers.py:1033-1035 / mcp_writer.py:904-935   (re-ingest skip decision)
+        HEAD mcp_writer.py:904  ->  'skip_decision = await mac.evaluate_mcp_ingestion_skip('
+        PR-side files mirrored: —
+
+  S6  poison DLQ source, at3+at6 flow
+        old  message_handler.py:91-96
+        new  message_handler.py:127-141   (dead_letter 134, dead_letters.inc 135)
+        HEAD message_handler.py:134  ->  'await client.dead_letter_message(msg, reason=reason)'
+        PR-side files mirrored: —
+
+  S7  (already applied in round 32)
+        old  —
+        new  —   (—)
+        PR-side files mirrored: —
+
+  S8  at6 flow result-label span
+        old  message_handler.py:79-137
+        new  message_handler.py:93-173   (parse_err 98 … ok 173)
+        HEAD message_handler.py:98  ->  'metrics.records.inc(RecordLabels(result="parse_err"))'
+        PR-side files mirrored: —
+
+  S9  at6 flow
+        old  consts.py:222-227
+        new  feature_flags/consts.py:232-237   (MCP_REINGEST_SKIP_FLAG_KEY at 237)
+        HEAD consts.py:237  ->  'MCP_REINGEST_SKIP_FLAG_KEY = "mcp-reingest-skip-enabled"'
+        PR-side files mirrored: —
+
+  S10 MCP-tools sources/flows
+        old  mcp_writer.py:1181
+        new  mcp_writer.py:1209   (upsert_mcp_tools)
+        HEAD mcp_writer.py:1209  ->  'await mac.upsert_mcp_tools('
+        PR-side files mirrored: at7-09-db-rows-tools.txt, at7-09-db-rows-posture.txt, at7-09-db-rows-tools-posture.txt, at7-23-attestations.txt
+
+  S11 posture sources/flows
+        old  writers.py:82,658
+        new  writers.py:83,701-702   (STEP_POSTURE_TRIGGER)
+        HEAD writers.py:702  ->  'async def _posture_trigger(deps: IngestionDeps, created_asset_ids: list[int]) '
+        PR-side files mirrored: —
+
+  S12 d-c13-3.amendment_r21 (frozen)
+        old  activities.py:588-592
+        new  mcp_asset_creation/activities.py:533   (calculate_mcp_id)
+        HEAD activities.py:533  ->  'def calculate_mcp_id('
+        PR-side files mirrored: at6-06-ledger.txt, at6-09-fresh-tenant-parity.txt
+
+=================== WHAT THE PR BODY ITSELF NEEDED — AND THE HONEST ANSWER ===================
+    Research's §Round 32 note anticipated that "the PR-body ledger rows also carry the amendment's literal
+    `202-207` wording", and the round-33 dispatch was written on that expectation. MEASURED before editing
+    anything: the PR body carries NONE of the twelve stale tokens, and no bare form of them either —
+    `grep -F` for all seventeen old literals plus a loose sweep for the bare line numbers (`202-207`,
+    `588-592`, `:1181`, …) returns ZERO hits, and the body does not cite `consts.py` at all. The rows that
+    carried that wording were rewritten in rounds 31-32 for unrelated reasons and no longer quote line
+    numbers. So the body needed no value changed, and none was invented to make the task look done.
+    It gains one thing only: a pointer to this refresh, so a reviewer can see the plan and the PR moved
+    together.
+
+    Where the drift HAD reached the PR side is the evidence set, which is equally PR-side — the PR embeds
+    and cites these files. Three of the twelve had landed there (S3, S10, S12); the other nine live only in
+    plan prose. All three are mirrored above.
+
+=================== TWO OCCURRENCES DELIBERATELY LEFT ALONE ===================
+    `consts.py:202-207` still appears in two files, and both are correct as they stand:
+
+      at6-10-followup-ticket.txt:63   INSIDE the verbatim ClickUp fetch of PRDCT-12061 (the verbatim
+                                      section starts at line 29). That text is what the LIVE TICKET says.
+                                      Rewriting a verbatim fetch to match a newer line number would make
+                                      the artifact a forgery of the ticket — the receipt's whole value is
+                                      that it is unedited. The ticket itself should be updated by whoever
+                                      owns it; this run reports the drift rather than papering over it.
+      verify-r9-03-evidence-inventory.txt  verifier-authored. Not this agent's file to edit.
+
+    research-r29/r33-veto-permalink.txt also carry the old tokens, correctly — a correction log has to
+    quote the value it is correcting.
+
+=================== SCOPE ===================
+    Twelve cites mirrored, zero semantic changes, nothing else touched. The deferred at2 REJECT_DUPLICATE
+    item from research's §Round 32 list is an ADDITION, not a refresh, and stays deferred on both sides.

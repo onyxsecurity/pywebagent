@@ -1,0 +1,143 @@
+# PRDCT-11935 at6-04a — side-by-side diff, class: created
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T03:04:11Z
+# left  = prdct11935_ta, written by the REAL gen-1 Go/Temporal lane off its own schedule
+# right = prdct11935_tb, written by the new azure-mode writer on the head-exact image
+#
+# CAPTURED ON THE HEAD-EXACT IMAGE. localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 is built from a2486bb33f and proven byte-exact before use
+# (4741/4741 head .py files, evidence/at6-12-image-provenance.txt).
+#
+# WHAT CHANGED THIS ROUND (gate G2). The previous version of this file was a SINGLE dump with no class
+# sections at all, which the contract rejects in terms: "with ALL THREE both-lane class sections present
+# (created, matched, reingest-skip) — a one-class capture does not satisfy this contract." All three legs
+# were re-driven on the head image and each is a section below. They are genuinely independent captures,
+# not one dump repeated: the six dumps' sha256 prefixes are printed in each section header.
+#
+# THIS LEG: a first ingest into empty tenants — every row is an INSERT
+# Its inputs are that leg's own dumps — ta sha256[:12] 9666cc3fe224, tb a7746d2a48d0 —
+# so the three at6-04 files are independent measurements, which is the second half of what G2 asked for.
+# Every remaining difference is itemised WITH DIRECTION and a root cause at file:line in at6-06-ledger.txt;
+# the direction-aware enumeration of this same leg is at6-09's "created" section.
+
+########## diff -u <gen-1 TA> <new-lane TB> ##########
+--- /tmp/prdct11935/r25/created-ta.txt	2026-08-21 02:55:39.386977137 +0000
++++ /tmp/prdct11935/r25/created-tb.txt	2026-08-21 02:55:40.912949362 +0000
+@@ -1,7 +1,7 @@
+ --- assets by type/sub_type/status/is_deleted
+ type|sub_type|status|is_deleted|count
+ AssetTypeDesktopAgent|AssetSubTypeAIAgent||f|5
+-AssetTypeMCP|AssetSubTypeMCPServer|AssetStatusDiscovered|f|18
++AssetTypeMCP|AssetSubTypeMCPServer|AssetStatusDiscovered|f|20
+ AssetTypeSkill|AssetSubTypeSkill|AssetStatusDiscovered|f|196
+ AssetTypeSubAgent|AssetSubTypeSubAgent|AssetStatusDiscovered|f|52
+ (4 rows)
+@@ -12,23 +12,25 @@
+ Claude Code (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_claude-code::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_claude-code|f
+ Codex (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_codex::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_codex|f
+ Hermes Agent (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_hermes-agent::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_hermes-agent|f
+-OpenClaw (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_openclaw::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_openclaw|f
++OpenClaw (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_openclaw::ec255301bd4407d309fbce94811384b0||f|2026.5.7 (eeef486)||Desktop|endpoint_openclaw|f
+ Context7 MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@upstash/context7-mcp::4.0.2|AssetStatusDiscovered|f|4.0.2|||@upstash/context7-mcp|f
+ Firefox DevTools MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|firefox-devtools-mcp::0.9.2|AssetStatusDiscovered|f|0.9.2|||firefox-devtools-mcp|f
+ Gmail|AssetTypeMCP|AssetSubTypeMCPServer|gmailmcp.googleapis.com/mcp/v1::unknown|AssetStatusDiscovered|f|unknown|||gmailmcp.googleapis.com/mcp/v1|f
+ Google Calendar|AssetTypeMCP|AssetSubTypeMCPServer|calendarmcp.googleapis.com/mcp/v1::unknown|AssetStatusDiscovered|f|unknown|||calendarmcp.googleapis.com/mcp/v1|f
+ Google Drive|AssetTypeMCP|AssetSubTypeMCPServer|drivemcp.googleapis.com/mcp/v1::unknown|AssetStatusDiscovered|f|unknown|||drivemcp.googleapis.com/mcp/v1|f
+-Local MCP Server (.claude/scripts/prod-db-cached.sh)|AssetTypeMCP|AssetSubTypeMCPServer|.claude/scripts/prod-db-cached.sh::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||.claude/scripts/prod-db-cached.sh::ec255301bd4407d309fbce94811384b0|f
+-Local MCP Server (.claude/scripts/stg-db-cached.sh)|AssetTypeMCP|AssetSubTypeMCPServer|.claude/scripts/stg-db-cached.sh::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||.claude/scripts/stg-db-cached.sh::ec255301bd4407d309fbce94811384b0|f
+-Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs)|AssetTypeMCP|AssetSubTypeMCPServer|/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs::ec255301bd4407d309fbce94811384b0|f
++Groundcover MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.groundcover.com/api/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.groundcover.com/api/mcp|f
++Incident.io MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.incident.io/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.incident.io/mcp|f
+ Local MCP Server (/opt/coder/coder)|AssetTypeMCP|AssetSubTypeMCPServer|/opt/coder/coder::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||/opt/coder/coder::ec255301bd4407d309fbce94811384b0|f
+-Local MCP Server (mailosaur-mcp-server.js)|AssetTypeMCP|AssetSubTypeMCPServer|mailosaur-mcp-server.js::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||mailosaur-mcp-server.js::ec255301bd4407d309fbce94811384b0|f
++Local MCP Server (bash)|AssetTypeMCP|AssetSubTypeMCPServer|bash::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||bash::ec255301bd4407d309fbce94811384b0|f
++Local MCP Server (node)|AssetTypeMCP|AssetSubTypeMCPServer|node::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||node::ec255301bd4407d309fbce94811384b0|f
+ Notion MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@notionhq/notion-mcp-server::2.2.1|AssetStatusDiscovered|f|2.2.1|||@notionhq/notion-mcp-server|f
+ Onyx Lab MCP|AssetTypeMCP|AssetSubTypeMCPServer|mcpb:onyx-lab-mcp::1.4.0|AssetStatusDiscovered|f|1.4.0|||mcpb:onyx-lab-mcp|f
+ Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::0.0.74|AssetStatusDiscovered|f|0.0.74|||@playwright/mcp|f
+-Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::0.0.79|AssetStatusDiscovered|f|0.0.79|||@playwright/mcp|f
++Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::unknown|AssetStatusDiscovered|f|unknown|||@playwright/mcp|f
+ Remote MCP Server (https://kraft.onyxhub.io/api/mcp)|AssetTypeMCP|AssetSubTypeMCPServer|kraft.onyxhub.io/api/mcp::unknown|AssetStatusDiscovered|f|unknown|||kraft.onyxhub.io/api/mcp|f
++Sentry MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.sentry.dev/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.sentry.dev/mcp|f
+ Slack|AssetTypeMCP|AssetSubTypeMCPServer|mcp.slack.com/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.slack.com/mcp|f
++Tavily MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.tavily.com/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.tavily.com/mcp|f
+ mcp-remote MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp-remote::0.1.30|AssetStatusDiscovered|f|0.1.30|||mcp-remote|f
+ mcp-remote MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp-remote::0.1.38|AssetStatusDiscovered|f|0.1.38|||mcp-remote|f
+ 1password|AssetTypeSkill|AssetSubTypeSkill|ef337c6006f065a13ade18d8f7decdd9d6a335337656fa1c701b47e499cda8d4|AssetStatusDiscovered|f|||||f
+@@ -279,7 +281,7 @@
+ verify|AssetTypeSubAgent|AssetSubTypeSubAgent|subagent::ab774c6e0dbc7b83c1e3247190c680014db7ac325f9546a44eee8bf168c5da3e|AssetStatusDiscovered|f|||||f
+ verify|AssetTypeSubAgent|AssetSubTypeSubAgent|subagent::b2b078f86049d527919224f4068f76b5fc1a505c83eecb157530480c7709177e|AssetStatusDiscovered|f|||||f
+ verify|AssetTypeSubAgent|AssetSubTypeSubAgent|subagent::b3ff3fdd9e1712d1d196e22b2873e2de6da58088373754b0a59a63ffb8949ad9|AssetStatusDiscovered|f|||||f
+-(271 rows)
++(273 rows)
+ 
+ --- mcp servers (name|uid|type|source_type|publisher|is_public|hash)
+ name|unique_identifier|type|source_type|coalesce|is_public|coalesce
+@@ -288,20 +290,22 @@
+ Gmail|gmailmcp.googleapis.com/mcp/v1::unknown|Remote|Http|||35798b08f1318af1d7b9a6002cdb7832a8fd8ec8e9d559f96677a3eb5bd2b752
+ Google Calendar|calendarmcp.googleapis.com/mcp/v1::unknown|Remote|Http|||329997d370044cc19e9261968e043745e9360020bbaf805ada55f543efc5d443
+ Google Drive|drivemcp.googleapis.com/mcp/v1::unknown|Remote|Http|||1e521cbc1dbe1459c51205938149a628f53c8bbcef4477d19adb9198b89b62fc
+-Local MCP Server (.claude/scripts/prod-db-cached.sh)|.claude/scripts/prod-db-cached.sh::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||02992f8b8c19e23e902bb10baa8e3546daa6bfeaef65a5a5743e956521ca5d5d
+-Local MCP Server (.claude/scripts/stg-db-cached.sh)|.claude/scripts/stg-db-cached.sh::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||678d7e770f291ac56dbd8ced85a29f7b3aa3c70526580e54891ce5b8ee7b64ab
+-Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs)|/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||6ba6cf0f7d763862a90488822e1cb0df5c5482039d3eaf955ee58ff89a552fa9
++Groundcover MCP Server|mcp.groundcover.com/api/mcp::unknown|Remote|Http|||e4ab6b308535a73b3a1a05e4ce61041e160479641161a2336800b1cbdf9cb827
++Incident.io MCP Server|mcp.incident.io/mcp::unknown|Remote|Http|||aace3c63778450b55533af916159fb8716275fdc1333c31e924fec7d27f2882a
+ Local MCP Server (/opt/coder/coder)|/opt/coder/coder::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||d0122f34908904a2ceef70c0637c3f648374ff28e4b7451168bedb1ede10c276
+-Local MCP Server (mailosaur-mcp-server.js)|mailosaur-mcp-server.js::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||22910648bf5adec6d5508ab234b7123392b5b450bd8871e770acab4aa67ca7bf
++Local MCP Server (bash)|bash::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||678d7e770f291ac56dbd8ced85a29f7b3aa3c70526580e54891ce5b8ee7b64ab
++Local MCP Server (node)|node::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||6ba6cf0f7d763862a90488822e1cb0df5c5482039d3eaf955ee58ff89a552fa9
+ Notion MCP Server|@notionhq/notion-mcp-server::2.2.1|Local|Npm|||bfa3eaaeafe39abb04fc33c11c416007ee166c0db41a3b4b37fa3ecb6124b528
+ Onyx Lab MCP|mcpb:onyx-lab-mcp::1.4.0|Local|File|||f4f17644be1fb79f4a5ada0b990686ac9b27c7b01572433ba4dfcd035bb9c76f
+ Playwright MCP Server|@playwright/mcp::0.0.74|Local|Npm|||a8d3267c77deab15c2eeb40acba2ca782923765cc0e9c97e469be831aeb47bd5
+-Playwright MCP Server|@playwright/mcp::0.0.79|Local|Npm|||17e9f68295cf527944229e093a00829290fc33eaf404b4ef787671a1dc5de916
++Playwright MCP Server|@playwright/mcp::unknown|Local|Npm|||17e9f68295cf527944229e093a00829290fc33eaf404b4ef787671a1dc5de916
+ Remote MCP Server (https://kraft.onyxhub.io/api/mcp)|kraft.onyxhub.io/api/mcp::unknown|Remote|Http|||d297826f4f00631ddb91f7000c5b30b0b24d5369a5920ded176b02c402aef2bd
++Sentry MCP Server|mcp.sentry.dev/mcp::unknown|Remote|Http|||e6e92e9d5c053d681da5889b0fb20adfc2e8d6760be43eb3cbf86fe5d6eea8c9
+ Slack|mcp.slack.com/mcp::unknown|Remote|Http|||84b42fb43a16fad23555c5872fd341146612a440590ccb23147de75db76fed82
+-mcp-remote MCP Server|mcp-remote::0.1.30|Remote|Http|||68cfa3547070848c6c8d45b60a8c401dc84e341e9595a4dc284e39e9588f8f90
+-mcp-remote MCP Server|mcp-remote::0.1.38|Remote|Http|||68cfa3547070848c6c8d45b60a8c401dc84e341e9595a4dc284e39e9588f8f90
+-(18 rows)
++Tavily MCP Server|mcp.tavily.com/mcp::unknown|Remote|Http|||27457cc2943ee7117cec44b698025fa956cb3c8e557112e0efac0dcf3f6cb313
++mcp-remote MCP Server|mcp-remote::0.1.30|Local|Npm|||e0ee3f22776ff46f574e5454eed2c0c9ae20069eb1808819a173801716591eef
++mcp-remote MCP Server|mcp-remote::0.1.38|Local|Npm|||1571b184a753cf187fa0fab2ab01cc65af36f5620f0e2d1722614729d757ca5b
++(20 rows)
+ 
+ --- mcp tools (server|tool)
+ name|coalesce
+@@ -592,11 +596,9 @@
+ AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Gmail|f|{"sources": [{"kind": "web_connector", "name": "Gmail"}]}
+ AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Google Calendar|f|{"sources": [{"kind": "web_connector", "name": "Google Calendar"}]}
+ AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Google Drive|f|{"sources": [{"kind": "web_connector", "name": "Google Drive"}]}
+-AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (.claude/scripts/prod-db-cached.sh)|f|{"sources": [{"kind": "direct"}]}
+-AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (.claude/scripts/stg-db-cached.sh)|f|{"sources": [{"kind": "direct"}]}
+-AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs)|f|{"sources": [{"kind": "plugin", "name": "autonomous-workflow"}]}
+ AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (/opt/coder/coder)|f|{"sources": [{"kind": "direct"}]}
+-AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (mailosaur-mcp-server.js)|f|{"sources": [{"kind": "direct"}]}
++AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (bash)|f|{"sources": [{"kind": "direct"}]}
++AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (node)|f|{"sources": [{"kind": "plugin", "name": "autonomous-workflow"}, {"kind": "direct"}]}
+ AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Notion MCP Server|f|{"sources": [{"kind": "direct"}]}
+ AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Playwright MCP Server|f|{"sources": [{"kind": "direct"}]}
+ AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Playwright MCP Server|f|{"sources": [{"kind": "plugin", "name": "playwright"}]}
+@@ -869,8 +871,10 @@
+ AgentToSubagent|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeSubAgent:verify|f|{"sources": [{"kind": "direct"}]}
+ AgentToSubagent|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeSubAgent:verify|f|{"sources": [{"kind": "direct"}]}
+ AgentToSubagent|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeSubAgent:verify|f|{"sources": [{"kind": "direct"}]}
+-McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "direct"}]}
+-McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
++McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Groundcover MCP Server|f|{"sources": [{"kind": "direct"}]}
++McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Incident.io MCP Server|f|{"sources": [{"kind": "direct"}]}
++McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Sentry MCP Server|f|{"sources": [{"kind": "direct"}]}
++McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Tavily MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
+ (285 rows)
+ 
+ --- issue instances (issue_identifier|title|asset|resolve_state)
+@@ -881,6 +885,6 @@
+ 
+ --- mcp ingestion state (new-lane dedup state; gen-1 has none)
+ count
+-0
++20
+ (1 row)
+ 
+
+changed lines: 50

@@ -1,0 +1,96 @@
+# PRDCT-11935 at6-15 — processed_with_failures DRIVEN on the real lane (the class THIS PR introduces)
+# FILE LAST WRITTEN 2026-08-21T12:37:38Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-8bh9j
+# captured 2026-08-21T12:07:38Z · tenant onyx_security
+#
+# WHY THIS EXISTS. The round-26 gate found d-c13-4 unproven for the one settlement class this PR ADDS:
+# processed_with_failures (object_processor.py:157, commit cb96081d70). Its closure row cited unit tests
+# plus a false claim about at6-01, and the gate confirmed ZERO agent_slices_dropped samples and ZERO
+# "abandoned agent slices" lines existed anywhere in the evidence tree. d-c13-4 allows exactly two
+# dispositions — demonstrated, or named-not-run with a reason. This is the demonstration.
+
+## 1. THE INDUCTION — a real deterministic DB fault scoped to ONE agent, no mock and no code change
+   The class is reached when per-agent isolation abandons a slice: a NON-transient failure inside one
+   agent's identity write is swallowed so its siblings still land (writers.py:804-812), the agent is
+   added to `abandoned`, and the object then meters processed_with_failures instead of processed.
+   To reach it without touching code, a real CHECK constraint was placed on the tenant's assets table
+   naming exactly one detected runtime:
+
+       alter table onyx_security.assets
+         add constraint r29_slice_probe check (name <> 'Codex (coder)') not valid;
+
+   `not valid` skips existing rows, so only NEW writes are checked — i.e. only this scan's Codex slice.
+   A check violation is SQLSTATE 23514, which is deliberately NOT in the transient set
+   (common/database/pg_retry.py: _RETRYABLE_SQLSTATES has no 23514 and class 23 is not a retryable
+   class), so retry_reason_for() returns None and the isolation path — not the retry path — is taken.
+   That is the whole point of the induction: it exercises the real branch rather than simulating it.
+
+## 2. THE DRIVE — one real scanner payload through the real Kong front door
+   probe skill r29-slice-20260821120326 · payloads_sent 6 · agents_detected_total 4
+
+## 3. THE ISOLATION FIRING, verbatim from the consumer's own log
+    2026-08-21T12:03:36.650111Z [warning  ] agent_identity failed — skipping this agent, continuing siblings (old-lane per-agent isolation) [endpoint_asset_ingestion.ingestion.writers] app_name=codex filename=writers.py func_name=_write_a
+    2026-08-21T12:04:34.144526Z [warning  ] agent_identity failed — skipping this agent, continuing siblings (old-lane per-agent isolation) [endpoint_asset_ingestion.ingestion.writers] app_name=codex filename=writers.py func_name=_write_a
+    app_name=codex — exactly the runtime the constraint names, and only that one.
+
+## 4. THE COUNTERS, either side of the drive
+     counter                                                            | before | after
+     -------------------------------------------------------------------+--------+-------
+     objects_total{outcome="processed_with_failures",schema=onyx_security}|      0 |     2
+     agent_slices_dropped_total{tenant_schema="onyx_security"}           |      0 |     2
+     objects_total{outcome="processed",schema=onyx_security}             |      8 |    14
+
+    Both series came into EXISTENCE with this drive — neither had a sample anywhere before it, which is
+    exactly what the gate reported. Raw reads:
+    BEFORE:
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="onyx_security"} 8
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="prdct11935_tb26"} 16
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="prdct11935_tb"} 33
+       asset_ingestion_objects_total{outcome="skipped_unknown_tenant",tenant_schema="unknown"} 8
+    AFTER:
+       asset_ingestion_agent_slices_dropped_total{tenant_schema="onyx_security"} 2
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="onyx_security"} 14
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="prdct11935_tb26"} 16
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="prdct11935_tb"} 54
+       asset_ingestion_objects_total{outcome="processed_with_failures",tenant_schema="onyx_security"} 2
+       asset_ingestion_objects_total{outcome="skipped_unknown_tenant",tenant_schema="unknown"} 8
+
+## 4b. THE SAME DELTAS AS A TABLE, each counter its own column so both sides sit under one label
+     snapshot | objects_total{outcome="processed_with_failures"} | agent_slices_dropped_total | processed
+     ---------+--------------------------------------------------+----------------------------+----------
+     before   | 0                                                | 0                          | 8
+     after    | 2                                                | 2                          | 14
+     control  | 2                                                | 2                          | 22
+    (the control column is after the constraint was dropped and the scan re-driven: the two failure
+     counters do not move again, while the clean class climbs — see §5)
+
+    and the clean class on its own, so its label carries both sides unambiguously:
+     processed | snapshot
+     ----------+----------
+     8         | before
+     14        | after
+     22        | control
+
+## 5. THE CONTROL — the constraint dropped, the same scan shape re-driven
+    alter table onyx_security.assets drop constraint if exists r29_slice_probe;   -> 0 constraints remain
+    probe skill (control) re-driven through Kong: isolation warnings = 0, and:
+       asset_ingestion_agent_slices_dropped_total{tenant_schema="onyx_security"} 2
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="onyx_security"} 22
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="prdct11935_tb26"} 16
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="prdct11935_tb"} 75
+       asset_ingestion_objects_total{outcome="processed_with_failures",tenant_schema="onyx_security"} 2
+       asset_ingestion_objects_total{outcome="skipped_unknown_tenant",tenant_schema="unknown"} 8
+    processed 14 -> 22 while processed_with_failures and agent_slices_dropped BOTH stayed at 2.
+    So the induced constraint was the sole cause, and the lane returns to the clean class without it.
+
+## 6. WHAT THIS ALSO DEMONSTRATES — the log/metric divergence at6-01 now reports as a gap
+    For the SAME object:
+      s3_key  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787313871-c1d7d6b0-6fc5-4be9-a130-061430ec3935.log
+      the RECORD log line says   outcome=processed
+      the OBJECT metric recorded outcome=processed_with_failures
+    They disagree, and the reason is structural: ObjectIngestionOutcome (object_processor.py:40) has only
+    three members — PROCESSED, SKIPPED_FLAG_OFF, SKIPPED_UNKNOWN_TENANT — while ObjectLabels.outcome
+    (metrics.py:138) has five. process() returns PROCESSED at :170 for an object it metered as
+    processed_with_failures at :157, and _handle_record logs the returned enum. This is reported as a
+    gap in at6-01, not papered over; it is a real observability defect in shipped code, and it is
+    measured here rather than inferred.

@@ -1,0 +1,523 @@
+# PRDCT-11935 at6-07 — TRANSPORT EQUIVALENCE on the head sha, with the per-loss greps condition (2) requires
+# FILE LAST WRITTEN 2026-08-22T01:23:37Z
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T01:27:24Z
+#
+# THE SHA ABOVE IS THE HEAD UNDER VERIFY, AND THE IMAGE WAS BUILT FROM IT. The round-21 gate found every
+# artifact had been captured on :prdct11935-r24, which is byte-equal to the PREVIOUS branch commit
+# f4b3e9dfb2 and so misses main's PRDCT-12049 change to three files this writer imports. This round built
+# :prdct11935-r26 from the head tree via the repo's own Dockerfile.dev and PROVED it byte-exact before
+# driving anything: 4741/4741 head .py files match by sha256, 0 content mismatches (the image carries one
+# extra empty /app/src/__init__.py from its base layer). Receipt: evidence/at6-12-image-provenance.txt.
+#
+# Everything the at6-06 ledger lists is a property of the WRITER. This PR changes the TRANSPORT. So the
+# load-bearing claim is: the same writer, fed the same bytes, writes the same rows on either transport.
+# gen-1 is switched off for the whole leg so neither tenant has a second writer.
+
+=== the setup
+    gen-1 OFF               temporal-general-worker 0 replicas · temporal-scanner-worker 0 replicas
+    both writers, ONE image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+      prdct11935_ta         ONYX__CLOUD=aws    — SQS notification + S3 GetObject
+      prdct11935_tb         ONYX__CLOUD=azure  — Event Grid over Service Bus + Blob download
+    PRE-STEP, and it matters: the AWS-lane notification queue still held 1838 visible + 644 in-flight
+    messages from earlier rounds, all pointing at objects from previous windows. Brought up against that
+    backlog the AWS writer replays OLD payloads, which is not this leg's measurement — the queue was
+    PURGED to 0 before the leg so only the objects this leg's own scan produces can reach it.
+
+=== the leg (both tenants truncated, gen-1's store emptied, ONE real scan through Kong)
+TRANSPORT LEG (drain-aware) START 2026-08-21T00:43:14Z
+--- S3 (gen-1's store, which it LISTS): 23 object(s) before
+--- S3 after: 0 object(s)  (0 = gen-1 starts this leg from nothing)
+--- Azure Blob (the new lane's store, which it CONSUMES EVENTS FROM): not emptied by design —
+    an existing blob raises no BlobCreated event, so only the objects this leg's scan writes can
+    reach the queue. The tenant DB is truncated either way, so the leg still starts from zero rows.
+SET
+NOTICE:  truncate cascades to table "agents"
+NOTICE:  truncate cascades to table "usage_sessions"
+NOTICE:  truncate cascades to table "usage_sessions_events"
+NOTICE:  truncate cascades to table "data_policy_assets"
+NOTICE:  truncate cascades to table "tools"
+NOTICE:  truncate cascades to table "ai_firewall_alerts"
+NOTICE:  truncate cascades to table "ai_providers"
+NOTICE:  truncate cascades to table "asset_ai_firewall_policies"
+NOTICE:  truncate cascades to table "channels"
+NOTICE:  truncate cascades to table "desktop_agent_applications"
+NOTICE:  truncate cascades to table "mcp_server_tools"
+NOTICE:  truncate cascades to table "triggers"
+NOTICE:  truncate cascades to table "governance_policy_assets"
+NOTICE:  truncate cascades to table "access_control"
+NOTICE:  truncate cascades to table "asset_sources"
+NOTICE:  truncate cascades to table "device_applications"
+NOTICE:  truncate cascades to table "agentic_tasks"
+NOTICE:  truncate cascades to table "topics"
+NOTICE:  truncate cascades to table "employee_assets"
+NOTICE:  truncate cascades to table "asset_connections"
+NOTICE:  truncate cascades to table "mcp_servers"
+NOTICE:  truncate cascades to table "username_assets"
+NOTICE:  truncate cascades to table "desktop_agent_users"
+NOTICE:  truncate cascades to table "mcp_gateway_installations"
+NOTICE:  truncate cascades to table "asset_topic_clustering_status"
+NOTICE:  truncate cascades to table "agent_skills"
+NOTICE:  truncate cascades to table "scripts"
+NOTICE:  truncate cascades to table "issue_instances"
+NOTICE:  truncate cascades to table "collection_checkpoints"
+NOTICE:  truncate cascades to table "activity_log"
+NOTICE:  truncate cascades to table "agent_job_runs"
+NOTICE:  truncate cascades to table "asset_posture_findings"
+NOTICE:  truncate cascades to table "asset_posture_source_status"
+NOTICE:  truncate cascades to table "asset_tags"
+NOTICE:  truncate cascades to table "asset_inventory"
+NOTICE:  truncate cascades to table "issue_detection_audit"
+NOTICE:  truncate cascades to table "identities"
+NOTICE:  truncate cascades to table "asset_vulnerabilities"
+NOTICE:  truncate cascades to table "protected_token_hourly"
+NOTICE:  truncate cascades to table "agent_subagents"
+NOTICE:  truncate cascades to table "session_analyses"
+NOTICE:  truncate cascades to table "session_sensitive_data"
+NOTICE:  truncate cascades to table "data_sources"
+NOTICE:  truncate cascades to table "data_source_accesses"
+NOTICE:  truncate cascades to table "extension_usage_sessions"
+NOTICE:  truncate cascades to table "ai_firewall_alert_violated_rules"
+NOTICE:  truncate cascades to table "alerts_false_positive_embeddings"
+NOTICE:  truncate cascades to table "tool_executions"
+NOTICE:  truncate cascades to table "agentic_task_system_prompts"
+NOTICE:  truncate cascades to table "session_embeddings"
+NOTICE:  truncate cascades to table "topic_sessions"
+NOTICE:  truncate cascades to table "usage_session_tools_mapping"
+NOTICE:  truncate cascades to table "ai_guard_expected_tool_calls"
+NOTICE:  truncate cascades to table "desktop_agent_application_custom_data"
+NOTICE:  truncate cascades to table "identity_tools"
+NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+NOTICE:  truncate cascades to table "session_event_processes"
+NOTICE:  truncate cascades to table "crowdstrike_edr_detections"
+NOTICE:  truncate cascades to table "redteaming_alert_links"
+NOTICE:  truncate cascades to table "file_metadata"
+NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+NOTICE:  ivfflat index created with little data
+DETAIL:  This will cause low recall.
+HINT:  Drop the index until the table has more data.
+TRUNCATE TABLE
+TRUNCATE TABLE
+TRUNCATE TABLE
+TRUNCATE TABLE
+TRUNCATE TABLE
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+TRUNCATE TABLE
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "desktop_agent_application_custom_data"
+NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "mcp_gateway_installations"
+NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "usage_sessions"
+NOTICE:  truncate cascades to table "extension_installations"
+NOTICE:  truncate cascades to table "device_applications"
+NOTICE:  truncate cascades to table "device_employees"
+NOTICE:  truncate cascades to table "desktop_agent_users"
+NOTICE:  truncate cascades to table "scanner_installations"
+NOTICE:  truncate cascades to table "scanner_installations_20260721"
+NOTICE:  truncate cascades to table "scanner_installations_20260722"
+NOTICE:  truncate cascades to table "scanner_installations_20260723"
+NOTICE:  truncate cascades to table "scanner_installations_20260724"
+NOTICE:  truncate cascades to table "scanner_installations_20260725"
+NOTICE:  truncate cascades to table "scanner_installations_20260726"
+NOTICE:  truncate cascades to table "scanner_installations_20260727"
+NOTICE:  truncate cascades to table "scanner_installations_20260728"
+NOTICE:  truncate cascades to table "scanner_installations_20260729"
+NOTICE:  truncate cascades to table "scanner_installations_20260730"
+NOTICE:  truncate cascades to table "scanner_installations_20260731"
+NOTICE:  truncate cascades to table "scanner_installations_20260801"
+NOTICE:  truncate cascades to table "scanner_installations_20260802"
+NOTICE:  truncate cascades to table "scanner_installations_20260803"
+NOTICE:  truncate cascades to table "scanner_installations_20260804"
+NOTICE:  truncate cascades to table "scanner_installations_20260805"
+NOTICE:  truncate cascades to table "scanner_installations_20260806"
+NOTICE:  truncate cascades to table "scanner_installations_20260807"
+NOTICE:  truncate cascades to table "scanner_installations_20260808"
+NOTICE:  truncate cascades to table "scanner_installations_20260809"
+NOTICE:  truncate cascades to table "scanner_installations_20260810"
+NOTICE:  truncate cascades to table "scanner_installations_20260811"
+NOTICE:  truncate cascades to table "scanner_installations_20260812"
+NOTICE:  truncate cascades to table "scanner_installations_20260813"
+NOTICE:  truncate cascades to table "scanner_installations_20260814"
+NOTICE:  truncate cascades to table "scanner_installations_20260815"
+NOTICE:  truncate cascades to table "scanner_installations_20260816"
+NOTICE:  truncate cascades to table "scanner_installations_20260817"
+NOTICE:  truncate cascades to table "scanner_installations_20260818"
+NOTICE:  truncate cascades to table "scanner_installations_20260819"
+NOTICE:  truncate cascades to table "scanner_installations_20260820"
+NOTICE:  truncate cascades to table "scanner_installations_20260821"
+NOTICE:  truncate cascades to table "scanner_installations_20260822"
+NOTICE:  truncate cascades to table "scanner_installations_20260823"
+NOTICE:  truncate cascades to table "scanner_installations_20260824"
+NOTICE:  truncate cascades to table "scanner_installations_20260825"
+NOTICE:  truncate cascades to table "scanner_installations_default"
+NOTICE:  truncate cascades to table "device_sources"
+NOTICE:  truncate cascades to table "crowdstrike_edr_detections"
+NOTICE:  truncate cascades to table "device_email_observations"
+NOTICE:  truncate cascades to table "scanner_installations_20260826"
+NOTICE:  truncate cascades to table "scanner_installations_20260827"
+NOTICE:  truncate cascades to table "session_analyses"
+NOTICE:  truncate cascades to table "session_sensitive_data"
+NOTICE:  truncate cascades to table "usage_sessions_events"
+NOTICE:  truncate cascades to table "extension_usage_sessions"
+NOTICE:  truncate cascades to table "ai_firewall_alerts"
+NOTICE:  truncate cascades to table "session_embeddings"
+NOTICE:  truncate cascades to table "topic_sessions"
+NOTICE:  truncate cascades to table "usage_session_tools_mapping"
+NOTICE:  truncate cascades to table "mcp_gateway_installations"
+NOTICE:  truncate cascades to table "ai_guard_expected_tool_calls"
+NOTICE:  truncate cascades to table "file_metadata"
+NOTICE:  truncate cascades to table "ai_firewall_alert_violated_rules"
+NOTICE:  truncate cascades to table "alerts_false_positive_embeddings"
+NOTICE:  truncate cascades to table "tool_executions"
+NOTICE:  truncate cascades to table "activity_log"
+NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+NOTICE:  truncate cascades to table "session_event_processes"
+NOTICE:  truncate cascades to table "redteaming_alert_links"
+NOTICE:  ivfflat index created with little data
+DETAIL:  This will cause low recall.
+HINT:  Drop the index until the table has more data.
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "username_assets"
+NOTICE:  truncate cascades to table "desktop_agent_users"
+NOTICE:  truncate cascades to table "mcp_gateway_installations"
+NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+TRUNCATE TABLE
+ schema_reset  | assets | mcp_servers | skills | subagents | installs | ingestion_state 
+---------------+--------+-------------+--------+-----------+----------+-----------------
+ prdct11935_ta |      0 |           0 |      0 |         0 |        0 |               0
+(1 row)
+
+SET
+NOTICE:  truncate cascades to table "agents"
+NOTICE:  truncate cascades to table "usage_sessions"
+NOTICE:  truncate cascades to table "usage_sessions_events"
+NOTICE:  truncate cascades to table "data_policy_assets"
+NOTICE:  truncate cascades to table "tools"
+NOTICE:  truncate cascades to table "ai_firewall_alerts"
+NOTICE:  truncate cascades to table "ai_providers"
+NOTICE:  truncate cascades to table "asset_ai_firewall_policies"
+NOTICE:  truncate cascades to table "channels"
+NOTICE:  truncate cascades to table "desktop_agent_applications"
+NOTICE:  truncate cascades to table "mcp_server_tools"
+NOTICE:  truncate cascades to table "triggers"
+NOTICE:  truncate cascades to table "governance_policy_assets"
+NOTICE:  truncate cascades to table "access_control"
+NOTICE:  truncate cascades to table "asset_sources"
+NOTICE:  truncate cascades to table "device_applications"
+NOTICE:  truncate cascades to table "agentic_tasks"
+NOTICE:  truncate cascades to table "topics"
+NOTICE:  truncate cascades to table "employee_assets"
+NOTICE:  truncate cascades to table "asset_connections"
+NOTICE:  truncate cascades to table "mcp_servers"
+NOTICE:  truncate cascades to table "username_assets"
+NOTICE:  truncate cascades to table "desktop_agent_users"
+NOTICE:  truncate cascades to table "mcp_gateway_installations"
+NOTICE:  truncate cascades to table "asset_topic_clustering_status"
+NOTICE:  truncate cascades to table "agent_skills"
+NOTICE:  truncate cascades to table "scripts"
+NOTICE:  truncate cascades to table "issue_instances"
+NOTICE:  truncate cascades to table "collection_checkpoints"
+NOTICE:  truncate cascades to table "activity_log"
+NOTICE:  truncate cascades to table "agent_job_runs"
+NOTICE:  truncate cascades to table "asset_posture_findings"
+NOTICE:  truncate cascades to table "asset_posture_source_status"
+NOTICE:  truncate cascades to table "asset_tags"
+NOTICE:  truncate cascades to table "asset_inventory"
+NOTICE:  truncate cascades to table "issue_detection_audit"
+NOTICE:  truncate cascades to table "identities"
+NOTICE:  truncate cascades to table "asset_vulnerabilities"
+NOTICE:  truncate cascades to table "protected_token_hourly"
+NOTICE:  truncate cascades to table "agent_subagents"
+NOTICE:  truncate cascades to table "session_analyses"
+NOTICE:  truncate cascades to table "session_sensitive_data"
+NOTICE:  truncate cascades to table "data_sources"
+NOTICE:  truncate cascades to table "data_source_accesses"
+NOTICE:  truncate cascades to table "extension_usage_sessions"
+NOTICE:  truncate cascades to table "ai_firewall_alert_violated_rules"
+NOTICE:  truncate cascades to table "alerts_false_positive_embeddings"
+NOTICE:  truncate cascades to table "tool_executions"
+NOTICE:  truncate cascades to table "agentic_task_system_prompts"
+NOTICE:  truncate cascades to table "session_embeddings"
+NOTICE:  truncate cascades to table "topic_sessions"
+NOTICE:  truncate cascades to table "usage_session_tools_mapping"
+NOTICE:  truncate cascades to table "ai_guard_expected_tool_calls"
+NOTICE:  truncate cascades to table "desktop_agent_application_custom_data"
+NOTICE:  truncate cascades to table "identity_tools"
+NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+NOTICE:  truncate cascades to table "session_event_processes"
+NOTICE:  truncate cascades to table "crowdstrike_edr_detections"
+NOTICE:  truncate cascades to table "redteaming_alert_links"
+NOTICE:  truncate cascades to table "file_metadata"
+NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+NOTICE:  ivfflat index created with little data
+DETAIL:  This will cause low recall.
+HINT:  Drop the index until the table has more data.
+TRUNCATE TABLE
+TRUNCATE TABLE
+TRUNCATE TABLE
+TRUNCATE TABLE
+TRUNCATE TABLE
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+TRUNCATE TABLE
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "desktop_agent_application_custom_data"
+NOTICE:  truncate cascades to table "desktop_agent_custom_data_embeddings"
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "mcp_gateway_installations"
+NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "usage_sessions"
+NOTICE:  truncate cascades to table "extension_installations"
+NOTICE:  truncate cascades to table "device_applications"
+NOTICE:  truncate cascades to table "device_employees"
+NOTICE:  truncate cascades to table "desktop_agent_users"
+NOTICE:  truncate cascades to table "scanner_installations"
+NOTICE:  truncate cascades to table "scanner_installations_20260721"
+NOTICE:  truncate cascades to table "scanner_installations_20260722"
+NOTICE:  truncate cascades to table "scanner_installations_20260723"
+NOTICE:  truncate cascades to table "scanner_installations_20260724"
+NOTICE:  truncate cascades to table "scanner_installations_20260725"
+NOTICE:  truncate cascades to table "scanner_installations_20260726"
+NOTICE:  truncate cascades to table "scanner_installations_20260727"
+NOTICE:  truncate cascades to table "scanner_installations_20260728"
+NOTICE:  truncate cascades to table "scanner_installations_20260729"
+NOTICE:  truncate cascades to table "scanner_installations_20260730"
+NOTICE:  truncate cascades to table "scanner_installations_20260731"
+NOTICE:  truncate cascades to table "scanner_installations_20260801"
+NOTICE:  truncate cascades to table "scanner_installations_20260802"
+NOTICE:  truncate cascades to table "scanner_installations_20260803"
+NOTICE:  truncate cascades to table "scanner_installations_20260804"
+NOTICE:  truncate cascades to table "scanner_installations_20260805"
+NOTICE:  truncate cascades to table "scanner_installations_20260806"
+NOTICE:  truncate cascades to table "scanner_installations_20260807"
+NOTICE:  truncate cascades to table "scanner_installations_20260808"
+NOTICE:  truncate cascades to table "scanner_installations_20260809"
+NOTICE:  truncate cascades to table "scanner_installations_20260810"
+NOTICE:  truncate cascades to table "scanner_installations_20260811"
+NOTICE:  truncate cascades to table "scanner_installations_20260812"
+NOTICE:  truncate cascades to table "scanner_installations_20260813"
+NOTICE:  truncate cascades to table "scanner_installations_20260814"
+NOTICE:  truncate cascades to table "scanner_installations_20260815"
+NOTICE:  truncate cascades to table "scanner_installations_20260816"
+NOTICE:  truncate cascades to table "scanner_installations_20260817"
+NOTICE:  truncate cascades to table "scanner_installations_20260818"
+NOTICE:  truncate cascades to table "scanner_installations_20260819"
+NOTICE:  truncate cascades to table "scanner_installations_20260820"
+NOTICE:  truncate cascades to table "scanner_installations_20260821"
+NOTICE:  truncate cascades to table "scanner_installations_20260822"
+NOTICE:  truncate cascades to table "scanner_installations_20260823"
+NOTICE:  truncate cascades to table "scanner_installations_20260824"
+NOTICE:  truncate cascades to table "scanner_installations_20260825"
+NOTICE:  truncate cascades to table "scanner_installations_default"
+NOTICE:  truncate cascades to table "device_sources"
+NOTICE:  truncate cascades to table "crowdstrike_edr_detections"
+NOTICE:  truncate cascades to table "device_email_observations"
+NOTICE:  truncate cascades to table "scanner_installations_20260826"
+NOTICE:  truncate cascades to table "scanner_installations_20260827"
+NOTICE:  truncate cascades to table "session_analyses"
+NOTICE:  truncate cascades to table "session_sensitive_data"
+NOTICE:  truncate cascades to table "usage_sessions_events"
+NOTICE:  truncate cascades to table "extension_usage_sessions"
+NOTICE:  truncate cascades to table "ai_firewall_alerts"
+NOTICE:  truncate cascades to table "session_embeddings"
+NOTICE:  truncate cascades to table "topic_sessions"
+NOTICE:  truncate cascades to table "usage_session_tools_mapping"
+NOTICE:  truncate cascades to table "mcp_gateway_installations"
+NOTICE:  truncate cascades to table "ai_guard_expected_tool_calls"
+NOTICE:  truncate cascades to table "file_metadata"
+NOTICE:  truncate cascades to table "ai_firewall_alert_violated_rules"
+NOTICE:  truncate cascades to table "alerts_false_positive_embeddings"
+NOTICE:  truncate cascades to table "tool_executions"
+NOTICE:  truncate cascades to table "activity_log"
+NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+NOTICE:  truncate cascades to table "session_event_processes"
+NOTICE:  truncate cascades to table "redteaming_alert_links"
+NOTICE:  ivfflat index created with little data
+DETAIL:  This will cause low recall.
+HINT:  Drop the index until the table has more data.
+TRUNCATE TABLE
+NOTICE:  truncate cascades to table "username_assets"
+NOTICE:  truncate cascades to table "desktop_agent_users"
+NOTICE:  truncate cascades to table "mcp_gateway_installations"
+NOTICE:  truncate cascades to table "mcp_installation_dependencies"
+TRUNCATE TABLE
+ schema_reset  | assets | mcp_servers | skills | subagents | installs | ingestion_state 
+---------------+--------+-------------+--------+-----------+----------+-----------------
+ prdct11935_tb |      0 |           0 |      0 |         0 |        0 |               0
+(1 row)
+
+scanner exit=0
+--- settle rule: BOTH lanes idle AND the AWS queue empty (visible+in-flight = 0)
+00:44:44 sqs_total=0  TA|TB assets,edges = 264|264|276|276
+00:45:34 sqs_total=0  TA|TB assets,edges = 264|264|276|276
+SETTLED (queue empty and counts stable)
+
+=== the whole-dump comparison
+########## diff -u <aws-transport rows> <azure-transport rows> ##########
+(no output = the two dumps are byte-identical)
+
+    changed lines: 0
+
+=== THE INPUT DUMPS, NAMED — so every count below is re-derivable (round 34, gate GAP-2)
+## The round-30 gate found this artifact's summary counts unre-derivable from the artifact itself, and it
+## was right twice over: the counts were wrong AND the inputs were unnamed, so a reader could not check
+## them. The previous summary line read "644 lines · 196 assets · 193 asset_connections · 15 tools".
+## Every one of those four numbers is wrong against the dumps this leg actually diffed — "644" was the
+## in-flight message count from the purge paragraph above, copied into the wrong sentence. The inputs are
+## now named with their sha256, and every count is the dump's OWN psql `(N rows)` marker:
+      aws    /tmp/prdct11935/r24/tr-aws3.txt   sha256 557c156f906cb353   lines 862
+      azure  /tmp/prdct11935/r24/tr-azure3.txt   sha256 557c156f906cb353   lines 862
+    
+      section (as the dump labels it)                            psql (N rows)
+      assets by type/sub_type/status/is_deleted                              4
+      assets (name|type|sub_type|unique_identifier|status|is_d             264
+      mcp servers (name|uid|type|source_type|publisher|is_publ              20
+      mcp tools (server|tool)                                                0
+      skills (name|md_hash|dir_hash)                                       187
+      subagents (name|uid|md_hash|format)                                   52
+      usage sessions (external_id|actor|email|has_content_even              12
+      scanner installations (agents|mcp|skills|version|trigger               1
+      asset connections (type|src|dst|is_deleted|metadata)                 276
+      issue instances (issue_identifier|title|asset|resolve_st               2
+      mcp ingestion state (new-lane dedup state; gen-1 has non               1
+    
+      the three numbers the PR body quotes, re-derived from THIS dump:
+        assets            264
+        asset connections 276
+        mcp tools         0
+
+    THE COUNTS THIS LEG SUPPORTS, corrected:
+        both dumps       862 lines, sha256 557c156f906cb353 — BYTE-IDENTICAL to each other, which is a
+                         stronger statement than "0 changed lines" and is what the diff above shows
+        assets           264   (matches this artifact's own settle line, TA|TB assets,edges = 264|264|…)
+        asset_connections 276  (same settle line)
+        mcp tools        0
+
+    AND THE HONEST CONSEQUENCE OF THAT LAST NUMBER: this leg's dumps contain NO mcp-tool rows, so this
+    artifact does not evidence tool-row transport equivalence at all. The old "15 tools" — and the PR
+    body's "50 MCP-tool rows" — claimed a coverage this capture never had. The tools class is evidenced
+    elsewhere (at6-04's per-class diffs and at7-09's tool rows); it is simply not this leg's contribution,
+    and saying so is the point of the correction.
+
+=== condition (2): the PER-RESIDUAL-LOSS grep, which a whole-dump 0-diff does NOT by itself satisfy
+    Each row the closed enumeration names is checked on BOTH transports by name. A named loss must be
+    ABSENT on both (it is a WRITER property, not a transport one); its replacement must be PRESENT on both.
+
+    [PASS]  ABSENT on both   aws=absent  azure=absent   L-2 per-script row
+             .claude/scripts/prod-db-cached.sh::ec255301bd4407d309fbce94811384b0::unknown
+    [PASS]  ABSENT on both   aws=absent  azure=absent   L-2 per-script row
+             .claude/scripts/stg-db-cached.sh::ec255301bd4407d309fbce94811384b0::unknown
+    [PASS]  ABSENT on both   aws=absent  azure=absent   L-2 per-script row
+             /home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs::ec255301bd4407d309fbce94811384b0::unknown
+    [PASS]  ABSENT on both   aws=absent  azure=absent   L-2 per-script row
+             mailosaur-mcp-server.js::ec255301bd4407d309fbce94811384b0::unknown
+    [PASS]  ABSENT on both   aws=absent  azure=absent   L-3 version-key row
+             @playwright/mcp::0.0.79
+    [PASS]  PRESENT on both  aws=present  azure=present   L-2 replacement (launcher row) + the hash-flap subject
+             bash::ec255301bd4407d309fbce94811384b0::unknown
+    [PASS]  PRESENT on both  aws=present  azure=present   L-2 replacement (launcher row) + the hash-flap subject
+             node::ec255301bd4407d309fbce94811384b0::unknown
+    [PASS]  PRESENT on both  aws=present  azure=present   L-3 replacement (version-key row)
+             @playwright/mcp::unknown
+
+=== condition (2), applied PER-D-4 as the ROUND-22 RULING directs
+    The ruling (test_plan.json d-c13-3.amendment_r21, plan sha256 2c2183fd…) adjudicated the gen-1-only
+    edge identity `McpToMcp | mcp-remote MCP Server -> mcp-remote MCP Server` a MISEXTRACTION-CORRECTION,
+    outside the loss enumeration — and directed that the next conformance pass add this grep so D-4's
+    transport-independence is checkable from THIS artifact alone instead of inferred from the 0-diff.
+
+    [PASS]  the ruled identity ABSENT on both   aws=absent  azure=absent
+             McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:mcp-remote MCP Server
+    [PASS]  the four bridge->remote edges PRESENT and byte-identical on both  aws=4  azure=4
+             McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Groundcover MCP Server|f|{"sources": [{"kind": "direct"}]}
+             McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Incident.io MCP Server|f|{"sources": [{"kind": "direct"}]}
+             McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Sentry MCP Server|f|{"sources": [{"kind": "direct"}]}
+             McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Tavily MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
+
+    Read together: the fabricated self-reference appears on NEITHER transport of the new writer, and the
+    four correctly-targeted bridge->remote edges — carrying the same .sources descriptors gen-1 put on
+    its self-edges — appear on BOTH, byte-identical. That is ground (iv) of the ruling, measured here
+    rather than inferred. Ground (i) is why: the transport feeds the writer no identity input, so the
+    deterministic derivation (extract_bridge_remote_url) cannot vary by transport.
+
+=== condition (2), applied PER-EDGE as the ROUND-23 RULING directs
+    The round-21 gate flagged four AgentToMcp edges in the loss direction outside the closed set. The plan
+    owner adjudicated them (ROUND-23 RULING, plan sha256 4616900d…) as THE L-2 IDENTITY FAMILY'S OWN
+    EDGES — facets of the already-enumerated, PRDCT-12061-ticketed L-2 loss — and EXTENDED the L-2 entry
+    to name them. The ruling requires the literal per-edge grep to live here, so it does:
+
+    [PASS]  ABSENT on both   aws=absent  azure=absent
+             AgentToMcp | Claude Code (coder) -> Local MCP Server (.claude/scripts/prod-db-cached.sh)
+    [PASS]  ABSENT on both   aws=absent  azure=absent
+             AgentToMcp | Claude Code (coder) -> Local MCP Server (.claude/scripts/stg-db-cached.sh)
+    [PASS]  ABSENT on both   aws=absent  azure=absent
+             AgentToMcp | Claude Code (coder) -> Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs)
+    [PASS]  ABSENT on both   aws=absent  azure=absent
+             AgentToMcp | Claude Code (coder) -> Local MCP Server (mailosaur-mcp-server.js)
+    [PASS]  replacement edge PRESENT and byte-identical on both — Local MCP Server (bash)
+             AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (bash)|f|{"sources": [{"kind": "direct"}]}
+    [PASS]  replacement edge PRESENT and byte-identical on both — Local MCP Server (node)
+             AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (node)|f|{"sources": [{"kind": "plugin", "name": "autonomous-workflow"}, {"kind": "direct"}]}
+
+    An edge is an FK pair into assets with no identity beyond its endpoints and type, so an edge cannot
+    exist in a lane that lacks its destination row — which is why these four track the four per-script
+    ASSET rows already checked above, on both transports alike.
+
+=== binding (d): DUMP-GREP LOCALIZATION, as the ROUND-24 RULING requires
+    The ruling closes the "satellite row" recurrence class by requiring this leg to grep BOTH dumps for
+    each enumerated lost row's KEYING STRING (match discipline: the keying string dump-wide, which is
+    unique and safe; never a bare integer id, whose small-int false positives would manufacture
+    route-backs).
+
+    keying string                                                    aws     azure
+    .claude/scripts/prod-db-cached.sh::<serial>::unknown             absent  absent
+    .claude/scripts/stg-db-cached.sh::<serial>::unknown              absent  absent
+    .../autonomous-workflow/2.10.0/dist/bundle.cjs::<serial>::unknown absent  absent
+    mailosaur-mcp-server.js::<serial>::unknown                       absent  absent
+    @playwright/mcp::0.0.79 (the ruling-time L-3 instance)           absent  absent
+
+    Every enumerated lost keying is absent on BOTH transports, so there is no carrier outside the
+    measured footprint on either side — the binding holds with nothing to route back.
+
+=== the L-3 SHAPE, evaluated on THIS leg (the ruling keys L-3 by shape, not by the ::0.0.79 literal)
+    aws    @playwright/mcp::0.0.74  x2      @playwright/mcp::unknown  x2
+    azure  @playwright/mcp::0.0.74  x2      @playwright/mcp::unknown  x2
+
+    Both tenants resolved the SAME concrete version and both carry the same ::unknown sibling: a
+    SYMMETRIC outcome. The ruling says in terms that "a SYMMETRIC leg outcome (both tenants resolve the
+    version, or neither does) is not a loss line at all and is recorded as such" — so on this leg the
+    L-3 divergence does not manifest, which is also why the whole-dump diff below is zero. The cold-cache
+    window that produces it is leg-dependent; the entry stays in the enumeration for the legs where it
+    does appear.
+
+=== the L-2 hash-flap subject's content hash, side by side on the two transports
+    bash::  aws 678d7e770f291ac56dbd8ced85a29f7b3aa3c70526580e54891ce5b8ee7b64ab
+            azu 678d7e770f291ac56dbd8ced85a29f7b3aa3c70526580e54891ce5b8ee7b64ab
+    node::  aws 6ba6cf0f7d763862a90488822e1cb0df5c5482039d3eaf955ee58ff89a552fa9
+            azu 6ba6cf0f7d763862a90488822e1cb0df5c5482039d3eaf955ee58ff89a552fa9
+    Identical across transports, which is what this leg can prove. The flap is a CROSS-SCAN property of
+    the shared writer (successive scans of the same machine can key a different content hash onto the
+    surviving launcher row); its reproduction over time is asserted from the shared writer code and
+    carried on PRDCT-12061, exactly as the amendment states.
+
+=== what this leg establishes, stated precisely
+    Every enumerated loss reproduces IDENTICALLY on the AWS transport, which is the transport already in
+    production. So none of them is caused by this PR's change: they belong to the one-writer cutover, and
+    they are carried on PRDCT-12061 (evidence at6-10).
+
+=== where the transport stops mattering, in code
+    consumer/event_parser.py:41-45     parser_for_cloud normalises the SQS/S3-notification body AND the
+                                       Event Grid BlobCreated body onto the same S3Record
+    ingestion/pipeline.py:47-52,97-99  one ObjectStore protocol, satisfied structurally by both the S3
+                                       client and BlobStorageClient; fetch_object is transport-blind
+    Everything the ledger discusses happens downstream of those two seams.

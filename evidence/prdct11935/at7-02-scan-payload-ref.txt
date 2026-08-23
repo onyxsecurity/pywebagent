@@ -1,0 +1,72 @@
+# PRDCT-11935 at7-02 — the HEAD-WINDOW scan payload that carried the subject, and what the lane did with it
+# FILE LAST WRITTEN 2026-08-21T21:54:58Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T17:49:05Z · tenant onyx_security
+#
+# RE-CAPTURED FOR THE HEAD WINDOW (round-28 gate, G4). The previous revision documented the W21 window
+# (object keys "runs 242/244", image :prdct11935-r24). This one documents the object the head window
+# actually produced, and it is the SAME object at1-03 and at7-01 document — so the message body, the
+# Label, the payload records, the consumer's settlement and the DB identity all belong to one delivery.
+
+=================== 1. THE OBJECT ===================
+    scan_run_id   333b21ef-714b-4b8c-84ad-eaec81bc2799     (scan 2 of the window, 17:20:03-17:21:10Z)
+    object key    tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log
+    size          1075861 bytes, application/x-ndjson · payload `method` = scan_summary
+    ROUND-32 CLARIFICATION (gate G7e). The gate found this key does not match
+    `scanner_installations.log_s3_key` for the same scan_run_id, and it does not — because the two name
+    DIFFERENT objects, which this file previously left implicit. One real scan emits several objects, and
+    both of these are real objects of scan_run 333b21ef-714b-4b8c-84ad-eaec81bc2799:
+        1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log   method=scan_summary  1075861 bytes  <- THIS file's subject
+        1787332870-200da268-4397-46b6-8386-4b51d487c463.log   method=scan_logs      798186 bytes  <- what log_s3_key records
+    `log_s3_key` records the scan-LOGS object, as its name says, so it is not expected to equal the
+    scan-summary object that carried this window's skill and subagent records. Both were downloaded from
+    the lab container and their `method` field read to say which is which, rather than asserting it.
+    (Both happen to mention the subject once; the record-bearing object — the one whose skillMdContent the
+    identity is derived from, §3 — is the scan_summary one.)
+    front door    real onyx-scanner -> POST http://ingest-onyx:8080/mcp-scanner (Kong key-auth)
+                  -> vector azure_blob sink -> lab Blob -> Event Grid -> byoc-events -> SQL-filtered
+                  subscription -> endpoint-asset-ingestion-prdct11935 -> eai-azure
+
+=================== 2. THE SUBJECT IS REALLY IN THE PAYLOAD ===================
+    The skill record the scanner emitted for this window's subject, as it appears in the object
+    (truncated to the interesting fields):
+        {"contentHash":"d1c7fe7a87cb7fe8da34b1a82860d19759ed6d1f3f4fd56bbc35e0a7e9312991",
+          "dirName":"lab-r31-20260821170102","skillMdContent":"---\nname: lab-r31-20260821170102\n..."}
+    and the MCP bundle the same scan discovered, by its own installed path:
+        {"args":["/home/coder/.config/Claude/Claude Extensions/onyx-lab-r31-20260821170102/server/index.js"],
+          "command":"node","name":"ext:onyx-lab-r31-20260821170102"}
+
+=================== 3. THE STORED IDENTITY IS DERIVED, NOT COPIED — the strongest form of the fidelity claim ===================
+    This is worth stating precisely, because it is what makes d-c2-fid-skills / -subagents mean
+    something. The payload carries its OWN `contentHash` field, and the product does NOT store it:
+        on-disk SKILL.md                       562 bytes  sha256 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714
+        payload skillMdContent                 562 bytes  sha256 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714
+        payload's own contentHash field                       d1c7fe7a87cb7fe8da34b1a82860d19759ed6d1f3f4fd56bbc35e0a7e9312991
+        byte-identical to the file on disk?    True
+    Read those three values together. The payload's contentHash field is d1c7fe7a…; the value the
+    product stored as agent_skills.skill_md_hash is 4fa01a12…, which is the sha256 of the skill's actual
+    content and equals the digest sha256sum computed on disk. So the lane derived the identity from the
+    content itself rather than trusting a field the payload handed it — the equality between disk and DB
+    cannot be an artefact of copying, because the one number in the payload that could have been copied
+    is a different number.
+
+=================== 4. WHAT THE CONSUMER DID WITH IT — its own log lines, from the live stream ===================
+        eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.405778Z [info     ] Scanner installations inserted [python_temporal_worker.integrations.desktop_agent_creator.activities] count=1 filename=activities.py func_name=insert_scanner_insta
+        eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.407836Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=61750
+        eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.408114Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_secon
+
+=================== 5. WHAT LANDED ===================
+           id   |          name          |      type      |                          skill_md_hash                           
+        --------+------------------------+----------------+------------------------------------------------------------------
+         242558 | lab-r31-20260821170102 | AssetTypeSkill | 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714
+        (1 row)
+        
+           id   |          name          |       type        |                         subagent_md_hash                         
+        --------+------------------------+-------------------+------------------------------------------------------------------
+         242613 | lab-r31-20260821170102 | AssetTypeSubAgent | 066bb2f01784ee10a4abd215f62e7ed93a8994e56ef9f429189308985e66df6d
+        (1 row)
+        
+           id   |       name       | version |            unique_identifier            
+        --------+------------------+---------+-----------------------------------------
+         242372 | Onyx Lab R31 MCP | 1.0.0   | mcpb:onyx-lab-r31-20260821170102::1.0.0
+        (1 row)

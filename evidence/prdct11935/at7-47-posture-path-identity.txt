@@ -1,0 +1,264 @@
+# PRDCT-11935 at7-47 — VERIFY-TIME path identity: the re-affirm path is byte-identical base -> head
+# FILE LAST WRITTEN 2026-08-21T15:12:12Z
+# captured 2026-08-21T15:12:12Z
+#
+# amendment_r30 adversary refinement F1 (and at10 check (p)) require the "pre-existing, not introduced by
+# this PR" premise to be RE-DERIVED on the head actually under verify — never trusted from the round-30
+# snapshot. This artifact is that re-derivation, and it prints the sha it ran on so a verifier can confirm
+# it is their head (the at6-07 same-sha rule).
+
+    $ git rev-parse HEAD
+    a2486bb33f835af24f5850e4f4c5eb2e8b02afb9
+
+    frozen base under comparison: 67b4096f  (evidence/pre-fix/meta.json's git_sha)
+
+=================== CLAUSE (a) — the shared re-affirm path, 0-line diffs, each pathspec PROVEN non-empty ===================
+# An empty pathspec match would make a typo'd path yield a passing empty diff, so every row prints the
+# base-side file count beside the diff. A count of 0 on any row is a FAIL, not a pass.
+#
+#   $ git ls-tree -r --name-only 67b4096f -- <pathspec> | wc -l      (must be >= 1)
+#   $ git diff 67b4096f..a2486bb33f835af24f5850e4f4c5eb2e8b02afb9 -- <pathspec> | wc -l                  (must be 0)
+
+  files@base | difflines | pathspec
+  -----------+-----------+----------------------------------------------------------------------------
+  20         | 0         | backend_python/src/python_temporal_worker/issue_detection/
+  9          | 0         | backend_python/src/common/repository/issues/
+  1          | 0         | backend_python/src/common/repository/skill.py
+  17         | 0         | backend_python/src/common/posture/
+  1          | 0         | backend_python/src/common_db/models/issue_instance.py
+  1          | 0         | backend/service/temporal/worker/pkg/general/scanner_collector/post_inventory.go
+  1          | 0         | backend/service/temporal/worker/pkg/general/scanner_collector/tenant_workflow.go
+  1          | 0         | backend/service/temporal/worker/pkg/general/scanner_collector/issue_risk_bridge_workflow.go
+
+  Every pathspec resolves to at least one file at the base, and every diff is 0 lines. The Python
+  detection engine, the issue repository, the skill-join repository, the posture matcher, the issue-state
+  model, and all three gen-1 Go bridge files are byte-identical between the frozen base and this head.
+
+=================== CLAUSE (b) — the new lane's OWN file, handled as its own clause ===================
+# This PR may legitimately edit writers.py, so a non-zero diff here is ALLOWED. What is not allowed is a
+# hunk touching the posture trigger itself: the _posture_trigger function or the
+# _ISSUE_AND_RISK_BRIDGE_WORKFLOW dispatch constant. The full diff is pasted, then the assertion.
+    $ git diff 67b4096f..a2486bb33f835af24f5850e4f4c5eb2e8b02afb9 -- backend_python/src/endpoint_asset_ingestion/ingestion/writers.py
+    (202 lines, 14 hunks)
+
+    diff --git a/backend_python/src/endpoint_asset_ingestion/ingestion/writers.py b/backend_python/src/endpoint_asset_ingestion/ingestion/writers.py
+    index 6ef72f0042..e997c4f939 100644
+    --- a/backend_python/src/endpoint_asset_ingestion/ingestion/writers.py
+    +++ b/backend_python/src/endpoint_asset_ingestion/ingestion/writers.py
+    @@ -37,6 +37,7 @@ from typing import Any
+     from uuid import UUID
+     
+     from opentelemetry import trace
+    +from pydantic import BaseModel
+     from sqlalchemy.ext.asyncio import AsyncEngine
+     from temporalio.common import WorkflowIDReusePolicy
+     from temporalio.exceptions import WorkflowAlreadyStartedError
+    @@ -88,6 +89,7 @@ from endpoint_asset_ingestion.telemetry.steps import (
+         ingestion_step,
+     )
+     from python_temporal_worker.integrations.desktop_agent_creator.activities import DesktopAgentCreatorActivities
+    +from python_temporal_worker.integrations.desktop_agent_creator.connector_seed import build_seeded_connector_servers
+     from python_temporal_worker.integrations.desktop_agent_creator.ingestion_skip import derive_agent_unique_identifier
+     from python_temporal_worker.integrations.desktop_agent_creator.models import (
+         AgentIngestionStateRecord,
+    @@ -99,6 +101,7 @@ from python_temporal_worker.integrations.desktop_agent_creator.models import (
+         ProcessSingleAgentOutput,
+         TouchAgentLastSeenInput,
+     )
+    +from python_temporal_worker.integrations.desktop_agent_creator.scanner_version import resolve_scanner_version_for_agent
+     from python_temporal_worker.integrations.desktop_agent_creator.subagent_seed import build_seeded_subagents
+     from python_temporal_worker.mcp_asset_creation.activities import McpAssetCreationActivities
+     from python_temporal_worker.mcp_asset_creation.models import (
+    @@ -457,6 +460,7 @@ async def _mcp_upsert(
+         agent_asset_id: int,
+         desktop_agent_user_id: int | None,
+         agent: DesktopAgentData,
+    +    scanner_version_for_agent: str | None,
+         subagent_bindings: list[McpServerBinding] | None = None,
+     ) -> list[int]:
+         """Upsert the agent's MCP servers in-process; return the connected MCP asset ids (keep-set).
+    @@ -467,11 +471,37 @@ async def _mcp_upsert(
+         whose soft-delete semantics are load-bearing enough that leaving that path
+         byte-identical is worth more than a tidier signature.
+         """
+    -    if not agent.mcp_servers:
+    +    # Old-lane parity: for a detected Claude Code agent the Temporal lane turns every connector on
+    +    # the shared catalog's seed allowlist into a synthetic MCP server at its MAC call site, so a
+    +    # tenant can sanction those connectors before anyone has personally connected one. They must
+    +    # reach the SAME asset-creation path here or the cut-over drops those assets from inventory.
+    +    # Merged BEFORE the emptiness guard, exactly as the old lane seeds unconditionally: a Claude
+    +    # Code install with no configured servers is the case where the seed IS the MCP inventory.
+    +    # Empty for every other agent. ``full_catalog`` is deliberately not passed — it only reproduces
+    +    # the pre-allowlist set for a REPLAYING Temporal history, which this in-process lane has none of.
+    +    payload_servers = [*agent.mcp_servers, *build_seeded_connector_servers(agent.app_name)]
+    +    if not payload_servers:
+             raise StepSkipped("no MCP servers in payload")
+         # Inject the per-agent context onto each server (as the DAC workflow does at
+    -    # its MAC call site) so the connection is written Agent -> MCP.
+    -    servers = [s.model_copy(update={"agent_id": agent_asset_id, "desktop_agent_user_id": desktop_agent_user_id}) for s in agent.mcp_servers]
+    +    # its MAC call site) so the connection is written Agent -> MCP. Seeded connectors get the
+    +    # identical treatment, so they are attributed to the same endpoint/device/tenant.
+    +    # ``scanner_version`` is the same fallback the Temporal lane applies over its merged list
+    +    # (desktop_agent_creator/workflow.py, `mcp_server.scanner_version or scanner_version_for_agent`).
+    +    # It rides on the per-scan ScanSummary keyed by device serial, not on the per-server payload, so a
+    +    # real server already carries it from the extract while a SEEDED connector has none of its own —
+    +    # and without the fallback the two lanes hand the crud different gateway-version stories for the
+    +    # same install. `or` not overwrite: a per-server stamp always wins.
+    +    servers = [
+    +        s.model_copy(
+    +            update={
+    +                "agent_id": agent_asset_id,
+    +                "desktop_agent_user_id": desktop_agent_user_id,
+    +                "protects_all_mcps": agent.protects_all_mcps,
+    +                "scanner_version": s.scanner_version or scanner_version_for_agent,
+    +            }
+    +        )
+    +        for s in payload_servers
+    +    ]
+         return await write_agent_mcp_servers(
+             deps.mac,
+             deps.tenant_schema,
+    @@ -641,10 +671,23 @@ async def _sessions(
+                 session_result.events_created,
+                 RecordsWrittenLabels(step=STEP_SESSIONS, table="usage_session_events", tenant_schema=deps.tenant_schema, outcome="created"),
+             )
+    +    _meter_session_alerts(session_result, tenant_schema=deps.tenant_schema)
+    +
+    +
+    +def _meter_session_alerts(session_result: Any, *, tenant_schema: str) -> None:
+    +    """Count every disposition of the session alert fan-out, including the failures.
+    +
+    +    publish_failed used to go uncounted on this lane while the gateway lane counted it, so a producer
+    +    that failed on EVERY send moved no counter at all: the pod stayed healthy, the alert queue stayed
+    +    empty, and nothing in the metrics said so. That is the footgun this ticket exists to close, so the
+    +    swallow is now countable here too — the metric's own contract requires it.
+    +    """
+         if session_result.alerts_published:
+    -        metrics.session_alerts.add(session_result.alerts_published, SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="published"))
+    -    elif session_result.alert_fan_out_skipped:
+    -        metrics.session_alerts.inc(SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="skipped_no_queue"))
+    +        metrics.session_alerts.add(session_result.alerts_published, SessionAlertLabels(tenant_schema=tenant_schema, outcome="published"))
+    +    if session_result.alerts_failed:
+    +        metrics.session_alerts.add(session_result.alerts_failed, SessionAlertLabels(tenant_schema=tenant_schema, outcome="publish_failed"))
+    +    if not session_result.alerts_published and not session_result.alerts_failed and session_result.alert_fan_out_skipped:
+    +        metrics.session_alerts.inc(SessionAlertLabels(tenant_schema=tenant_schema, outcome="skipped_no_queue"))
+     
+     
+     @ingestion_step(STEP_MCP_RECONCILE)
+    @@ -738,6 +781,7 @@ async def _write_agent_slice(
+         created_asset_ids: list[int],
+         agent_to_mcp_asset_ids: dict[int, list[int]],
+         failed_identities: set[str],
+    +    abandoned: list[str],
+     ) -> ProcessSingleAgentOutput | None:
+         """One agent's full write sequence — identity through sessions (the per-agent slice).
+     
+    @@ -745,6 +789,13 @@ async def _write_agent_slice(
+         ``agent_to_mcp_asset_ids``; any marker-voiding step failure adds ``agent_uid`` to
+         ``failed_identities``. Returns the identity result, or None for a failed/asset-less
+         identity (per-agent isolation).
+    +
+    +    ``abandoned`` collects the agents whose ROWS ARE MISSING — and it is deliberately NOT derived
+    +    from ``failed_identities``, which answers a different question. That set exists to void
+    +    re-ingest markers, so it also holds agents whose identity row LANDED and only a secondary step
+    +    (tools/skills/MCP) failed, and the object-wide reconcile failure adds every candidate at once.
+    +    Counting dropped slices off it would report a write loss for objects that lost nothing. It also
+    +    cannot represent an agent with no ``agent_uid``, which is exactly a case where rows go missing.
+         """
+         # Per-agent isolation (parity finding #11): a single agent's identity failure must NOT
+         # fail the whole object (and every sibling agent) — the old lane records the error and
+    @@ -757,8 +808,12 @@ async def _write_agent_slice(
+             logger.warning("agent_identity failed — skipping this agent, continuing siblings (old-lane per-agent isolation)", app_name=agent.app_name)
+             if agent_uid is not None:
+                 failed_identities.add(agent_uid)  # a failing slice voids this identity's marker
+    +        abandoned.append(agent.app_name)  # ...and this agent's rows are missing
+             return None
+         if result is None or result.asset_id is None:
+    +        # No asset came back, so nothing downstream of identity can have been written for this agent
+    +        # either. Missing rows, whether or not the agent has a uid to void a marker with.
+    +        abandoned.append(agent.app_name)
+             return None
+         created_asset_ids.append(result.asset_id)
+     
+    @@ -819,7 +874,14 @@ async def _write_agent_slice(
+                 failed_identities.add(agent_uid)
+         mcp_bindings: list[McpServerBinding] = []
+         try:
+    -        connected = await _mcp_upsert(deps, result.asset_id, result.desktop_agent_user_id, agent, mcp_bindings)
+    +        connected = await _mcp_upsert(
+    +            deps,
+    +            result.asset_id,
+    +            result.desktop_agent_user_id,
+    +            agent,
+    +            resolve_scanner_version_for_agent(inventory.scan_summaries, agent.device_serial_number),
+    +            mcp_bindings,
+    +        )
+             # UNION the keep-set per agent asset (parity finding #9): the desktop-agent asset id has
+             # NO OS-user component (per-user identity lives in desktop_agent_users), so two OS users
+             # on one device running the same agent collapse to ONE asset_id, each carrying its own
+    @@ -884,7 +946,19 @@ async def _write_agent_slice(
+         return result
+     
+     
+    -async def write_inventory(deps: IngestionDeps, inventory: ExtractedInventory) -> list[int]:
+    +class InventoryWriteResult(BaseModel):
+    +    """What one object's write pass produced, INCLUDING what it abandoned.
+    +
+    +    ``dropped_agent_slices`` is the count of identities whose slice failed and was skipped by
+    +    per-agent isolation. It travels out with the created ids because the caller settles the object
+    +    on it: an object that lost a slice must not be metered the same as one that lost nothing.
+    +    """
+    +
+    +    created_asset_ids: list[int]
+    +    dropped_agent_slices: int = 0
+    +
+    +
+    +async def write_inventory(deps: IngestionDeps, inventory: ExtractedInventory) -> InventoryWriteResult:
+         """Drive the write steps for one object's extracted inventory; return the created agent asset ids.
+     
+         Per-agent secondary writes (builtin tools, skills, MCP) are non-fatal — a
+    @@ -934,6 +1008,9 @@ async def write_inventory(deps: IngestionDeps, inventory: ExtractedInventory) ->
+         # partial run re-runs fully next scan instead of persisting a matching hash that would skip it.
+         candidate_markers: dict[str, AgentIngestionStateRecord] = {}
+         failed_identities: set[str] = set()
+    +    # The agents whose rows are MISSING — see _write_agent_slice's docstring for why this is counted
+    +    # at the abandonment points instead of being read off failed_identities.
+    +    abandoned_agents: list[str] = []
+         # Identities whose Last-Seen has already been touched on the skip path this object, so a
+         # machine's OS-user slices touch once, not once per slice (mirrors the Temporal lane's
+         # absorbing-slice gating; the touch is debounced+idempotent, so this is an activity-count
+    @@ -1013,6 +1090,7 @@ async def write_inventory(deps: IngestionDeps, inventory: ExtractedInventory) ->
+                         created_asset_ids,
+                         agent_to_mcp_asset_ids,
+                         failed_identities,
+    +                    abandoned_agents,
+                     )
+             finally:
+                 # In a finally so a propagating transient PG conflict (whole-object retry) still
+    @@ -1145,4 +1223,6 @@ async def write_inventory(deps: IngestionDeps, inventory: ExtractedInventory) ->
+         if inventory.skipped_empty_name_agents:
+             metrics.agents_skipped.add(inventory.skipped_empty_name_agents, AgentSkippedLabels(tenant_schema=deps.tenant_schema, reason="empty_name"))
+     
+    -    return created_asset_ids
+    +    # Carry the abandoned slices out. Same tail placement and same reason as the counters above: this
+    +    # function is the with_db_retry retried unit, and only the fully-successful attempt reaches here.
+    +    return InventoryWriteResult(created_asset_ids=created_asset_ids, dropped_agent_slices=len(abandoned_agents))
+
+  THE ASSERTION, computed over the diff above:
+    $ grep -cE '^[+-].*(_posture_trigger|_ISSUE_AND_RISK_BRIDGE_WORKFLOW)' writers.diff
+    0
+
+  Zero changed lines name either symbol. Neither is added, removed, or modified by this PR. Both sit at
+  the lines amendment_r30 names, confirmed at this head:
+    writers.py:126:_ISSUE_AND_RISK_BRIDGE_WORKFLOW = "IssueAndRiskBridgeWorkflow"
+    writers.py:702:async def _posture_trigger(deps: IngestionDeps, created_asset_ids: list[int]) -> None:
+    writers.py:728:            _ISSUE_AND_RISK_BRIDGE_WORKFLOW,
+    writers.py:1193:    await _posture_trigger(deps, created_asset_ids)
+
+=================== WHAT THIS ESTABLISHES, AND WHAT IT DOES NOT ===================
+  ESTABLISHES: every file on the executed re-affirm path is unchanged between the frozen base and this
+  head, and this PR does not touch the trigger that invokes it. So the re-affirmed-Open behaviour
+  amendment_r30 confronts is PRE-EXISTING — it is not introduced, enabled, or altered by this change.
+  DOES NOT ESTABLISH: that the behaviour is correct, acceptable, or a satisfied lifecycle end-state. It
+  is a user-visible product defect, ticketed as PRDCT-12071, and this artifact is only the provenance
+  half of that claim.

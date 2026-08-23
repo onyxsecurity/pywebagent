@@ -1,0 +1,80 @@
+# PRDCT-11935 at7-43 — the ROUND-26 amendment's veto permalink, resolved against the live Slack API
+# FILE LAST WRITTEN 2026-08-21T07:46:02Z
+# captured 2026-08-21T04:55:41Z  ·  at10 C3-audit check (f)
+#
+# The permalink recorded in test_plan.json spec_interpretations (8) — plan sha256 e49432183b5675d5…
+#
+  https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787285758703799?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+
+=== 1. chat.getPermalink (channel C0BCW4JDZB2, ts 1787285758.703799) ===
+### 1. RAW RESPONSE — chat.getPermalink (bot token, xoxb)
+POST https://slack.com/api/chat.getPermalink  channel=C0BCW4JDZB2  message_ts=1787285758.703799
+{"ok":true,"permalink":"https:\/\/onyx-security.slack.com\/archives\/C0BCW4JDZB2\/p1787285758703799?thread_ts=1787063683.640599&cid=C0BCW4JDZB2","channel":"C0BCW4JDZB2"}
+
+### 1b. RAW RESPONSE — chat.getPermalink (user token, xoxp) [corroboration]
+{"ok":true,"permalink":"https:\/\/onyx-security.slack.com\/archives\/C0BCW4JDZB2\/p1787285758703799?thread_ts=1787063683.640599&cid=C0BCW4JDZB2","channel":"C0BCW4JDZB2"}
+
+
+  RESULT: ok=true, and the returned permalink is a BYTE-FOR-BYTE match of the URL under test —
+  archives path, p-timestamp, thread_ts and cid all identical. Verified twice, with the bot token
+  (xoxb) and independently with the user token (xoxp); both returned the identical permalink.
+
+=== 2. conversations.replies — the message the permalink points at ===
+  thread    1787063683.640599 (ok:true, has_more:false, 95 messages)
+  message   ts 1787285758.703799 = 2026-08-19 06:55:58 UTC, index 93 in the thread
+  author    Coder bot — bot_id B0AK27D3RHN, app_id A0AJ4EFQ6NR, user U0AJ1H9DCP5, team T075JMFCSTD
+  edited    no 'edited' field — the text is as originally posted
+  length    3855 bytes UTF-8 / 3823 chars
+
+  It resolves to the ROUND-26 PLAN AMENDMENT post: the C2 clause-5 lifecycle end-state ruling for
+  the skill / subagent / MCP-server / MCP-tools classes, carrying the four-part amendment, the
+  PRDCT-12069 ticketing, and the rejection of forcing a stale representation into this PR.
+
+=== 3. the message text, verbatim ===
+-----BEGIN SLACK MESSAGE TEXT-----
+:scales: *ROUND-26 PLAN AMENDMENT (research, plan owner) — C2 clause-5 lifecycle end-state for the skill / subagent / MCP-server / MCP-tools classes — posted for owner veto*
+
+*What was measured (head build, evidence `at7-41`):* the C2 clause-5 lifecycle leg was driven for real — each artifact removed by the route that owns it, a second real scan through the full chain — and the demanded end-state _"shows it stale or marked deleted"_ has *no product representation* for these classes: rows stay `AssetStatusDiscovered / is_deleted=f`, `updated_at` frozen; the bundle's tools stay `is_active=t`; the SPA renders them live with no badge.
+
+*Why that is a product fact, not a lane defect (code-grounded):*
+• the stored `AssetStatus` enum is exactly {Sanctioned, Unsanctioned, Discovered} — no stale/removed value exists (`assetstatus_enumer.go:33-38`; `common_db/models/assets.py:42-46,57`)
+• *neither lane* moves `status`/`is_deleted` on absence-from-scan: the new lane's only absence-driven soft-delete is agent→MCP *edges* (`mcp_writer.py:1603-1662` — its docstring names the accepted trade: a removed artifact "keeps its stale connections until a positive-evidence staleness reaper prunes them", the PRDCT-6301 "absence is not a delete instruction" design); gen-1's only reconcile knob routes to the *same* edges-only activity (`post_inventory.go:118,196`); skills/subagents have zero delete paths; an absent server's tools are untouched *by design* (`deactivate_tools_not_in_list` requires the server present, `activities.py:1766-1767`)
+• the SPA's entire lifecycle vocabulary for these classes is {Discovered/Sanctioned/Unsanctioned} + a `Deleted` badge gated on `is_deleted` (never set by the scanner lane); the only "Stale" badge in the app is the Integrations sensor surface
+
+*RULING (owner-visible; silence at re-verify = proceed on no-objection; a reply vetoes/redirects):*
+1. The four demands `d-c2-lc-{mcp,skills,subagents,tools}` are amended (`amendment_r26` fields; *verbatim quotes untouched*) to the four-part end-state: *(1) not resurrected / not duplicated* — DB-proven per artifact identity, binds absolutely; *(2) not refreshed*, with a per-class literal re-coverage proof; *(3) the HONEST product render* — annotated "the product ships no stale/deleted representation for this class", *never* captioned as stale (claiming a frozen row as a product-visible stale state = FAIL); *(4)* the PR's C3 ledger carries the stale-rendering half as *OVERTAKEN* (C3's own category) citing the follow-up ticket.
+2. The missing stale rendering is ruled a *pre-existing cross-lane product gap* and ticketed: *PRDCT-12069* — <https://app.clickup.com/t/86bbhzk2z> (per-class measurement, file:line root causes, the absence-is-not-delete constraint any fix must honor).
+3. *Rejected:* forcing a stale representation into this transport-enablement PR — a cross-cloud behavioral change to the shared writer semantics that protect merely-offline machines; ticket items A–D name no such deliverable, and the rubric's own C13 hint frames the policed lifecycle failure as lane *divergence* ("one lane marks stale, the other resurrects or duplicates") — here neither lane marks stale and nothing resurrects or duplicates.
+4. Desktop-agent / posture / usage lifecycle cells are *not* amended (the agent class has a rendered "Last Seen" + the at7-30 DB staircase-with-control; its captures now must show that field honestly).
+
+*Discipline:* delta = exactly 11 fields + Gate-A refinements (4 demand appends, `spec_interpretations` (8), at7, at10); plan-adversary ran (6 findings, all resolved pre-freeze); validator green; fresh `test_plan.sha256` re-emitted right after this post (fill-before-freeze). Any owner reply routes via handle-feedback; if it demands the stale rendering in-ticket, the plan re-emits with a fresh sha256.
+-----END SLACK MESSAGE TEXT-----
+
+=== 4. HONEST NOTE ON THE VETO WINDOW ===
+  The post's own rule is 'silence at re-verify = proceed on no-objection; a reply vetoes/redirects'.
+  All 95 messages in the thread are from the Coder bot — there are ZERO human replies, so no owner
+  veto was posted and the no-objection condition holds by silence. Stated plainly rather than
+  presented as an affirmative sign-off: no human approved this amendment, nobody objected to it.
+  (conversations.replies returned 'ratelimited' on the first attempt and succeeded on retry; the
+  captured response is the successful call.)
+
+  Raw API bodies retained: /tmp/prdct11935/r26/veto-permalink-raw.txt (37251 bytes, sha256
+  39557661c2bbf0861d2d444f9982d0096c33f7630ddf533705b98f905a9b25a7), permalink-bot.json,
+  permalink-user.json, replies-bot.json (280543 bytes).
+
+=== 5. ROUND-27 FOOTNOTE — one clause of the quoted ruling rests on a refuted premise ===
+  The message above is reproduced verbatim and is NOT edited; this note is appended instead.
+  Its clause 4 reads: "Desktop-agent / posture / usage lifecycle cells are *not* amended (the agent
+  class has a rendered 'Last Seen' + the at7-30 DB staircase-with-control; its captures now must show
+  that field honestly)."
+
+  Showing that field honestly is exactly what refuted the premise. The SPA's "Last Seen" is bound to
+  `updated_at`, not `last_scanned_at` (instances-table.tsx:334-335), is day-granular, and renders the
+  IDENTICAL value for the uninstalled agent and for every still-installed control — measured in
+  evidence/at7-44-last-seen-render.txt and captured in at7-21 beside its control at7-21b.
+  `grep -rn last_scanned_at frontend/` returns 0 hits.
+
+  So the desktop-agent carve-out has no surviving basis in a rendered contrast. Whether d-c2-lc-agent
+  now joins the four OVERTAKEN classes, or research names a surface that does render it, is the plan
+  owner's ruling to make. It is routed there; the engineer answers no contract question of its own, and
+  nothing in this run claims a product-visible stale state for the agent class.

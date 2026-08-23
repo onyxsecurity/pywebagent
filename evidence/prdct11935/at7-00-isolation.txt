@@ -1,0 +1,88 @@
+# PRDCT-11935 at7-00 — the C2 ISOLATION WINDOW (round 25, head-exact image)
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T03:39:35Z · tenant onyx_security
+#
+# gen-1 is quiesced three independent ways for this window: its collector schedule is PAUSED, every
+# deployment that could execute it is at zero replicas, and no pod for them exists. The subjects for
+# four classes were then CREATED INSIDE the window, so their rows cannot predate it.
+
+=== 1. the schedule is paused
+    
+              ScheduleId                WorkflowType        Paused          Notes           RunningWorkflows   NextRunTime    LastRunTime                          Specification                          
+      scanner-collector-schedule  ScannerCollectorWorkflow  true    round-25 at7 C2 window  []                7 minutes ago  8 minutes ago  {"interval":[{"interval":"60s","phase":"0s"}],"jitter":"0s"}  
+=== 2. zero replicas, and no pods
+    temporal-general-worker    0     <none>
+    temporal-scanner-worker    0     <none>
+    scanner-event-consumer     0     <none>
+    endpoint-asset-ingestion   0     <none>
+    pods alive for those four: 0
+=== 3. the only writer left
+    eai-azure   localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26   1
+
+=== the window marks, taken before anything was installed
+    MARKS assets=124637 tools=97 usage=1389
+
+=== the scan
+    AT7 SCAN START 2026-08-21T03:32:01Z
+    scanner exit=0
+    2026-08-21T03:33:08.626979255Z	INFO	Scan run completed	{"payloads_sent": 8, "users": 1, "agents_detected_total": 5, "mcp_servers_total": 3, "projects_total": 2, "skills_total": 205, "duration_ms": 64461, "scan_run_id": "2b1d37fe-649f-486c-bc07-b5c602895a03"}
+           type        | created_in_window 
+
+=== what it created, by class
+     AssetTypeMCP      |                 1
+     AssetTypeSkill    |                 1
+     AssetTypeSubAgent |                 1
+    (3 rows)
+
+    --- class MCP SERVERS (created in this window)
+       id   |     name     |    unique_identifier     | type  | source_type |   v   
+    --------+--------------+--------------------------+-------+-------------+-------
+     131106 | Onyx Lab MCP | mcpb:onyx-lab-mcp::1.5.0 | Local | File        | 1.5.0
+    (1 row)
+    
+    --- class MCP TOOLS
+     id  |    server    |     tool     |      type       | is_active 
+    -----+--------------+--------------+-----------------+-----------
+      98 | Onyx Lab MCP | lab_echo     | ToolTypeMCPTool | t
+      99 | Onyx Lab MCP | lab_hostname | ToolTypeMCPTool | t
+     100 | Onyx Lab MCP | lab_search   | ToolTypeMCPTool | t
+     101 | Onyx Lab MCP | lab_time     | ToolTypeMCPTool | t
+     102 | Onyx Lab MCP | lab_verify   | ToolTypeMCPTool | t
+    (5 rows)
+    
+    --- class SKILLS
+       id   |          name          |                          skill_md_hash                           |        status         
+    --------+------------------------+------------------------------------------------------------------+-----------------------
+     131278 | lab-w25-20260821033140 | 091dffb345495cabb7547ba8c21ab306114bcff3c68389df23afbd5173bfebfb | AssetStatusDiscovered
+    (1 row)
+    
+    --- class SUBAGENTS
+       id   |          name          |                             unique_identifier                              |                         subagent_md_hash                         
+    --------+------------------------+----------------------------------------------------------------------------+------------------------------------------------------------------
+     131332 | lab-w25-20260821033140 | subagent::cacc4e6cef1596e37492b4d987a8369403902b8b09eb3d30ffeaf73a91de1f42 | cacc4e6cef1596e37492b4d987a8369403902b8b09eb3d30ffeaf73a91de1f42
+    (1 row)
+    
+    --- class USAGE SESSIONS
+      id  |      external_id       | has_content_events |          created_at           
+    ------+------------------------+--------------------+-------------------------------
+     2396 | 20260821_033142_faf0bc | t                  | 2026-08-21 03:32:14.971905+00
+    (1 row)
+    
+    --- class DESKTOP AGENT (machine tie)
+      id   |         name         |         v          |              serial              |        last_scanned_at        
+    -------+----------------------+--------------------+----------------------------------+-------------------------------
+        23 | Claude Code (coder)  |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:03.743466+00
+     10656 | Claude (coder)       |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:32:10.983891+00
+     10727 | Codex (coder)        |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:06.260268+00
+     10729 | OpenClaw (coder)     | 2026.5.7 (eeef486) | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:07.042041+00
+     55751 | Hermes Agent (coder) |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:32:14.768672+00
+    (5 rows)
+    
+    --- the scan receipt with its azure object key
+     id  |             scan_run_id              | total_agents | total_mcp_servers | total_skills |                                                                key                                                                 
+    -----+--------------------------------------+--------------+-------------------+--------------+------------------------------------------------------------------------------------------------------------------------------------
+     384 | 2b1d37fe-649f-486c-bc07-b5c602895a03 |            5 |                18 |          205 | tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787283188-b8f13266-b5eb-4664-a0cc-74c041363512.log
+    (1 row)
+    

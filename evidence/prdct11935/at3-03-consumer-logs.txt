@@ -1,0 +1,46 @@
+# PRDCT-11935 at3-03 — the consumer's own log lines and counter for the parked message
+# FILE LAST WRITTEN 2026-08-21T22:10:54Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-db9nv
+# captured 2026-08-21T21:47:19Z · tenant onyx_security
+#
+# RE-DRIVEN ON THE ACTUAL HEAD (round-29 gate, G7a). The previous at3-01/02/03 were stamped
+# `onyx branch f4b3e9dfb2 · image :prdct11935-r24` — head~2 — while at3-03's line 6 claimed
+# "Re-captured on the FINAL head image". That sentence was false about its own capture, and the fix is a
+# re-drive rather than a re-stamp: these three now document a poison message sent, parked and read back
+# on a2486bb33f / :prdct11935-r26, the image the PR ships.
+#
+# AND THE SECOND CLAIM IS DROPPED, NOT REPAIRED. The old premise was "the DLQ was drained to empty before
+# the send, so nothing older can be mistaken for this run" — contradicted by at3-01's own line, which
+# printed `active=0 dead_letter=6` immediately after that drain. Draining the ACTIVE queue does not empty
+# the DEAD-LETTER sub-queue, and this run has since parked 95 messages there legitimately. So this capture
+# does not claim an empty DLQ. It identifies its own message two stronger ways instead: a unique marker id
+# carried INSIDE the body (r32-poison-214512), and the broker message_id the writer's own log
+# names as it parks it. Both are matched on the way back out.
+
+=================== THE LOG LINES, verbatim from the shipping pod's stream ===================
+    2026-08-21T21:45:18.299357Z [warning  ] poison message — no ingestible object, dead-lettering [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=handle lineno=108 message_id=67b50
+    2026-08-21T21:45:18.299862Z [info     ] Dead-lettered message          [common_core.services.queue.asb] filename=asb.py func_name=dead_letter_message lineno=288 message_id=67b505b5-7a93-4efd-9d5c-21eaecc39aeb reason='no
+
+    Read the two call sites: `message_handler.py:108` decides the message names no ingestible object, and
+    `asb.py:288` performs the dead-letter against the broker. Same message_id in both, and the same id
+    at3-02 reads back out of the sub-queue.
+
+=================== THE COUNTER ===================
+    The lane's poison family is `asset_ingestion_poison_messages_total{reason}` plus the unlabelled
+    `asset_ingestion_dead_letters_total`; the reason for this class is `no_ingestible_object`
+    (message_handler.py:109 -> :132). The queue-side delta measured in at3-01 (dead_letter 95 -> 96) is the
+    broker's own view of the same event.
+
+=================== THE SIBLING'S PROCESSED LINE — this AT's second required half ===================
+    A poison park must not stall the lane, so a VALID payload was driven through the real front door in
+    the SAME window, on the same consumer: a fresh skill `at3sib-20260821214753` on disk, a real
+    onyx-scanner run POSTed to http://ingest-onyx:8080/mcp-scanner
+    (scan_run_id 97fe7126-7b22-499a-a1ec-cc52b362f628), landing as a real blob through real Event Grid.
+    The consumer settled it normally, minutes after parking the poison:
+
+    2026-08-21T21:49:20.502292Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=61750f27-8fbd-42a
+    2026-08-21T21:49:20.502709Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.425474 
+    2026-08-21T21:49:20.503337Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=266 message_id=a682640a-a0fc-4764-a090-4bc34ec3bec4 span_id=a
+
+    `outcome=processed` and `Completed message` — the poison park neither stalled the pool nor poisoned
+    the sibling. at3-04 carries the rows that sibling wrote.

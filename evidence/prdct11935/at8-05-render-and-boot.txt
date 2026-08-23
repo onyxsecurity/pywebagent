@@ -1,0 +1,80 @@
+# PRDCT-11935 at8-05 — what the lane's AWS-only leaves actually RENDER, and what the image does with each
+# FILE LAST WRITTEN 2026-08-21T22:04:13Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · flux-fleet cab40f0e42 · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T22:04:13Z
+#
+# WHY THIS FILE EXISTS (round-29 gate, G3). The PR's C3 ledger claimed the rendered result on both
+# instances included `asset_ingestion_sqs: null`. The gate re-rendered independently and found the key is
+# ABSENT from spec.values, and — the part that matters — that the literal `null` state the ledger described
+# is one the real service image REFUSES TO BOOT ON. A ledger that describes a crash-looping state as the
+# shipped one is worse than a wrong number, so this file measures both halves rather than re-wording the row.
+
+=================== 1. THE RENDER — read from the FINAL ConfigMap, not from spec.values ===================
+    Two different questions were being conflated. What `spec.values` carries is not what the pod reads:
+    the chart fills its own defaults in afterwards. Both are measured here.
+
+    (a) spec.values, built by kustomize from the instance overlay:
+        $ kustomize build --load-restrictor LoadRestrictionsNone \
+            clusters/ox-az-p-eus2-c02/instances/<inst>/onyx-app
+          | yq '…HelmRelease onyx-app .spec.values."endpoint-asset-ingestion".configMap.data'
+        has("asset_ingestion_sqs")  ->  false     on BOTH instances
+        The earlier `null` came from asking yq for that missing key: `yq '.asset_ingestion_sqs'` on a map
+        without it prints `null`. That is the query's answer, not the render's.
+        The key is absent because drop-aws-only-values.yaml removes it — deliberately with `op: remove`
+        and NOT `op: add … value: null`, and that file's own comment says why in as many words: add-null
+        "SURVIVES into the rendered ConfigMap, so it would emit `asset_ingestion_sqs: null` into
+        /app/config.yaml … and the pod crash-loops on boot".
+
+    (b) the FINAL config.yaml the pod mounts, rendered through the chart:
+        $ helm template onyx-app infra/helm/onyx-app -f <the spec.values above>
+          | yq 'select(.kind=="ConfigMap" and name~"endpoint-asset-ingestion") | .data["config.yaml"]'
+
+        asset_ingestion_sqs:
+              aws_region: ""
+              dlq_url: ""
+              endpoint: ""
+              queue_url: ""
+              visibility_timeout: 600
+              wait_time_seconds: 20
+        asset_ingestion_s3:
+              aws_region: ""
+              endpoint: ""
+
+        key present in the shipped config? true          us-east-1 occurrences in the lane block: 0
+        Identical on saas and centerpoint.
+
+    So the honest statement is: `asset_ingestion_sqs` is REMOVED from spec.values and reappears as the
+    chart's all-blank stanza in the ConfigMap — blank on every leaf, never null. `asset_ingestion_s3` is
+    the opposite case and is blanked in release.yaml instead, because ITS chart default is a live
+    `aws_region: "us-east-1"` (infra/helm/onyx-app/values.yaml:2485) that a remove would let back in.
+
+=================== 2. THE BOOT — the two shapes, both run on the real head image ===================
+    Claiming "the image refuses to boot on null" would itself be an untested assertion, so both shapes were
+    booted: the live eai-azure ConfigMap with `asset_ingestion_sqs` set to (a) the chart's blank stanza and
+    (b) the literal null the ledger claimed, each mounted into a pod running the SAME head image, with the
+    probes stripped so the container's own exit is what is observed.
+
+    (a) THE SHIPPING SHAPE — blank stanza:
+            38:2026-08-21T21:20:42.998348Z [info     ] Starting consumer pool         [common_core.services.queue.consumer_pool] concurrency=2 factory_mode=True filename=consumer_pool.py func_name=run lineno=117 max_messages=1
+            39:INFO:     Application startup complete.
+            43:2026-08-21T21:20:43.001702Z [info     ] Worker started                 [common_core.services.queue.consumer_pool] filename=consumer_pool.py func_name=_worker_loop lineno=148 worker_id=0
+            47:2026-08-21T21:20:43.051679Z [info     ] Worker started                 [common_core.services.queue.consumer_pool] filename=consumer_pool.py func_name=_worker_loop lineno=148 worker_id=1
+
+    (b) THE CLAIMED SHAPE — null:
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            pydantic_core._pydantic_core.ValidationError: 1 validation error for EndpointAssetIngestionConfig
+            asset_ingestion_sqs
+              Input should be a valid dictionary or instance of AssetIngestionSQSConfig [type=model_type, input_value=None, input_type=NoneType]
+                For further information visit https://errors.pydantic.dev/2.12/v/model_type
+            
+            ERROR:    Application startup failed. Exiting.
+
+    One boots and starts consuming; the other dies in config validation before the app starts. That is the
+    whole point of the correction: the ledger's old sentence described (b).
+
+    Both probe pods and their ConfigMaps were deleted after the measurement; nothing was left behind.
+
+=================== 3. WHAT THE C3 LEDGER NOW SAYS ===================
+    Item 11 of the ticket-reconciliation list carries the (b)-render above, the `us-east-1` count of 0, and
+    a pointer to this file — and it no longer asserts a `null` that neither the render produces nor the
+    service accepts.

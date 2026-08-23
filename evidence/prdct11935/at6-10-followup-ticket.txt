@@ -1,0 +1,65 @@
+# PRDCT-11935 at6-10 — the residual-loss follow-up ticket, RE-FETCHED LIVE
+# FILE LAST WRITTEN 2026-08-21T21:59:44Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · fetched from the ClickUp API 2026-08-21T21:59:44Z
+#
+# RE-FETCHED (round-29 gate, G7d). The previous revision of this file was a STALE snapshot: it recorded
+# `status : Open` while the live task reads `eng: code review`, and it predated the round-29 NOTE recording that
+# the ledger's originally-named L-3 fix was REFUTED by measurement. A follow-up receipt whose contents
+# have drifted from the task it claims to evidence proves nothing, so it is re-fetched rather than
+# re-worded — and this round's fetch is pasted verbatim below rather than summarised.
+#
+# NOTE ON MATCHING: ClickUp's markdown escapes underscores (it stores 'access\_control'), so the checks
+# below match on substrings that survive that escaping.
+
+=================== 1. PER-ELEMENT CHECKS against the LIVE body ===================
+    [PRESENT]  L-2 identity family named                  <- 'L-2'
+    [PRESENT]  L-3 version-key family named               <- 'L-3'
+    [PRESENT]  the re-key migration constraint            <- 're-keys assets'
+    [PRESENT]  the access_control half of the migration   <- 'access_control'
+    [PRESENT]  the CLAUDE.md locked-pair constraint       <- 'locked pair'
+    [PRESENT]  the guard fail-open consequence            <- 'silently turning an enforced block into an allow'
+    [PRESENT]  the L-3 REFUTED-fix NOTE (round 29)        <- 'refuted by measurement'
+    [PRESENT]  the version_resolution exclusion cite      <- 'version_resolution.py:181-183'
+    [PRESENT]  blocks gen-1 retirement                    <- 'do not retire gen-1'
+    [PRESENT]  the acceptance test named                  <- 'zero LOSS-direction entries'
+    [PRESENT]  this PR referenced                         <- 'onyx#12329'
+
+    11 elements checked · 11 PRESENT · 0 ABSENT
+
+=================== 2. THE LIVE TASK, VERBATIM AS FETCHED ===================
+    Task: One-writer cutover prerequisite: converge script-launched local MCP server identity (re-key migration) + cold-cache version-key semantics — new-writer LOSS residuals measured in PRDCT-11935
+    Status: eng: code review
+    Priority: None
+    Due: Not set
+    Created: Aug 20, 2026
+    URL: https://app.clickup.com/t/86bbhqxe8
+    
+    Description:
+    Why this ticket exists
+    
+    PRDCT-11935 (Azure transport for endpoint_asset_ingestion) proved same-payload lane parity between gen-1 (Go/Temporal ScannerTenantWorkflow) and the new in-process asset writer. Two residual gen-1-vs-new-writer divergences in the LOSS direction were measured, root-caused, and proven transport-independent (the same-image AWS-vs-Azure equivalence leg diffs to 0 lines — they reproduce identically on every AWS cell already cut over today). Both were deliberately not fixed in the transport PR (onyx#12329) because the fix is an identity move that must ship with a data migration; this ticket carries them to the one-writer cutover, where they block gen-1 retirement.
+    
+    Full measurements: onyx#12329 evidence at6-06-ledger.txt (entries L-2, L-3), at6-08-residual-losses.txt, at6-09-fresh-tenant-parity.txt.
+    
+    L-2 — script-launched local MCP server identity collapse (the re-key migration)
+    
+    gen-1 keys a bash/sh/zsh/node <script> server on the LLM-extracted script path (Local MCP Server (<script>), uid <script>::<serial>::unknown); the new writer keys it on the launcher (bash::<serial> / node::<serial>) because extract_launcher_package (common/services/mcp_package_extractor.py:284,307-309) bails outside {npx,bunx,uvx,pipx}. N script servers collapse onto one launcher asset — 4 lost rows on a fresh-tenant pair, and the surviving row's content hash flaps between scans.
+    
+    The fix (from the ledger): a deterministic extract_script_path() in common/services/mcp_package_extractor.py, routed through ingestion/mcp_writer.py _heal_launcher_package_cache, so the shared mcp_package_cache row converges the asset writer AND the gateway/policy mirror (common/models/mcp_client_info.py:172-200) at once.
+    
+    The constraint (the reason it cannot ride a transport PR — python_temporal_worker/mcp_asset_creation/activities.py:999-1002): this is "a deliberate identity MOVE, and an identity move is only safe together with the migration that re-keys assets, app_definitions AND their access_control rows in the same change — never deployed ahead of it"; shipping it without the migration "mints a NEW app_definition + asset and leaves every existing rule pointing at an identity nothing reports any more — the guard then finds no rule and returns the tenant default, silently turning an enforced block into an allow". It also splits one asset into N (orphaning the collapsed row) and is a CLAUDE.md locked pair — the gateway/policy mirror must move in the same change.
+    
+    L-3 — first-write version-key divergence on cold cache
+    
+    gen-1 resolves npm versions inline/unconditionally; the new writer's resolution is budgeted (0.4s/lookup, 2s/object, circuit breaker) and skips scanner-manifest servers (mirroring the writer's own _scanner_app_id identity gate), so a first write can key ::unknown where gen-1 keyed ::0.0.79. Converged asynchronously by McpServerEnrichmentWorkflow + supersede_unknown_version_siblings; the naive fix (dropping the manifest exclusion at version_resolution.py:181-183) is measured to change no row while adding hot-path latency (at6-08 §L-3). Decide at cutover whether the async-heal window is acceptable as the permanent semantics or the budget/gate should change (AWS blast radius — needs its own load evidence). NOTE: the ledger's originally-named fix (drop the exclusion at version_resolution.py:181-183) was refuted by measurement (onyx#12329 at6-08 §L-3: the exclusion mirrors the writer's own _scanner_app_id identity gate, so dropping it changes no row and only adds hot-path latency) — the corrected disposition is: first-write window, no safe local code fix, re-evaluate here. The async convergence (McpServerEnrichmentWorkflow + supersede_unknown_version_siblings) is asserted from code and should be measured as part of this ticket.
+    
+    Acceptance
+    
+    The fresh-tenant same-payload lane-pair diff (the C13/at6 procedure in PRDCT-11935's plan) shows zero LOSS-direction entries, with the L-2 re-key migration applied to assets + app_definitions + access_control in the same change and the gateway mirror moved in lockstep.
+    Blocks gen-1 retirement: per PRDCT-11935 footgun 4, do not retire gen-1 until this lands.
+    
+    Exposure (why this must sequence BEFORE or WITH tenant cutover)
+    
+    Any tenant cut over to the new lane (the LD endpoint-asset-ingestion flag + the documented cutover contract, consts.py:202-207) before this ticket closes carries the losses above for as long as it runs the new lane: gen-1 stops writing for that tenant, so the per-script local-server rows collapse to per-launcher and the first-write version-key window applies. gen-1 remaining deployed does not protect a cut-over tenant. The cutover owner (PRDCT-9710 / the M2 one-writer cutover under the PRDCT-9701 rollout effort) must sequence this ticket accordingly.
+    
+    Related: PRDCT-11935 (source measurements) · PRDCT-9710 (cutover/migration effort this belongs to) · onyx PR #12329.

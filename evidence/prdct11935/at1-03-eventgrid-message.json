@@ -1,0 +1,66 @@
+{
+ "_file_last_written": "2026-08-21T18:50:08Z",
+ "_what_this_is": "the REAL Event Grid BlobCreated delivery on the lab Service Bus queue endpoint-asset-ingestion-prdct11935, PEEKED (not consumed) while the consumer was paused, then joined to the consumer's own settlement of the SAME message_id",
+ "_why_recaptured": "round-28 gate G7: the previous revision was a real delivery but from the 2026-08-18 window (eventTime 2026-08-18T16:41:45Z), while at1-02/04/05 document the 2026-08-20 run, and its message_id joined to no settlement in at1-04 \u2014 so the plan's 'as received by the consumer' half was unproven. This capture is from the SAME window as the at1 run it closes, and carries the consumer join inline.",
+ "_captured_at": "2026-08-21T17:49:31Z",
+ "_peeked_at": "2026-08-21T17:21:49.529179+00:00",
+ "_window": {
+  "scan_run_id": "333b21ef-714b-4b8c-84ad-eaec81bc2799",
+  "scan_started_utc": "2026-08-21T17:20:03Z",
+  "scan_completed_utc": "2026-08-21T17:21:10Z",
+  "consumer_paused_for_the_peek": true,
+  "note": "the consumer was held at zero replicas (KEDA paused-replicas=0) so the message waited in the queue and could be peeked non-destructively; it was then resumed and consumed the very same message, which is the join below"
+ },
+ "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log",
+ "application_properties": {
+  "aeg-subscription-name": "TO-BYOC-EVENTS",
+  "aeg-delivery-count": "0",
+  "aeg-data-version": "",
+  "aeg-metadata-version": "1",
+  "aeg-event-type": "Notification"
+ },
+ "message_id": "42d4007e-acbd-4b12-8a2d-26ad83f67d5e",
+ "delivery_count_at_peek": 0,
+ "enqueued_time_utc": "2026-08-21 17:21:09.869000+00:00",
+ "body": {
+  "topic": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st",
+  "subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log",
+  "eventType": "Microsoft.Storage.BlobCreated",
+  "id": "841a17d8-901e-006c-0a91-318e5c06f9a7",
+  "data": {
+   "api": "PutBlob",
+   "clientRequestId": "73bc2cd4-070b-45e1-b16a-68132e79aa41",
+   "requestId": "841a17d8-901e-006c-0a91-318e5c000000",
+   "eTag": "0x8DEFFA8978B453D",
+   "contentType": "application/x-ndjson",
+   "contentLength": 1075861,
+   "blobType": "BlockBlob",
+   "accessTier": "Default",
+   "url": "https://prdct11935st.blob.core.windows.net/ingestion/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log",
+   "sequencer": "00000000000000000000000000048CF90000000000005d14",
+   "storageDiagnostics": {
+    "batchId": "afa7f011-6006-0025-0091-31ccb7000000"
+   }
+  },
+  "dataVersion": "",
+  "metadataVersion": "1",
+  "eventTime": "2026-08-21T17:21:09.527453Z"
+ },
+ "_consumer_join": {
+  "_what": "the SAME message_id, settled by the real shipping consumer on the head image",
+  "pod": "eai-azure-66d8f8595d-ch96k",
+  "image": "localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26",
+  "completed_message_lines": [
+   "eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.408724Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=266 message_id=42d4007e-acbd-4b12-8a2d-26ad83f67d"
+  ],
+  "object_processing_lines": [
+   "eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.405778Z [info     ] Scanner installations inserted [python_temporal_worker.integrations.desktop_agent_creator.activities] count=1 filename=activities.py func_name=insert_scanner_insta",
+   "eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.407836Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=61750",
+   "eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.408114Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_secon"
+  ]
+ },
+ "_also_documented_by": {
+  "at7-01": "this same object key carried this window's fresh skill + subagent subject",
+  "at7-02": "the payload records inside it, and the derived-not-copied identity proof"
+ }
+}

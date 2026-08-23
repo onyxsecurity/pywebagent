@@ -1,0 +1,32 @@
+# PRDCT-11935 at7-29 — the POSTURE class: the bridge ran, no issue was minted, and the rows that exist
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# belong to a DIFFERENT lane. Settled on the plan's own pre-declared fallback.
+# onyx branch 0665ecc545 · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r24 · pod eai-azure-5c8b9bcd55-qfk8h · captured 2026-08-20T17:31:30Z
+#
+# The lane in the pod sha256-matches the 44 lane files at 0665ecc545; origin/main is contained in that head.
+
+## 1. WHAT THE PLAN PRE-DECLARED, verbatim from at7's flow:
+##      "named fallback if issue detection legitimately yields zero issues for the shape: the class
+##       settles as 'bridge-ran, no issue' with the workflow execution shown + an explicit
+##       not-run-with-reason entry in the C3 ledger — never a run-time waiver"
+## This is that settlement, and the execution is shown.
+
+## 2. THE BRIDGE RAN, on this head, for THIS window's objects — the writer's own log:
+    2026-08-20T17:03:49.618552Z [info] started issue+risk bridge [endpoint_asset_ingestion.ingestion.writers]
+      asset_count=1  func_name=_posture_trigger  lineno=725
+      s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-20/1787245428-54871129-9f2f-4771-b92a-b0d32e7a3457.log'
+      workflow_id=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-c89b642828abeed751be80d93d7ea593-bridge
+    (writers.py:725 is the STEP_POSTURE_TRIGGER call site)
+
+## 3. AND WHERE IT DOES NOT RUN, the same step reporting its own reason rather than failing silently:
+    reason="no assets created — no posture trigger (today's created-assets-only semantics)"  step=posture_trigger
+
+## 4. NO ISSUE WAS MINTED. Measured now, after the whole window:
+    issue_instances: 37 | newest 2026-08-18 16:28:29.189017+00
+    (nothing created during this window, which opened 2026-08-20T16:46:10Z)
+
+## 5. THE ROWS THAT DO EXIST BELONG TO ANOTHER LANE — issue instances grouped by the day their asset was
+##    created. Every one points at an asset from the setup phase's gen-1 AWS window, hours before this
+##    run, so they are not this lane's work and are not claimed as such:
+    2026-08-18 -> 37

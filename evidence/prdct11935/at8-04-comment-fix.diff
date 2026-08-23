@@ -1,0 +1,106 @@
+# PRDCT-11935 at8-04 — deliverable C's 'fix the stale comment': OVERTAKEN-BY-UPSTREAM, per-instance
+# FILE LAST WRITTEN 2026-08-21T18:37:39Z
+# onyx a2486bb33f · flux-fleet factory-eval-v32/PRDCT-11935 @ cab40f0e42 · captured 2026-08-21T18:37:39Z
+#
+# RE-EMITTED ROUND 31 to the spec of amendment_r31 requirement (i). The round-28 gate recorded this class
+# as genuinely OBE but noted that, unlike every other overtaken class in this run, it carried no formal
+# plan amendment. It now does — d-c3comment-saas.amendment_r31 and d-c3comment-centerpoint.amendment_r31,
+# posted for owner veto at
+# https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787333760193809?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+# — and that amendment states plainly that at8-04 AS SHIPPED did not yet carry (i)'s per-instance
+# stale-clause greps at base and head, nor the override files' own diff --stat. Those are added below.
+#
+# A MEASUREMENT-HYGIENE NOTE, because the amendment records that research's own first-hand base check was
+# a FALSE PASS BY CONSTRUCTION — a failed `git show` swallowed by `grep -c`, against a `factory-eval-base`
+# ref that does not exist in the flux-fleet repo at all. Every row below is error-checked: the generator
+# runs `git cat-file -e <ref>:<path>` first and prints an explicit ERROR row instead of a zero if the path
+# is not resolvable at that ref. It also uses the REAL path — clusters/ox-az-p-eus2-c02/instances/<inst>/
+# onyx-app/release.yaml — after an earlier pass of this very round measured a shorter, non-existent path
+# and got "FILE MISSING" for all six cells, which is exactly the failure mode the amendment describes.
+#
+# THE REFS. flux-fleet carries NO factory-eval-base ref, so the repo's effective frozen base is the
+# branch's merge-base with origin/main: fa943d66a8a4f6ff296262c9ca6049c0a983a9fe
+# The other two refs are 68bdecfd1e70 (the head at8-04's earlier revision captured against) and this
+# branch's current head cab40f0e42bf3e65fa0e8ba40522f2b2d04dd954.
+
+## THE TICKET asked to fix a stale comment at release.yaml:64-66 (block re-scoped to :64-72 by
+## spec_interpretations (3)). Two rounds corrected that comment. Then upstream removed the premise.
+
+## main's PRDCT-4368 (#2334) — the commit that overtook this deliverable:
+    6964ee876 2026-08-20T08:58:16+00:00
+    PRDCT-4368 | Remove all comments from the instance override files, and record the rules they carried (#2334)
+    ancestor of the merge-base fa943d66a8: YES
+    ancestor of this branch's head cab40f0e42:            YES
+
+## what it did, measured from the commit's own diff rather than from its message:
+    deleted lines across the instance override files : 611
+    instance override files touched                  : 8
+
+## (i) THE PER-INSTANCE MEASUREMENT TABLE — error-checked at every ref
+  instance    ref        what was measured                        comments  stale  lines
+  saas        fa943d66a  merge-base with origin/main                     0      0    849
+  saas        68bdecfd1  at8-04's earlier capture head                   0      0    886
+  saas        cab40f0e4  this branch's head                              0      0    886
+  saas                   upstream 6964ee876 diff --stat for THIS file:
+                           .../instances/saas/onyx-app/release.yaml           | 112 ---------------------
+  saas                   (iii) comment lines this branch ADDS back              0
+  centerpoint fa943d66a  merge-base with origin/main                     0      0    849
+  centerpoint 68bdecfd1  at8-04's earlier capture head                   0      0    886
+  centerpoint cab40f0e4  this branch's head                              0      0    886
+  centerpoint            upstream 6964ee876 diff --stat for THIS file:
+                           .../instances/centerpoint/onyx-app/release.yaml    | 112 ---------------------
+  centerpoint            (iii) comment lines this branch ADDS back              0
+
+    Read the two stale columns: the clause "base overlay is not patched into the Azure build" greps ZERO
+    in BOTH instance files at the merge-base, at 68bdecfd1e70, AND at this branch's head — so there is no
+    longer a comment block at release.yaml:64-72 to fix in either instance. Comment lines are zero at
+    every ref for both. And requirement (iii) holds: this branch adds ZERO comment lines back into either
+    override file, which is what the amendment makes a FAIL condition.
+
+## what this branch DOES change in those two files, for contrast (no comments, only values):
+ .../instances/centerpoint/onyx-app/release.yaml    | 39 +++++++++++++++++++++-
+ .../instances/saas/onyx-app/release.yaml           | 39 +++++++++++++++++++++-
+ 2 files changed, 76 insertions(+), 2 deletions(-)
+
+## and where the knowledge went instead — the doc PRDCT-4368 created for it:
+##   $ git diff --stat 6964ee876^1 6964ee876 -- docs/architecture/instance-override-rules.md
+     docs/architecture/instance-override-rules.md | 290 +++++++++++++++++++++++++++
+##   and what THIS branch adds to that destination:
+     docs/architecture/instance-override-rules.md | 29 ++++++++++++++++++++++++----
+
+## THE INTENT HOLDS BY DELETION + RELOCATION. The stale clause is gone at base and at head, and the lane's
+## REAL rules — including this branch's corrections — ship in the doc destination:
+
+## THIS branch's lane rules, now recorded there rather than in the file (the section this adds):
+    - **`endpoint-asset-ingestion` is now ENABLED here, and it is the one exception to the rule below.** The MCP
+      scanner lane has an Azure implementation (Blob → Event Grid → Service Bus → the in-process writer), so this
+      instance sets `enabled: true` and supplies the lane's own `asset_ingestion_asb` stanza. Three traps come with it:
+      - **The lane binds its OWN published keys — `${endpoint_asset_ingestion_servicebus_namespace}` and
+        `${endpoint_asset_ingestion_queue_name}` — never the shared `${servicebus_namespace}`.** The shared key is
+        published only when the *extension* lane's toggle is on, so reusing it would make this lane silently depend
+        on a different lane's switch.
+      - **Those two keys are published CONDITIONALLY** (`cell-azure-instance/fluxcd_config.tf`, gated on
+        `create_service_bus && var.create_endpoint_asset_ingestion_queue`), and Flux resolves an unprovided `${...}`
+        to the **empty string** while the Kustomization still reconciles. Enabling this lane on an instance whose
+        queue toggle is off therefore renders an empty queue name and fails at the POD — the transport guard refuses
+        to start, a CrashLoopBackOff — not at the render. **Apply infrastructure first, then this toggle.**
+      - **`asset_ingestion_s3.{aws_region,endpoint}` are blanked HERE, not in `drop-aws-only-values.yaml`.** Removing
+        a key from `spec.values` does not stop the chart's default reappearing, and that default is a live
+        `aws_region: us-east-1`. Because the drop file is patched *after* this one, a remove there would delete the
+        blanks set here — so this leaf is blanked in place and deliberately absent from the drop list.
+
+## the two instance files are still byte-identical to each other, which the rules doc requires:
+      saas         7fa0aa9b974cb01aacba12b4ffad448e1ee5e34a
+      centerpoint  7fa0aa9b974cb01aacba12b4ffad448e1ee5e34a
+
+## and the mirrored infrastructure comment — NOT covered by PRDCT-4368, so it stays and stays correct:
+        # resolves an unprovided ${...} to the EMPTY STRING and reconciles successfully, so an
+        # instance whose flux release enables the lane while
+        # create_endpoint_asset_ingestion_queue is off does NOT fail the Kustomization — it
+        # renders an empty queue name, and the failure surfaces at the pod as the transport
+        # guard's refusal to start (CrashLoopBackOff). That is why the apply ORDER matters:
+        # infrastructure first, then the flux toggle.
+
+## DISPOSITION: the sub-item is OVERTAKEN. The stale comment no longer exists — main deleted it along
+## with every other comment in those files — and re-adding a corrected one would now violate the
+## convention main established in the same change. Ledgered as correction 10 in the PR body.

@@ -1,0 +1,36 @@
+# PRDCT-11935 at1-10 — an ORPHANED SECOND CONSUMER was attached to this lane's real queue
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch cdcd725ebb · captured 2026-08-20T07:52:56Z
+#
+# WHY THIS FILE EXISTS. Re-driving at3 on the merged head produced the RIGHT settlement (the message
+# left the active queue and landed in the native $DeadLetterQueue) but with the WRONG reason string —
+# 'subject missing /blobs/ segment', which only exists in the parser this merge DELETED. The pod on the
+# merged head logged nothing at all for those messages. Both facts have one cause: a second consumer,
+# running round-18 code, was competing for the same Service Bus queue.
+
+## every process on this box attached to a queue, and which queue it reads
+    pid=885568   pod=vr18-eai-c-azure-correct-5fdb7b6596-57gmj      queue_name:verify-r18-eai
+    pid=904202   pod=endpoint-asset-ingestion-776f6bc564-hj5bh      queue_name:endpoint-asset-ingestion-prdct11935
+    pid=963980   pod=eai-azure-658bb84b65-sjpc9                     queue_name:endpoint-asset-ingestion-prdct11935
+    pid=973205   pod=?                                              <no asb queue>
+    pid=3088441  pod=endpoint-swg-ingestion-7554894c46-b759m        <no asb queue>
+
+## the orphan, on the kind node — a pod in ANOTHER namespace, reading THIS lane's queue
+    f853a823bc9e9       e0a19e3cb37ab       45 minutes ago      Running             app                                       0                   a66819cb4f948       endpoint-asset-ingestion-776f6bc564-hj5bh                 at8-r18
+
+## the namespace it lives in (left by the round-18 verifier run, which died mid-round)
+    at8-r18   Active   47m
+    deployment.apps/endpoint-asset-ingestion   1/1   1     1     45m
+    pod/endpoint-asset-ingestion-776f6bc564-hj5bh   1/1   Running   0     45m
+
+## and its queue binding, which is this lane's queue and not its own
+    asset_ingestion_asb:
+      fully_qualified_namespace: "prdct11935bus.servicebus.windows.net"
+      queue_name: "endpoint-asset-ingestion-prdct11935"
+    blob:
+
+## THE CONSEQUENCE, stated plainly: a competing consumer on a shared queue makes EVERY delivery-path
+## capture a race. Whichever consumer wins the lock settles the message, so a green at1/at2/at3 could
+## have been produced by the wrong code. This is why the round-19 re-run is not 'the same test again':
+## it is the first run of these legs with exactly one consumer on the queue.

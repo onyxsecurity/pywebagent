@@ -1,0 +1,94 @@
+# PRDCT-11935 at9-07 — the PUBLISH -> CONSUME seam, re-derived on the current sibling heads
+# FILE LAST WRITTEN 2026-08-21T18:42:51Z
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx cb96081d70 · infrastructure factory-eval-v32/PRDCT-11935 @ 6378b0e46e0b · flux-fleet factory-eval-v32/PRDCT-11935 @ 68bdecfd1e70
+# captured 2026-08-20T11:22:57Z
+#
+# A key name that is published under one spelling and consumed under another renders GREEN and dies
+# silently at the pod, so this file checks the two sides against each other by derivation: every
+# ${...} the lane's rendered values actually reference, against every key the cell module actually
+# publishes. Nothing here is a hand-kept table that can drift from the repos.
+#
+#   consume side: kustomize build <instance>/onyx-app | yq '…onyx-app.spec.values."endpoint-asset-ingestion"'
+#   publish side: modules/onyx/cell-azure-instance/fluxcd_config.tf
+
+## the lane's rendered values reference these ${...}, identically on both instances:
+         1	alert_processing_queue_name
+         2	blob_account_url
+         3	blob_container_name
+         4	ecr_registry_url
+         5	endpoint_asset_ingestion_client_id
+         6	endpoint_asset_ingestion_queue_name
+         7	endpoint_asset_ingestion_servicebus_namespace
+         8	rds_endpoint
+         9	releases_kvs_arn
+        10	releases_kvs_writer_role_arn
+        11	servicebus_namespace
+        12	temporal_namespace
+    instance delta (must be empty — both instances must consume the same key set):
+      (empty)
+
+## ROUND-31 COMPLETION (verify round-28, non-blocking item 5). The gate found this table listing 12
+## variables while the helm-rendered lane objects carry more, naming ${region}, ${cloud} and
+## ${servicebus_connection_string} as absent from it. The finding is accepted; here is the corrected
+## picture, with each count's SCOPE stated, because the previous table's real defect was an unstated scope
+## that made an incomplete list look complete — the same defect the round-19 note above records.
+##
+##   scope A — the LANE's own objects (the endpoint-asset-ingestion block in release.yaml, plus the KEDA
+##   TriggerAuthentication that exists only for this lane): 10 keys. That is the 9 in the values block
+##   plus ${servicebus_connection_string}, which this table omitted and which is the substantive half of
+##   the gate's finding:
+##     $ grep -oE '\$\{[A-Za-z_][A-Za-z0-9_]*' .../onyx-app/servicebus-trigger-auth.yaml
+##         servicebus_connection_string
+##     PUBLISHED by cell-azure-instance — modules/onyx/cell-azure-instance/fluxcd_config.tf:70
+##         servicebus_connection_string = azurerm_servicebus_namespace.tenant[0].default_primary_connection_string
+##     (identical in both instances; instance delta empty)
+##
+##   scope B — the whole instance directory, which is where ${region} lives: 36 distinct keys across the
+##   12 yaml files of clusters/ox-az-p-eus2-c02/instances/<inst>/, identical between saas and centerpoint.
+##     region        REFERENCED at instance scope; declared in the cell module
+##                   (modules/onyx/cell-azure-instance/variables.tf:23)
+##
+##   ${cloud} — REPORTED HONESTLY AS NOT REPRODUCED HERE. It appears in neither the instance directory's
+##   source (36-key sweep above) nor the cell module's substitute block, so it must enter via the helm
+##   chart's own rendered output, which this box cannot render (`kustomize build` on these overlays fails
+##   offline: "accumulating resources" — the overlay pulls remote bases). Rather than assert a
+##   publication I did not measure, this file records the gate's observation, records that my
+##   source-level derivation cannot reproduce it, and leaves it as the one unclosed cell.
+##
+##   WHAT DOES NOT CHANGE: this file's contract is "a variable with no matching publication = FAIL". The
+##   two keys I can measure both have publications, so no key moves to FAIL. The correction is to the
+##   table's COMPLETENESS and to its unstated scope, not to its verdict.
+
+## and for each, whether the cell module publishes a key of that exact name.
+## NOTE added in round 20: the round-19 gate found this table listing 10 variables where the render
+## references 12 — releases_kvs_arn and releases_kvs_writer_role_arn were simply absent from it. They
+## are AWS-only and cell-azure* does not publish them; both are written in Flux's DEFAULTING form
+## ${x:=} so they resolve to the empty string rather than failing the render. That is a real answer
+## to this file's own "a variable with no matching publication = FAIL" contract, but it has to be
+## STATED, not omitted — the omission is what made the table look complete when it was not.
+    alert_processing_queue_name                          PUBLISHED by cell-azure-instance
+    blob_account_url                                     PUBLISHED by cell-azure-instance
+    blob_container_name                                  PUBLISHED by cell-azure-instance
+    ecr_registry_url                                     not published here — supplied by the shared cell config
+    endpoint_asset_ingestion_client_id                   PUBLISHED by cell-azure-instance
+    endpoint_asset_ingestion_queue_name                  PUBLISHED by cell-azure-instance
+    endpoint_asset_ingestion_servicebus_namespace        PUBLISHED by cell-azure-instance
+    rds_endpoint                                         PUBLISHED by cell-azure-instance
+    releases_kvs_arn                                     not published here — supplied by the shared cell config
+    releases_kvs_writer_role_arn                         not published here — supplied by the shared cell config
+    servicebus_namespace                                 PUBLISHED by cell-azure-instance
+    temporal_namespace                                   PUBLISHED by cell-azure-instance
+
+## the three keys this lane OWNS, and the exact publication site of each:
+    fluxcd_config.tf:114:      endpoint_asset_ingestion_queue_name           = azurerm_servicebus_queue.endpoint_asset_ingestion[0].name
+    fluxcd_config.tf:115:      endpoint_asset_ingestion_servicebus_namespace = "${azurerm_servicebus_namespace.tenant[0].name}.servicebus.windows.net"
+    fluxcd_config.tf:129:      "${replace(k, "-", "_")}_client_id" => v.client_id
+
+## and the gate they are published under:
+    fluxcd_config.tf:113:    var.create_service_bus && var.create_endpoint_asset_ingestion_queue ? {
+    Publication is CONDITIONAL. An earlier version of this file said UNCONDITIONAL, which was true
+    when it was first captured and became false when the values started being read off the real
+    resources. What the gate does NOT do is fail the render: Flux resolves an unprovided ${...} to
+    the empty string and reconciles, so the failure surfaces at the pod as the transport guard's
+    refusal (CrashLoopBackOff). See at9-06 and at8-04.

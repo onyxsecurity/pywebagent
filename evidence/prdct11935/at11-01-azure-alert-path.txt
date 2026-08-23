@@ -1,0 +1,103 @@
+# PRDCT-11935 at11-01 — the Azure alert-processing path: a live defect found by verify, fixed, and proven
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch a2486bb33f · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T00:20:10Z
+#
+# WHAT THE GATE FOUND (round 22, G15): the shipped Azure lane's session alert producer failed on EVERY
+# send — 65 swallowed "failed to publish one session alert-processing request (continuing)", and the
+# alert-processing queue empty after every drive — while the pod stayed healthy. That is the ticket's own
+# footgun-2 shape on a new path, so it was fixed rather than ledgered.
+#
+# THERE WERE TWO CAUSES, and the first was hiding the second.
+
+=== CAUSE 1 — one ServiceBusSender shared across concurrent tasks (a real coroutine-safety bug)
+    common_core/services/queue/asb.py creates ONE sender at connect() and the ingestion service shares
+    one client across every object-processing task. ServiceBusSender is not coroutine-safe: overlapping
+    send_messages calls race on the single AMQP link and the loser sees a half-open handler.
+    Symptom, verbatim from the pre-fix pod:
+        AttributeError("'NoneType' object has no attribute 'create_sender_link'")
+    THE FIX: serialise sends on the shared link (asyncio.Lock in send_message). The receive side already
+    solves the same hazard the other way — the consumer pool gives each worker its OWN client
+    (consumer_pool.py factory mode) — but sends are small and infrequent next to ingest, so a lock costs
+    less than a link per message. Regression tests: tests/common_core/services/test_asb_sender_concurrency.py
+    (20 concurrent sends must all land, and never overlap inside the sender).
+
+=== CAUSE 2 — the identity had no Send grant on the alert queue (an infrastructure gap)
+    With the crashes gone, the real error was legible underneath them:
+        AMQPLinkError: Error condition: amqp:unauthorized-access
+        Error Description: Unauthorized access. 'Send' claim(s) are required to perform this operation.
+    The Azure workload identity was granted exactly two roles — Data Receiver on ITS OWN ingestion queue
+    and Blob Data Reader on the storage account (cell-azure-instance/workload_identity.tf) — while the
+    sessions step publishes to the alert-processing queue, as the AWS lane does through its IRSA policy.
+    So the lane as authored could never publish an alert on Azure.
+    THE FIX: a queue-scoped `Azure Service Bus Data Sender` role assignment on the alert-processing queue
+    for that identity, in onyxsecurity/infrastructure#1575 — scoped to the one queue, not the namespace.
+
+=== THE THIRD THING THE GATE ASKED FOR — the failure must not be silent
+    The scanner lane metered `published` and `skipped_no_queue` but NEVER `publish_failed`, so a producer
+    failing 100% of the time moved no counter at all. The gateway lane already counted it. Both now do
+    (writers.py _meter_session_alerts), with tests in
+    tests/endpoint_asset_ingestion/ingestion/test_session_alert_failure_is_metered.py.
+
+=== BEFORE — the pre-fix pod, image :prdct11935-r25
+    pod: eai-azure-6648777b44-qlhgz
+    image: localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r25
+    --- the crash, counted
+      sender-handler crashes: 1042
+      swallowed publish failures: 65
+    --- one verbatim example
+    2026-08-20T23:27:46.064101Z [error    ] Unexpected error occurred (AttributeError("'NoneType' object has no attribute 'create_sender_link'")). Handler shutting down. [azure.servicebus.aio._base_handler_async] filename=_p
+    Traceback (most recent call last):
+      File "/app/.venv/lib/python3.12/site-packages/azure/servicebus/aio/_base_handler_async.py", line 234, in _do_retryable_operation
+    --- the per-agent tally the lane logged
+
+=== AFTER — the head image with both fixes and the grant, same machine, real scan through Kong
+    queue active=15 before the scan
+    SCAN START 2026-08-21T00:15:22Z
+    scanner exit=0
+    alert-processing-prdct11935: active=41 dead_letter=0 scheduled=0 transfer_dlq=0 total=41
+    pod=eai-azure-7fcdcc4cd-bpf8q
+      unauthorized-access:        0
+      sender-handler crashes:     0
+      swallowed publish failures: 0
+      publish tallies:
+        failed=0	published=13
+        failed=0	published=13
+
+=== THE QUEUE DEPTH, both sides of the same measurement
+    alert_queue 15    before this round's post-fix scan
+    alert_queue 41    after it: 26 more, two scans x 13 published, and 0 failed
+
+=== AND THE MESSAGES ARE REAL SESSION ALERTS, peeked off the queue
+    (peeked with a TEMPORARY queue-scoped Listen SAS created for the read and deleted after it —
+     the workload identity itself was never granted Listen, so at9's least-privilege story is intact)
+    # peeked 2 message(s) on alert-processing-prdct11935 at 2026-08-21T00:19:39.692937+00:00
+    {
+     "message_id": "18ce6710-f007-4d37-8d18-9f783b89129b",
+     "label_aka_subject": null,
+     "delivery_count": 0,
+     "enqueued_time_utc": "2026-08-21 00:12:47.694000+00:00",
+     "dead_letter_reason": null,
+     "dead_letter_error_description": null,
+     "application_properties": {},
+     "body": {
+      "session_id": 278,
+      "tenant_schema_name": "onyx_security",
+      "correlation_id": "18ce6710-f007-4d37-8d18-9f783b89129b",
+      "origin": "connector-backfill:coding_agent_sessions",
+      "enqueued_at_ms": 1787271167134,
+      "event_received_at_ms": 1787271167134,
+      "pipeline_violated_rules": {},
+      "event_ids": [],
+      "include_file_events": false,
+      "python_send_customer_notifications": true,
+      "block_fallback": false,
+      "mask_fallback": false,
+      "ask_fallback": false,
+      "undelivered_verdict": false,
+      "type_": "SinglePolicy",
+      "policy_id": 1
+     }
+    }
+    {
+     "message_id": "e5cdb909-0c60-41cc-a2d9-88c4fea0b4ef",

@@ -1,0 +1,141 @@
+# PRDCT-11935 at6-08 — L-2, L-3, L-4: which of the three residual losses this PR can carry, measured
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch ce9ad09c30 · pod eai-azure-7f86489fbc-65dnb · captured 2026-08-20T15:06:38Z
+#
+# The round-20 gate required the three ledgered losses closed, or the direction rule re-scoped by
+# research. This file settles each ONE AT A TIME, on measurement rather than on the ledger's word.
+
+═══ L-4 — the extension provenance descriptor: FIXED IN THIS PR ═══
+  The cheapest of the three and the only one that moves no identity: it changes the descriptor
+  inside an existing edge's metadata, no row count, no edge, no id. The scanner's payload carries
+  no per-server extensionName key — the MCPB marker is in scannerSupplied — so the derivation is
+  mirrored from the Go lane. Commit: ce9ad09c30 Derive an MCP server's extension provenance the way the Go lane derives it
+    the Go original, backend/internal/scanner/extractor.go:349-364:
+      func extensionNameFromMCPBServer(server MCPServerData) *string {
+      	if server.ScannerSupplied == nil || !strings.HasPrefix(strings.TrimSpace(server.ScannerSupplied.AppID), scannerSuppliedMCPBAppIDPrefix) {
+      		return nil
+      	}
+      
+      	for _, candidate := range []string{
+      		server.ScannerSupplied.DisplayName,
+      		extensionNameFromServerName(server.Name),
+    the mirror, backend_python/src/endpoint_asset_ingestion/ingestion/extract.py:154:
+      169:    if not app_id.startswith(_MCPB_APP_ID_PREFIX):
+      170-        return None
+      171-    for candidate in (
+      172-        scanner_supplied.display_name if scanner_supplied else None,
+      173-        _extension_name_from_server_name(raw.get("name")),
+      174-        app_id[len(_MCPB_APP_ID_PREFIX) :],
+      175-    ):
+      176-        cleaned = (candidate or "").strip()
+      177-        if cleaned:
+
+  WHERE THE FIX LIVES, by line: the derivation helper is extract.py:154 (_extension_name_from_mcpb),
+  and the field it feeds is extract.py:309 (extension_name=...), mirroring the Go lane's candidate order.
+
+  RE-OBSERVED LIVE ON THE HEAD (round 21, at7's window — this was the one thing the earlier version of
+  this entry could NOT claim). The bundle was re-installed and re-scanned through the front door, and
+  the edge the lane wrote now carries the descriptor instead of losing it:
+
+      id    | agent          | mcp_server   | connection_type | metadata
+     -------+----------------+--------------+-----------------+--------------------------------------------------------------
+      59684 | Claude (coder) | Onyx Lab MCP | AgentToMcp      | {"sources": [{"kind": "extension", "name": "Onyx Lab MCP"}]}
+
+  and the SAME tenant still holds the pre-fix write for the previous bundle version, so the change is
+  checkable against history rather than against my word:
+
+      21304 | Claude (coder) | Onyx Lab MCP | AgentToMcp      | {"sources": [{"kind": "direct"}]}        <- before the fix
+      59684 | Claude (coder) | Onyx Lab MCP | AgentToMcp      | {"sources": [{"kind": "extension", ...}]} <- after, this round
+
+  The name in the descriptor is the manifest's display_name — candidate #1 of the three the Go lane
+  tries, in the same order. Evidence: at7-04-db-rows-mcp.txt.
+
+═══ L-3 — @playwright/mcp ::0.0.79 vs ::unknown: NOT A LIVE LOSS, and the ledger's named fix is wrong ═══
+  The ledger's named fix is 'drop the manifest exclusion at version_resolution.py:181-183'. Measured,
+  that fix would do nothing for this row and would make the hot path worse. Three measurements:
+
+  (a) BOTH lanes carry an ::unknown playwright row — this is not a one-sided loss:
+           lane      |    unique_identifier     
+      ---------------+--------------------------
+       ta (gen-1)    | @playwright/mcp::0.0.74
+       ta (gen-1)    | @playwright/mcp::0.0.79
+       ta (gen-1)    | @playwright/mcp::unknown
+       tb (new lane) | @playwright/mcp::0.0.74
+       tb (new lane) | @playwright/mcp::unknown
+      (5 rows)
+      
+  (b) the resolver is NOT timing out on this box — its own counters, read off the live pod, show
+      only cache hits and zero fallbacks, and registry egress is two orders inside the 0.4 s budget:
+      asset_ingestion_inline_version_resolution_total{kind="package",lane="agent",outcome="cache_hit",tenant_schema="prdct11935_tb"} 2.0
+      asset_ingestion_inline_version_resolution_total{kind="bridge_wrapper",lane="agent",outcome="cache_hit",tenant_schema="prdct11935_tb"} 2.0
+      asset_ingestion_inline_version_resolution_total{kind="package",lane="agent",outcome="cache_hit",tenant_schema="onyx_security"} 2.0
+      asset_ingestion_inline_version_resolution_total{kind="bridge_wrapper",lane="agent",outcome="cache_hit",tenant_schema="onyx_security"} 2.0
+      registry.npmjs.org: HTTP 200 in 0.082334s (dns 0.005529s, tls 0.044153s)
+  (c) the exclusion the ledger names mirrors the WRITER's own gate, so dropping it changes no row.
+      version_resolution.py skips a scanner-manifest server because mcp_writer refuses to derive an
+      identity for one — its app_id IS the identity, verbatim:
+      684:    _scanner_app_id = bool(mcp_server.scanner_supplied and mcp_server.scanner_supplied.app_id)
+      685-    if bridge_asset_id is None and forced_identity is None and not mcp_server.is_bridge and mcp_server.command and not _scanner_app_id:
+      Dropping the exclusion would issue registry lookups whose results the writer then ignores —
+      pure added latency on the shared hot path, for zero row change. Not done.
+  READ: L-3's ::unknown is the FIRST-WRITE window the ledger already describes, on tenants that have
+  accumulated ~22 h of state across ~20 rounds. The honest test is the FRESH-TENANT comparison the
+  same gate demands — see at6-09. If both lanes resolve identically there, L-3 was cold-cache residue.
+
+═══ L-2 — the local-server identity collapse: STOP. It cannot ride this PR. ═══
+  Not a judgement call — the code states the rule and the failure mode.
+
+  1. The fix IS an identity move. app_definition_id is {package_name}::{serial} on both sides, so
+     changing what the writer puts in package_name moves bash::<serial> -> <script>::<serial>:
+        lane |                unique_identifier                |           app_definition_id            
+       ------+-------------------------------------------------+----------------------------------------
+        ta   | bash::ec255301bd4407d309fbce94811384b0::unknown | bash::ec255301bd4407d309fbce94811384b0
+        ta   | node::ec255301bd4407d309fbce94811384b0::unknown | node::ec255301bd4407d309fbce94811384b0
+        tb   | bash::ec255301bd4407d309fbce94811384b0::unknown | bash::ec255301bd4407d309fbce94811384b0
+        tb   | node::ec255301bd4407d309fbce94811384b0::unknown | node::ec255301bd4407d309fbce94811384b0
+       (4 rows)
+       
+
+  2. The rule, quoted from the code that owns the identity
+     (python_temporal_worker/mcp_asset_creation/activities.py:965-980):
+               # Real callers that pass BOTH a URL and their own identity: Claude web connectors
+               # ("Claude Connector: <name>" — the one that HAS been converged, below), remote MCPB
+               # extensions ("mcpb:<bundleId>"), Bedrock AgentCore gateways (the gateway ARN) and Vertex
+               # Agent Engine ids. Converging any of the others onto canonize_url(url) is a deliberate
+               # identity MOVE, and an identity move is only safe together with the migration that
+               # re-keys assets, app_definitions AND their access_control rows in the same change —
+               # never deployed ahead of it.
+               #
+
+  3. The failure mode is a SECURITY failure, in the same comment:
+               # what access_control.app_definition_id holds. Re-deriving the identity from the URL for
+               # a caller that passes its own external identity therefore mints a NEW app_definition +
+               # asset and leaves every existing rule pointing at an identity nothing reports any more —
+               # the guard then finds no rule and returns the tenant default, silently turning an
+               # enforced block into an allow on a default-allow tenant.
+               #
+
+  4. And it is a LOCKED PAIR. The repo's own CLAUDE.md requires any id-derivation change to be
+     mirrored on the gateway/policy side IN THE SAME CHANGE. That mirror rebuilds the very key this
+     fix would move, from the SHARED mcp_package_cache row (common/models/mcp_client_info.py:172):
+               further appends ``::{container_id}`` to the device-scoped FILE form so
+               each container's copy is a distinct asset. We mirror that here so
+               policy/asset lookups resolve the per-container asset instead of the
+               host-level one.
+       
+
+  5. Blast radius on THIS box is small, and that is exactly why it cannot be the basis of the call:
+       onyx_security      0 collapsed asset rows · 0 access_control rows
+       prdct11935_ta      2 collapsed asset rows · 0 access_control rows
+       prdct11935_tb      2 collapsed asset rows · 0 access_control rows
+       These are lab tenants with no sanctioning rules. The warning above is unconditional and is
+       about production tenants, where an orphaned rule silently converts an enforced block into an
+       allow. A transport-parity PR cannot carry a re-keying data migration for assets +
+       app_definitions + access_control, and the fix also SPLITS one asset into N, orphaning the
+       collapsed row — that is the one-writer cutover's work, with its own migration and rollout.
+
+  DISPOSITION: STOPPED, as the round-21 dispatch directs. This is the identity re-key argument, and
+  it holds. The plan question — whether d-c13-3's absolute direction rule admits a pre-existing,
+  transport-independent loss that cannot be closed without a migration — is routed to research, not
+  re-scoped here.

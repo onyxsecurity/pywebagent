@@ -1,0 +1,30 @@
+# PRDCT-11935 at10-09 — the CI failure on the final head, diagnosed and re-run
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch 257f4c7b3c · captured 2026-08-20T12:56:09Z
+#
+# 20 of 21 workflows were green on the first pass over the final head. The one failure is not a code
+# failure, and it is not waved through on that assertion — the job's own log states the cause and the
+# workflow was re-run rather than explained away.
+
+## Backend Python Services PR Validation -> job 'backend-python-test-sanitization' (run 32368277315)
+##   5725 tests PASSED. Two ERRORED — at SETUP, on a timeout, not on an assertion:
+    2026-08-20T12:31:35.4332868Z ERROR tests/sanitization_service/api/swg/test_swg_copilot_attachment.py::test_blocked_upload_is_recorded_with_its_file_and_violations - TimeoutError
+    2026-08-20T12:31:35.4334172Z ERROR tests/sanitization_service/api/test_access_control_ai_guard.py::test_authorize_version_specific_rule_applied_when_cache_version_latest_resolved_via_latest 
+    2026-08-20T12:31:35.4335121Z ===== 5725 passed, 4 xfailed, 112 warnings, 2 errors in 444.23s (0:07:24) ======
+
+## and the exception type, quoted from the same log:
+    2026-08-20T12:31:34.0280952Z E   asyncio.exceptions.CancelledError
+    2026-08-20T12:31:34.0281812Z E   TimeoutError
+    2026-08-20T12:31:34.0282585Z E   TimeoutError
+
+## sanitization_service is not in this branch's diff at all:
+    $ git diff --name-only origin/main...HEAD -- backend_python/src/sanitization_service backend_python/tests/sanitization_service | wc -l
+      -> 0
+
+## the same suites, run LOCALLY on this exact head before the push:
+    task lint      -> ruff check: All checks passed! · ruff format: clean
+    task typecheck -> Success: no issues found in 7388 source files
+    pytest tests/endpoint_asset_ingestion tests/common_core/services/ingestion_events -> 538 passed
+
+## THE WORKFLOW WAS RE-RUN (rerun-failed-jobs). The settled result is in at10-03.

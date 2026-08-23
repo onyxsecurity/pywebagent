@@ -1,0 +1,258 @@
+# PRDCT-11935 at2-05 — the ISOLATED replay: does redelivering the SAME message change any row?
+# FILE LAST WRITTEN 2026-08-21T07:50:43Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T07:30:53Z · tenant onyx_security
+#
+# WHY THIS EXISTS. The round-24 gate (G5) found at2's "no resurrections" half not cleanly proven: one
+# replay window showed a soft-deleted `asset_connections` row flip is_deleted true -> false and two
+# `mcp_ingestion_state.content_hash` values rewritten — but that window was CONTAMINATED (the shipping
+# consumer's own ingest had started an async Temporal posture/CVE plane writing the same tenant), so the
+# change could not be attributed to the replay. The gate asked for exactly one thing: the same replay on
+# an isolated queue with the concurrent writers quiesced, capturing the abandon/receive_count lines and
+# the content diff IN THE SAME RUN. That is this file.
+#
+# THE ANSWER, up front: the redelivery path changes NOTHING. Three legs, spanning receive_count 1 -> 85
+# of the same broker messages, every content diff EMPTY. And the positive control below reproduces the
+# gate's exact symptom with ZERO redeliveries — which is what attributes it, rather than explaining it away.
+
+=============================== 1. THE ISOLATION (the at7-00 pattern) ===============================
+R27 ISOLATION — quiesce record  2026-08-21T06:48:32Z
+--- replicas BEFORE (restore targets)
+    scanner-event-consumer=1
+    temporal-scanner-worker=1
+    temporal-general-worker=1
+    temporal-python-worker=1
+    eai-azure=1
+    inventory-assets-enricher=1
+
+--- pausing the gen-1 collector schedule
+
+Schedule updated
+--- scaling every concurrent writer to zero
+deployment.apps/scanner-event-consumer scaled
+deployment.apps/temporal-scanner-worker scaled
+deployment.apps/temporal-general-worker scaled
+deployment.apps/temporal-python-worker scaled
+deployment.apps/eai-azure scaled
+deployment.apps/inventory-assets-enricher scaled
+--- QUIESCED STATE (the receipt)
+    eai-azure                                 1
+    eai-azure-refuse-s3                       0
+    inventory-assets-enricher                 0
+    scanner-event-consumer                    0
+    scanner-event-consumer-azure-prefix       0
+    temporal-general-worker                   0
+    temporal-python-worker                    0
+    temporal-scanner-worker                   0
+    live pods for those six: 1
+    DEPRECATION NOTICE: tctl will enter End of Support September 30, 2025. Please transition to Temporal CLI (https://docs.temporal.io/cli).
+    
+              ScheduleId                WorkflowType        Paused              Notes              RunningWorkflows   NextRunTime    LastRunTime                          Specification                          
+      scanner-collector-schedule  ScannerCollectorWorkflow  true    round-27 at2 isolation window  []                4 minutes ago  5 minutes ago  {"interval":[{"interval":"60s","phase":"0s"}],"jitter":"0s"}  
+--- concurrent writers, at the moment the window opens 2026-08-21T07:02:15Z
+    eai-azure                                 1
+    inventory-assets-enricher                 0
+    scanner-event-consumer                    0
+    temporal-general-worker                   0
+    temporal-python-worker                    0
+    temporal-scanner-worker                   0
+    live pods for those six: 1
+    the ONLY writer left: r27-eai-iso-648b556587-j8r9f (localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26)
+    NOTE: eai-azure is held at >=1 by the at8 KEDA ScaledObject (minReplicaCount 1).
+          Quiesced the sanctioned KEDA way — annotation autoscaling.keda.sh/paused-replicas=0 —
+          which pauses the autoscaler WITHOUT editing the ScaledObject at8 evidences. Reverted after the window.
+
+--- RESTORE  2026-08-21T07:28:29Z
+deployment.apps "r27-eai-iso" deleted
+configmap "r27-eai-iso" deleted
+    deployment.apps/scanner-event-consumer scaled
+    deployment.apps/temporal-scanner-worker scaled
+    deployment.apps/temporal-general-worker scaled
+    deployment.apps/temporal-python-worker scaled
+    deployment.apps/inventory-assets-enricher scaled
+scaledobject.keda.sh/endpoint-asset-ingestion annotated
+Schedule updated
+    eai-azure                                 6     1
+    inventory-assets-enricher                 1     1
+    scanner-event-consumer                    1     1
+    temporal-general-worker                   1     1
+    temporal-python-worker                    1     1
+    temporal-scanner-worker                   1     1
+--- Azure lab teardown
+    subscription to-r27-iso deleted
+    queue eai-r27-iso deleted (its role assignment goes with the scope)
+--- what remains of this round's lab footprint:
+      (empty above = fully cleaned)
+
+
+=============================== 2. THE VEHICLE ===============================
+    Isolated SB queue `eai-r27-iso` (lockDuration PT5M, maxDeliveryCount 200) + topic subscription
+    `to-r27-iso` on byoc-events carrying the SAME SQL rule as the shipping subscription
+    (sys.Label LIKE '%source=mcp-scanner/%'), so it receives its OWN real copy of every Event Grid
+    BlobCreated event off the same storage account. Deployment `r27-eai-iso` = deploy/eai-azure's own
+    manifest, SAME head image :prdct11935-r26, lane flag ON, with `temporal_server.host` pointed at the
+    unresolvable `temporal-blackhole.invalid`. With Temporal unreachable the object's LAST ingestion step
+    (_posture_trigger, writers.py:701-752) raises AFTER every row is committed — the code comment there
+    says exactly this — so the message is never acked and Service Bus re-presents the IDENTICAL message.
+    Real broker at-least-once. No code touched, no message hand-placed, no re-upload.
+
+    Every payload was driven through the REAL front door: a real onyx-scanner scan POSTed to
+    http://ingest-onyx:8080/mcp-scanner, landing as a real Azure blob, through real Event Grid.
+
+=============================== 3. LEG 3 — the decisive one: a FRESH message, from before it existed ===============================
+    The queue was drained to 0 first, so this message starts at receive_count 1.
+
+      a62767e7-86b9-445a-9793-ed9160350fc7   receive_count 2..30  (29 distinct, no gaps: True)
+      79904683-7d1c-4d42-8405-46226b2d29df   receive_count 2..30  (29 distinct, no gaps: True)
+
+    cascade really re-ran (not a cheap no-op read):
+      Bulk upserted asset_connections calls : 240
+      abandon-for-redelivery lines          : 60
+
+    S0  taken BEFORE the message existed          asset_connections_live = 408
+    S1  taken at receive_count 13                      asset_connections_live = 408
+    S2  taken at receive_count 14                      asset_connections_live = 408
+    S3  taken at receive_count 30                      asset_connections_live = 408
+
+    $ diff S0 S3   — from BEFORE the message existed through 30 deliveries of it
+    (NO OUTPUT — the two dumps are identical)
+
+    $ diff S1 S3   — across the replay range itself
+    (NO OUTPUT — the two dumps are identical)
+
+=============================== 4. LEG 1 — the same question at a higher delivery count ===============================
+      bae421e9-d9b8-44a5-849d-09840961789f   receive_count 2..46  (45 distinct, no gaps: True)
+      139e2b9a-4370-46fb-aac5-6ac68d635e5d   receive_count 2..46  (45 distinct, no gaps: True)
+    measured window: receive_count 20 -> 46, 1549-line row dumps either side.
+    17 soft-deleted `asset_connections` rows were present THROUGHOUT this window — i.e. there were real
+    resurrection candidates on the table — and not one of them flipped.
+      Bulk upserted asset_connections calls : 368
+      redelivered-message log lines         : 90
+
+    verbatim abandon -> backoff -> redeliver, for the message under test:
+    2026-08-21T07:07:48.032806Z [info     ] Abandoned message for redelivery [common_core.services.queue.asb] filename=asb.py func_name=abandon_message lineno=280 message_id=bae421e9-d9b8-44a5-849d-09840961789f
+    2026-08-21T07:07:48.032989Z [info     ] Backing off before the next attempt at an immediately-redelivered message [common_core.services.queue.consumer_pool] backoff_seconds=5 filename=consumer_pool.py func_name=_worker_loop lineno=193 message_id=bae421e9-d9b8-44a5-849d-09840961789f worker_id=0
+    2026-08-21T07:07:53.120678Z [info     ] redelivered queue message (idempotent reprocess) [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=handle lineno=82 message_id=bae421e9-d9b8-44a5-849d-09840961789f receive_count=2 span_id=39c925767b801af2 trace_flags=01 trace_id=b2b9b8c83180914b6586fff8675125f1
+    2026-08-21T07:07:54.005831Z [info     ] Abandoned message for redelivery [common_core.services.queue.asb] filename=asb.py func_name=abandon_message lineno=280 message_id=bae421e9-d9b8-44a5-849d-09840961789f
+    2026-08-21T07:07:54.006017Z [info     ] Backing off before the next attempt at an immediately-redelivered message [common_core.services.queue.consumer_pool] backoff_seconds=5 filename=consumer_pool.py func_name=_worker_loop lineno=193 message_id=bae421e9-d9b8-44a5-849d-09840961789f worker_id=1
+    2026-08-21T07:07:59.148891Z [info     ] redelivered queue message (idempotent reprocess) [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=handle lineno=82 message_id=bae421e9-d9b8-44a5-849d-09840961789f receive_count=3 span_id=eb66f6839b28d983 trace_flags=01 trace_id=75c02a3bdf43dcd5a6784708292f4cd3
+
+    $ diff before after
+    (NO OUTPUT — the two dumps are identical)
+
+    The two rows the gate named, in this window:
+      asset_connections id 191 (McpToMcp 214->214, the D-4 self-edge) : is_deleted unchanged
+      mcp_ingestion_state mcp-remote::0.1.38                          : content_hash unchanged
+      mcp_ingestion_state mcp.tavily.com/mcp::unknown                 : content_hash unchanged
+
+=============================== 5. LEG 2 — the same messages carried to receive_count 85 ===============================
+      139e2b9a-4370-46fb-aac5-6ac68d635e5d   receive_count 68..85  (18 distinct, no gaps: True)
+      bae421e9-d9b8-44a5-849d-09840961789f   receive_count 68..85  (18 distinct, no gaps: True)
+    Snapshots at receive_count 79 80 82 — diff empty:
+    (NO OUTPUT — the two dumps are identical)
+
+=============================== 6. THE POSITIVE CONTROL — what DOES move those rows ===============================
+    Not reproducing a symptom is weaker than reproducing it somewhere else, so: the concurrent writers
+    were restored (temporal-python-worker + the shipping consumer) and ONE real scan was driven, with
+    every message delivered EXACTLY ONCE.
+
+      redelivered-message lines : 0
+      abandon lines             : 0
+      receive_count values      : (none logged — nothing was ever redelivered)
+      posture-plane workflow lines in the window (IssueDetectionWorkflow / RiskCalculatorWorkflow): 40
+
+    $ diff before after
+    < agent_skills|226
+    > agent_skills|228
+    < asset_connections|423
+    < asset_connections_live|406
+    < assets|348
+    < assets_not_deleted|348
+    > asset_connections|425
+    > asset_connections_live|415
+    > assets|350
+    > assets_not_deleted|350
+    < scanner_installations|161
+    > scanner_installations|163
+    > 161434|r27-iso-20260821070739|AssetTypeSkill|AssetSubTypeSkill|8aa0e250b4f1b470fe944d7fb7a1866eb446f7d046ecfce59dfd339c170dde9f|f|AssetStatusDiscovered|
+    > 161756|r27-ctrl-20260821071438|AssetTypeSkill|AssetSubTypeSkill|21a695454936b31f081bdab8352823046bdf27a36937f4420fd5535f5095ddb9|f|AssetStatusDiscovered|
+    < 190|23|214|AgentToMcp|t
+    > 190|23|214|AgentToMcp|f
+    < 192|23|217|AgentToMcp|t
+    < 193|23|216|AgentToMcp|t
+    < 194|23|218|AgentToMcp|t
+    > 192|23|217|AgentToMcp|f
+    > 193|23|216|AgentToMcp|f
+    > 194|23|218|AgentToMcp|f
+    < 207|23|231|AgentToMcp|t
+    < 208|23|232|AgentToMcp|t
+    < 209|23|233|AgentToMcp|t
+    > 207|23|231|AgentToMcp|f
+    > 208|23|232|AgentToMcp|f
+    > 209|23|233|AgentToMcp|f
+    > 159253|23|161434|AgentToSkill|f
+    > 159582|23|161756|AgentToSkill|f
+    < 206|Remote|Http|68cfa3547070848c6c8d45b60a8c401dc84e341e9595a4dc284e39e9588f8f90
+    > 206|Local|Npm|1571b184a753cf187fa0fab2ab01cc65af36f5620f0e2d1722614729d757ca5b
+    < 214|Remote|Http|68cfa3547070848c6c8d45b60a8c401dc84e341e9595a4dc284e39e9588f8f90
+    > 214|Local|Npm|55e7627efd008923350fe79e209e2ae72eb96d4f96e25b8c0464085a58e4624c
+    < @upstash/context7-mcp::4.0.2|047fceda81e75d69ebbc7bd55cc3645a020ae365596184f318c66f506d79f364:|205|5c7d72e8831d4c45a07b23ebace0cbd2e830393ed7f7d7e9a302f4d23f584a74
+    > @upstash/context7-mcp::4.0.2|e5612cdb969294dadff47239065bc2fa3c706b45b0cf24bc2146fb4d06023361:|205|5c7d72e8831d4c45a07b23ebace0cbd2e830393ed7f7d7e9a302f4d23f584a74
+    < gmailmcp.googleapis.com/mcp/v1::unknown|be691b025e735ead459a83c7472fecff1bdee6227b6a2b29c2b8ad450d4f5ced:|200|bc46d2ec10d51b4172d2775f0e4c221bf0fe3b3a7c79a7d89b74ee2d2bc65db8
+    > gmailmcp.googleapis.com/mcp/v1::unknown|be691b025e735ead459a83c7472fecff1bdee6227b6a2b29c2b8ad450d4f5ced:|200|bc46d2ec10d51b4172d2775f0e4c221bf0fe3b3a7c79a7d89b74ee2d2bc65db8
+    < mcp.slack.com/mcp::unknown|22ee7d47431e6a19414d8168bd812429ce4bcd8b8b67b31405e87d5e29b5741d:|201|ccfb18a8ebf26c88a4708454fa9eae8ceaef4e3f94a8e7b54ea22a1db1d9182b
+    > mcp.slack.com/mcp::unknown|22ee7d47431e6a19414d8168bd812429ce4bcd8b8b67b31405e87d5e29b5741d:|201|ccfb18a8ebf26c88a4708454fa9eae8ceaef4e3f94a8e7b54ea22a1db1d9182b
+    > 161434|12a07339797d34a85aa5d84b909d67b89bd48250576244218dff88a0dfd5d780
+    > 161756|365631b320c0f8f46196ab90ed26568983c5c88fd8f09d24ad24d1f3ab0cf6dc
+
+    READ THAT AGAINST THE GATE'S FINDING. With ZERO redeliveries, SEVEN `AgentToMcp` edges flipped
+    is_deleted true -> false (asset_connections_live 406 -> 415) and two `mcp_servers` rows were re-typed.
+    The gate's exact symptom class reproduces with no replay in it at all. So the state changes it saw
+    belong to a NEW OBSERVATION of the machine — the documented self-heal that restores an edge when the
+    server is seen again (restore_soft_deleted_connection, asset_connection.py:702-750, called from
+    touch_mcp_asset_last_seen, activities.py:1401-1408, whose docstring says "without this a reaped edge
+    stayed dead forever") — and NOT to the transport redelivering a message.
+
+=============================== 7. ONE ARTEFACT OF THE VEHICLE, DISCLOSED ===============================
+    Blackholing Temporal is what makes the message redeliver, and it has a side effect worth naming
+    rather than letting it read as product behaviour: on the first pass under that vehicle, seven
+    AgentToMcp edges (asset ids 214,216,217,218,231,232,233 from agent 23) are soft-deleted, and a later
+    ordinary observation with Temporal working restores them. Measured across this round's legs:
+      07:07:20 before the leg-1 ingest              live edges 413
+      07:09:58 after its first passes               live edges 406   <- the vehicle's soft-delete
+      07:12:16 after 26 more redeliveries           live edges 406   <- redelivery changed nothing
+      07:16    after the control's ordinary scan    live edges 415   <- an ordinary observation restored them
+      07:24:44 after leg 2's blackholed ingest      live edges 408
+    The pattern is driven by what each OBSERVATION reports and by whether Temporal is reachable. It is
+    NOT driven by redelivery: every measured replay window above is byte-identical end to end.
+
+=============================== 8. EVERY MEASURED WINDOW, IN ONE TABLE ===============================
+
+     leg | snapshot | receive_count | asset_connections_live | asset_connections | assets | content diff
+    -----+----------+---------------+------------------------+-------------------+--------+--------------
+       3 | S0       | 0             | 408                    | 425               | 350    | (baseline)
+       3 | S1       | 13            | 408                    | 425               | 350    | empty vs S0
+       3 | S2       | 14            | 408                    | 425               | 350    | empty vs S1
+       3 | S3       | 30            | 408                    | 425               | 350    | empty vs S0 and S1
+       1 | before   | 20            | 406                    | 423               | 348    | (baseline)
+       1 | after    | 46            | 406                    | 423               | 348    | empty vs before
+       2 | S1       | 79            | 408                    | 425               | 350    | (baseline)
+       2 | S3       | 82            | 408                    | 425               | 350    | empty vs S1
+
+    Every row of that table is a 1549-line content dump; "empty" means `diff` produced no output at all.
+
+=============================== 9. VERDICT AGAINST at2's GUARD ===============================
+    at2's guard: "The diff MUST be computed on row contents (content/state/lifecycle columns), not just
+    counts; any new or resurrected row = FAIL."
+      * the diff IS on row contents — 1549-line dumps carrying is_deleted / status / hashes / versions
+        for assets, asset_connections, mcp_servers, mcp_ingestion_state, agent_skills, agent_subagents,
+        tools and usage_sessions, not counts alone;
+      * across receive_count 1..30, 20..46 and 68..85 of the same real broker messages, on the head image,
+        with every concurrent writer quiesced: NO new row, NO duplicate, NO resurrection, no content change;
+      * and the abandon/receive_count lines and the diff come from the SAME run, which is what the gate asked for.
+    PASS.
+
+=============================== 10. TEARDOWN ===============================
+    The isolated queue, its subscription and its deployment/ConfigMap are deleted; all six quiesced
+    workloads and the gen-1 schedule are restored (section 1's tail is the receipt). The temporary
+    "Azure Service Bus Data Receiver" role assignment went with the queue scope when the queue was deleted.

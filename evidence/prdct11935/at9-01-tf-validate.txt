@@ -1,0 +1,40 @@
+# PRDCT-11935 at9-01 — the terraform bar for the sibling change, RUN ON THIS BOX
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyxsecurity/infrastructure PR #1575 · branch factory-eval-v32/PRDCT-11935 @ 984444a4f076
+# onyx branch 257f4c7b3c · captured 2026-08-20T13:10:14Z
+# terraform v1.9.8
+#
+# RE-CAPTURED IN ROUND 20, because the previous version of this file did not contain the artifact
+# its required_evidence names. It carried a CI run list instead of fmt/validate output, and
+# justified the absence with 'this box has no cloud credentials for a provider init'. That claim
+# was false — `terraform init -backend=false` needs none — and the round-19 gate ran the bar
+# itself to prove it. Here it is, run rather than argued about.
+
+## $ terraform fmt -check -recursive   — every directory this branch changes
+    environments/production/cells/azure/east-us-2/c02/instances/centerpoint rc=0  CLEAN
+    environments/production/cells/azure/east-us-2/c02/instances/saas rc=0  CLEAN
+    modules/azure/blob_events_to_servicebus                    rc=0  CLEAN
+    modules/byoc/azure/data-plane                              rc=0  CLEAN
+    modules/onyx/cell-azure-instance                           rc=0  CLEAN
+
+## $ terraform init -backend=false && terraform validate
+    modules/azure/blob_events_to_servicebus                    rc=0  Success! The configuration is valid.
+    environments/production/cells/azure/east-us-2/c02/instances/saas rc=0  Warning: Argument is deprecated
+    environments/production/cells/azure/east-us-2/c02/instances/centerpoint rc=0  Warning: Argument is deprecated
+
+## the ONE directory that cannot be validated standalone, with the reason terraform itself gives:
+    Error: missing provider provider["registry.terraform.io/hashicorp/aws"].shared_infra
+    modules/onyx/cell-azure-instance declares provider configuration_aliases its CALLER passes
+    (aws.shared_infra). A child module with aliases has no provider to resolve on its own, so it is
+    validated through the two instance roots above, which do pass it — not skipped.
+
+## $ terraform test   — the new module's own test suite
+      run "no_destination_creates_topic_only"... pass
+      run "rejects_a_subscription_with_no_destination"... pass
+      run "rejects_a_non_topic_resource_id"... pass
+      run "rejects_more_filter_values_than_event_grid_allows"... pass
+    tests/blob_events_to_servicebus.tftest.hcl... tearing down
+    tests/blob_events_to_servicebus.tftest.hcl... pass
+    
+    Success! 6 passed, 0 failed.

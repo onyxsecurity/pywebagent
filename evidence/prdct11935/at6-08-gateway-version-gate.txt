@@ -1,0 +1,40 @@
+# PRDCT-11935 at6-08 — why the seeded-connector scanner_version fix moves no row on this box
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch dfe23b9e83 · captured 2026-08-20T02:02:47Z
+#
+# The PR argues that 8342fed114 (stamping scanner_version onto seeded connectors) changes nothing
+# OBSERVABLE here, and that its proof is therefore a unit test. That argument rests on two measured
+# facts which, until this round, existed only in the PR body's prose — so they are captured here.
+#
+# The gate, in code: common/repository/mcp_gateway_installations/crud.py:133-134
+        effective_current_gw_version = (
+            current_gw_version if current_gw_version is not None else (scanner_version if (protects_all_mcps and not gateway_tag_present) else None)
+        )
+
+## FACT 1 — protects_all_mcps is false for every desktop_agent_user in every schema, so the
+##          'protects_all_mcps and not gateway_tag_present' branch is never taken.
+      schema     | protects_all | total 
+  ---------------+--------------+-------
+   onyx_security |            0 |     5
+   prdct11935_ta |            0 |     5
+   prdct11935_tb |            0 |     5
+  (3 rows)
+  
+
+## FACT 2 — consequently current_gw_version is NULL on every installation row, in BOTH lanes.
+##          gen-1's tenant (ta) and the new lane's tenant (tb) agree, which is the parity point:
+##          the commit cannot have moved a value that is NULL on both sides.
+      schema     | with_gw_version | total 
+  ---------------+-----------------+-------
+   onyx_security |               0 |    31
+   prdct11935_ta |               0 |    31
+   prdct11935_tb |               0 |    26
+  (3 rows)
+  
+
+## And the scanner DOES emit the value — an earlier version of the PR body wrongly said it did not,
+## having grepped a single object rather than the scan's summary-bearing ones:
+    objects from this run's scan carrying "scannerVersion": 3 of 12
+    "scannerVersion":"dev"
+    parsed at endpoint_asset_ingestion/ingestion/extract.py:252 and :612

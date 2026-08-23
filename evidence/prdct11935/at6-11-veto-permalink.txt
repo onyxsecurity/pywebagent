@@ -1,0 +1,39 @@
+# PRDCT-11935 at6-11 — the plan amendment's VETO PERMALINK, resolved against Slack
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch 0665ecc545 · checked 2026-08-20T19:28:13Z
+#
+# The amendment's veto mechanics rest on one run-thread post: "posted owner-visibly to the run thread for
+# veto — permalink: <url>", with "silence at re-verify time = proceed on no-objection". A permalink that
+# does not resolve would make that unfalsifiable, so it is checked here rather than pasted on trust.
+#
+# HOW IT IS CHECKED. Slack's `chat.getPermalink` is asked to MINT the permalink for the channel+timestamp
+# the amendment's URL encodes (C0BCW4JDZB2 / p1787251929107539 -> ts 1787251929.107539). The API only
+# returns ok=true for a message that exists in that channel, and the URL it mints is compared byte for
+# byte with the one the amendment (and now the PR body) carries.
+#
+#   request   chat.getPermalink?channel=C0BCW4JDZB2&message_ts=1787251929.107539
+#   response  ok = True
+#             channel   = C0BCW4JDZB2
+#             permalink = https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787251929107539?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+#   the amendment's URL   = https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787251929107539?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+#   byte-identical        = True
+#
+#   => the permalink RESOLVES: the message exists in the run thread (thread_ts 1787063683.640599) and the
+#      canonical URL Slack mints for it is exactly the one cited.
+#
+# WHERE IT IS CITED IN THE PR. The C3 section's settlement block ("How C13's direction rule is settled,
+# and under what authority") links it as "the run-thread post", immediately under the divergence table
+# that is the C3 audit row; the Design Decisions bullet links the same URL.
+#
+## THE ROUND-24 POST, checked the same way (the ruling's own AT10 audit extension asks for this)
+#   request   chat.getPermalink?channel=C0BCW4JDZB2&message_ts=1787275147.268479
+#   response  ok = True
+#   permalink = https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787275147268479?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
+#   the amendment's URL   = the same string, byte for byte
+#   => the round-24 surface-correction post exists in the run thread and its link is canonical.
+#
+# WHAT THIS DOES *NOT* CLAIM. It proves the post exists and the link is canonical. It does not read the
+# thread for a reply: an owner objection at any later time routes via handle-feedback and, if it restores
+# the absolute reading, back to research for a plan re-emit with a fresh sha256 — the amendment's own
+# veto mechanics, unchanged by this check.

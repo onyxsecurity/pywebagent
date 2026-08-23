@@ -1,0 +1,57 @@
+# PRDCT-11935 at12-01 — the DOWNSTREAM-START-FAILURE log point, driven for real
+# FILE LAST WRITTEN 2026-08-22T01:25:44Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-22T01:25:44Z · tenant prdct11935_tb
+#
+# WHY THIS EXISTS (round-30 gate, GAP-1). at10's flow step 2 enumerates the C12 log points and names the
+# **downstream-start-failure** line among them. The PR body's C12 paragraph named seven points and omitted
+# it, and — the part that mattered — NO shipped artifact carried the line at all, so adding it to the body
+# from source alone would have been a claim with nothing behind it. So it was driven instead.
+#
+# THE INDUCTION, and why it is real. The line fires when a fire-and-forget Temporal START fails for a
+# non-duplicate reason. That was induced by scaling the Temporal FRONTEND to zero — an infrastructure
+# transient, no code touched, no config edited, no mock — and then posting a real payload through the real
+# Kong front door. Nothing about the lane was modified to make the line appear.
+
+=================== 1. THE DRIVE ===================
+    --- induce a REAL Temporal start failure: scale the frontend to 0 (no code change) ---
+    deployment.apps/onyx-temporal-frontend scaled
+      running frontend pods: 0 (after 1 iters)
+    --- re-post a real Kong-originated payload carrying MCP servers, 2026-08-22T01:24:39Z ---
+      POST /mcp-scanner -> HTTP 200 (1022200 bytes)
+
+=================== 2. THE LOG LINE, verbatim from the shipping pod ===================
+    2026-08-22T01:24:58.044993Z [warning  ] MCP downstream start FAILED (non-duplicate) — asset committed, downstream not started [endpoint_asset_ingestion.ingestion.mcp_downstreams] filename=mcp_downstreams.py func_name=_start lineno=60 s3_key='tenant=11935b00-
+
+    It carries exactly the identifiers the gate asked for: `workflow=McpCveScanWorkflow` and
+    `workflow_id=mcp-cve-scan-prdct11935_tb-25b3bf92904b6c222735236c54209538`, plus the `s3_key` of the
+    object whose asset had already been committed. Call site:
+              # A GENUINE start failure (Temporal unreachable / transient): still non-fatal (must not roll back
+              # the committed asset — the enrichment/CVE is best-effort), but WARN + meter it so a lost downstream
+              # is visible instead of hidden at INFO.
+              metrics.downstream_start_failures.inc(DownstreamStartFailureLabels(workflow=name))
+              logger.warning("MCP downstream start FAILED (non-duplicate) — asset committed, downstream not started", workflow=name, workflow_id=workflow_id)
+
+=================== 3. THE COUNTER IT METERS, read off the same pod ===================
+    asset_ingestion_downstream_start_failures_total{workflow="DesktopAgentCustomDataEmbeddingWorkflow"} 1.0
+    asset_ingestion_downstream_start_failures_total{workflow="McpCveScanWorkflow"} 1.0
+
+    Two distinct workflow values fired in one window — `McpCveScanWorkflow` and
+    `DesktopAgentCustomDataEmbeddingWorkflow` — which is the class's own label dimension
+    (DownstreamStartFailureLabels, 5 workflow values reachable).
+
+=================== 4. WHAT THIS CHANGES ELSEWHERE ===================
+    · The PR's C12 paragraph now names this point and cites this file.
+    · evidence/at6-06-ledger.txt's closure row for `downstream_start_failures` moves from NAMED-NOT-RUN to
+      DEMONSTRATED on the strength of this capture. It was written NAMED-NOT-RUN earlier in this same
+      round, before the induction was attempted — the row is corrected rather than left generous.
+
+=================== 5. THE SECOND POINT THE GATE NAMED ===================
+    The alert-publish failure line — `failed to publish one session alert-processing request (continuing)`
+    (sessions_writer.py:114, carrying `session_id`, `policy_id`, `correlation_id`) — was already captured,
+    in evidence/at11-01-azure-alert-path.txt. It is added to the C12 paragraph citing that artifact; it did
+    not need re-driving.
+
+=================== 6. TEARDOWN ===================
+    The Temporal frontend was scaled back to 1 and confirmed Running immediately after the capture. No
+    other component was touched.

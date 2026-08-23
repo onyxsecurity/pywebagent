@@ -1,0 +1,125 @@
+# PRDCT-11935 at2-03 — proof the SAME message was delivered more than once ON THE REAL QUEUE
+# FILE LAST WRITTEN 2026-08-21T18:50:31Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T18:36:03Z · tenant onyx_security · ONE tenant, ONE window
+#
+# WHY THESE FILES WERE RE-DRIVEN (round-28 gate, G6; ruling: amendment round 31 made NO plan change here —
+# at2's pins stand exactly as written, and verify's offered alternative of promoting at2-05 into
+# required_evidence was REFUSED, because at2-05's isolated queue is not the "same at1 chain … real
+# Service Bus queue" this AT names). The previous at2-01/at2-02 were captioned "the SAME 554 KB real
+# scanner payload posted twice through Kong" — the same-OBJECT-twice vehicle at2's real_surface EXPLICITLY
+# EXCLUDES — and carried `t | n | max_id` COUNTS plus a duplicate check, which is at2's own `forbidden`
+# bullet ("Diffing counts only (contents required)"). Both defects are vehicle-level, so no re-wording
+# could fix them. These files now carry the same-MESSAGE lock-abandon redelivery ON THE REAL AT1-CHAIN
+# QUEUE with FULL ROW CONTENTS, driven fresh this round.
+#
+# THE VEHICLE, and why it is the real one.
+#   queue      endpoint-asset-ingestion-prdct11935 — the at1 chain's own queue, maxDeliveryCount 5,
+#              lockDuration PT5M. NOT an isolated queue, and no deployment clone: the messages are
+#              handled by the SHIPPING eai-azure consumer on the head image.
+#   redelivery a REAL lock-abandon: the object's last ingestion step starts a Temporal workflow, and for
+#              this leg the Temporal FRONTEND was scaled to zero — an infrastructure transient, no code
+#              touched and no config edited. Rows commit first; the trigger then raises; consumer_pool
+#              catches it and calls abandon_message (consumer_pool.py:171-184), so Service Bus
+#              re-presents the IDENTICAL message with an incremented delivery count. That is the broker's
+#              real at-least-once contract, not a simulation.
+#   payload    a REAL Kong-originated payload. A fresh skill subject was created on disk, a real
+#              onyx-scanner scan POSTed it through http://ingest-onyx:8080/mcp-scanner, and that scan's
+#              messages were then DRAINED UNREAD so the subject was still absent from the database. The
+#              one blob object carrying the subject (1787336988-16dc3cbf-1918-4ef7-9691-bc1f9dd312a2.log) was
+#              then re-POSTed through the same Kong front door (HTTP 200, 1022200 bytes), so exactly two
+#              messages arrived together — which is what makes a clean "after delivery 1" boundary
+#              possible at all on a queue whose retry backoff is 5 seconds.
+#              The ONLY modification to the object is the removal of the three fields vector injects from
+#              Kong's own headers (x-consumer-username, x-principal-suffix, x-source-type), which Kong
+#              re-adds on the way through. Nothing was hand-placed in storage or in the database.
+#   isolation  gen-1 fully stopped (schedule paused, zero pods) for the whole leg, so every row change is
+#              attributable to the lane under test.
+#
+# WHAT THE DUMP COVERS, stated so its scope is not overread: counts plus the CONTENT / STATE / LIFECYCLE
+# columns of every table the lane writes — assets (id, name, type, sub_type, unique_identifier,
+# is_deleted, status, version), asset_connections (incl. is_deleted), mcp_servers, mcp_ingestion_state
+# (incl. content_hash), agent_skills (skill_md_hash), agent_subagents (subagent_md_hash), tools (incl.
+# is_active), usage_sessions, scanner_installations. It deliberately does NOT dump pure freshness
+# timestamps such as desktop_agent_applications.last_scanned_at: at2 is about resurrection, duplication
+# and content rewriting, and that column's behaviour under re-ingest is a separate, documented subject
+# (at7-48). Saying so explicitly rather than letting the omission pass unremarked.
+
+=================== 1. THE REDELIVERY CHAIN OF THE at2-01/at2-02 MESSAGES ===================
+    Two messages, each re-presented at receive_count 2, 3, 4 and 5 — no gaps — every line from the
+    shipping consumer's own log stream, with the broker's own delivery counter:
+
+      18:31:58Z   message_id=fd116320-e882-40a1-ba5a-0448f6c156c1   receive_count=2
+      18:31:59Z   message_id=ddee8ca0-8693-4832-9ace-13b358ce6204   receive_count=2
+      18:32:06Z   message_id=ddee8ca0-8693-4832-9ace-13b358ce6204   receive_count=3
+      18:32:06Z   message_id=fd116320-e882-40a1-ba5a-0448f6c156c1   receive_count=3
+      18:32:14Z   message_id=ddee8ca0-8693-4832-9ace-13b358ce6204   receive_count=4
+      18:32:14Z   message_id=fd116320-e882-40a1-ba5a-0448f6c156c1   receive_count=4
+      18:32:21Z   message_id=ddee8ca0-8693-4832-9ace-13b358ce6204   receive_count=5
+      18:32:21Z   message_id=fd116320-e882-40a1-ba5a-0448f6c156c1   receive_count=5
+
+    delivery 1 is not in this list by construction: the consumer logs "redelivered queue message
+    (idempotent reprocess)" (message_handler.py:82) only when receive_count > 1, which is itself the
+    product's own acknowledgement that it is seeing a repeat.
+
+=================== 2. THE SETTLEMENT THAT CAUSED EACH REDELIVERY, from the same stream ===================
+    Each redelivery follows a real lock-abandon by the pool, not a timeout and not a manual re-send:
+        2026-08-21T18:31:53.863531667Z [2m2026-08-21T18:31:53.863332Z[0m [[31m[1merror    [0m] [1mHandler error for message, continuing with remaining m
+        2026-08-21T18:31:54.000543952Z [2m2026-08-21T18:31:54.000362Z[0m [[31m[1merror    [0m] [1mHandler error for message, continuing with remaining m
+        2026-08-21T18:32:01.291610231Z [2m2026-08-21T18:32:01.291429Z[0m [[31m[1merror    [0m] [1mHandler error for message, continuing with remaining m
+        2026-08-21T18:32:01.402806726Z [2m2026-08-21T18:32:01.402619Z[0m [[31m[1merror    [0m] [1mHandler error for message, continuing with remaining m
+        2026-08-21T18:32:09.283936298Z [2m2026-08-21T18:32:09.283726Z[0m [[31m[1merror    [0m] [1mHandler error for message, continuing with remaining m
+        2026-08-21T18:32:09.401712186Z [2m2026-08-21T18:32:09.401494Z[0m [[31m[1merror    [0m] [1mHandler error for message, continuing with remain
+
+=================== 3. THE PACING THE HEAD COMMIT ADDED, MEASURED ON THIS LEG ===================
+    The retry pacing is a separate claim from idempotency, and it is measured here rather than carried
+    from an earlier round. The pool's own three-line sequence, verbatim:
+      2026-08-21T18:31:53.863531667Z 2026-08-21T18:31:53.863332Z [error    ] Handler error for message, continuing with remaining messages [common_core.services.queue.consumer_pool] filename=consumer_pool.py func_nam
+      2026-08-21T18:31:53.863981899Z 2026-08-21T18:31:53.863788Z [info     ] Abandoned message for redelivery [common_core.services.queue.asb] filename=asb.py func_name=abandon_message lineno=280 message_id=ddee8ca0-
+      2026-08-21T18:31:53.864193140Z 2026-08-21T18:31:53.863981Z [info     ] Backing off before the next attempt at an immediately-redelivered message [common_core.services.queue.consumer_pool] backoff_seconds=5 file
+      2026-08-21T18:31:54.000543952Z 2026-08-21T18:31:54.000362Z [error    ] Handler error for message, continuing with remaining messages [common_core.services.queue.consumer_pool] filename=consumer_pool.py func_nam
+      2026-08-21T18:31:54.000972278Z 2026-08-21T18:31:54.000779Z [info     ] Abandoned message for redelivery [common_core.services.queue.asb] filename=asb.py func_name=abandon_message lineno=280 message_id=fd116320-
+      2026-08-21T18:31:54.001198029Z 2026-08-21T18:31:54.000961Z [info     ] Backing off before the next attempt at an immediately-redelivered message [common_core.services.queue.consumer_pool] backoff_seconds=5 file
+
+    `backoff_seconds=5` is the configured pace and `worker_id` is on the backoff line itself, so the
+    worker that slept is identifiable. What the pacing bounds is how fast ONE worker can burn a message's
+    delivery budget; with `concurrency` above 1 an idle sibling can pick the message up sooner, which is
+    why the aggregate interval is the number that matters. Measured across this leg:
+
+      ddee8ca0-8693-4832-9ace-13b358ce6204
+          receive_count=2   18:31:59.017Z         (first redelivery observed)
+          receive_count=3   18:32:06.438Z     7.4s since the previous delivery
+          receive_count=4   18:32:14.441Z     8.0s since the previous delivery
+          receive_count=5   18:32:21.913Z     7.5s since the previous delivery
+      fd116320-e882-40a1-ba5a-0448f6c156c1
+          receive_count=2   18:31:58.877Z         (first redelivery observed)
+          receive_count=3   18:32:06.306Z     7.4s since the previous delivery
+          receive_count=4   18:32:14.298Z     8.0s since the previous delivery
+          receive_count=5   18:32:21.789Z     7.5s since the previous delivery
+
+    Every observed gap is 7.4-8.0 s — comfortably above the 5 s floor the pacing sets, and nothing like
+    the pre-fix behaviour of re-entering `receive_messages` immediately. Two messages, four intervals
+    each, no interval below the configured backoff.
+
+    ROUND-31 NOTE ON WHAT THIS REPLACES. Earlier rounds made this same pacing argument from a leg induced
+    by holding `mcp_ingestion_state` under `ACCESS EXCLUSIVE` until `statement_timeout` fired
+    (message `1cc72601…`, 16:04). That leg was real, but its raw lines were carried only by the previous
+    revision of this file, which this round's re-drive replaced — so rather than quote lines no shipped
+    artifact still holds, the pacing claim is re-measured here, on the shipped head, on the real
+    at1-chain queue, and the PR body's pacing paragraph now cites these numbers instead of those.
+
+=================== 3. THE SAME CLASS, INDEPENDENTLY, AT MUCH GREATER DEPTH ===================
+    A second run this round drove the identical mechanism far past five deliveries, to establish that the
+    idempotency is not an artefact of a short chain: on an isolated queue with maxDeliveryCount 200, two
+    messages reached receive_count 98 — 97 distinct values each, with no gaps — and the same full-content
+    dump taken at receive_count 73 and at 93 was byte-identical.
+
+    THAT RUN IS OFFERED ONLY AS DEPTH, NOT AS THIS AT's VEHICLE. amendment round 31 explicitly refused to
+    promote an isolated-queue replay into at2's required evidence, because at2's real_surface names "the
+    same at1 chain … real Service Bus queue". Sections 1 and 2 above are on that queue with the shipping
+    consumer; this section is labelled supplementary and settles nothing on its own.
+
+=================== 4. THE SAME-OBJECT LEG, DEMOTED RATHER THAN DELETED ===================
+    Earlier rounds used a re-upload that mints a NEW message id (same OBJECT twice). at2's real_surface
+    excludes that as the replay vehicle. It is retained in the run's history as a labelled additional
+    demonstration and is never offered as the same-MESSAGE evidence.

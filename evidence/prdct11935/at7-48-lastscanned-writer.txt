@@ -1,0 +1,196 @@
+# PRDCT-11935 at7-48 — WHO WRITES `desktop_agent_applications.last_scanned_at`: the writer inventory,
+#                        and a MECHANISM ATTRIBUTION driven through the real front door
+# FILE LAST WRITTEN 2026-08-21T18:00:07Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T18:00:07Z · tenant onyx_security
+#
+# WHY THIS FILE EXISTS. amendment_r31 part (2b) requires the writer of this column to be NAMED AND
+# EVIDENCED rather than asserted, because the run's own artifacts had twice observed the uninstalled
+# subject's value advancing (04:33:04 -> 08:28:13 -> 16:10:48) and twice declined to explain it
+# (at7-30 §5 "This round did not chase down which"; at7-44 §2). The amendment offers two routes: a DIRECT
+# JOIN if logs or workflow histories covering an observed advance still exist, otherwise a MECHANISM
+# ATTRIBUTION by controlled demonstration.
+#
+# WHICH ROUTE THIS TAKES, AND WHY — stated first because it bounds every claim below. The DIRECT JOIN is
+# NOT AVAILABLE: the eai-azure pods that ran at 08:28 and at 16:10 were reaped by KEDA before this round
+# opened, so their logs no longer exist, and the writes are in-process (no Temporal workflow history to
+# join to either). This file therefore takes the MECHANISM route. It demonstrates that the named writer
+# produces exactly the observed signature, on demand, through the real chain. It DOES NOT claim to be a
+# join of the historical advances, and nothing below should be read as one.
+
+=================== 1. THE COMPLETE WRITER INVENTORY, re-grepped at this head ===================
+    Three write sites exist in the tree. No ORM onupdate, no server_default, no DB trigger, and no
+    non-generated Go writer (the ent setters in backend/internal/db/ent have zero callers outside
+    generated code — `grep -rn 'SetLastScannedAt|SetNillableLastScannedAt' --include=*.go .` outside
+    /ent/ returns 0).
+
+    The column definition, which is what rules out an incidental bump:
+            last_scanned_at = Column(DateTime(timezone=True), nullable=True)
+
+    (w1) DesktopAgentApplicationRepository.upsert_desktop_agent_application
+         common/repository/desktop_agent_application.py:209 · :215 (INSERT values) · :225 (conflict UPDATE)
+                    scanned_at = last_scanned_at if last_scanned_at is not None else datetime.now(UTC)
+                        "last_scanned_at": scanned_at,
+         Line 209 is the whole story: when the caller passes no timestamp the column is stamped with the
+         INGEST wall-clock, not the scan clock. Line 225 makes the conflict update UNCONDITIONAL and
+         non-monotonic. It is called with NO last_scanned_at from the per-user agent write
+         (python_temporal_worker/integrations/desktop_agent_creator/activities.py:1878), which fires for
+         every runtime the lane resolves to the AI_AGENT subtype that is LISTED IN AN INGESTED PAYLOAD —
+         and that activity is shared by BOTH lanes (gen-1's Temporal DAC, and the scanner lane in-process
+         via endpoint_asset_ingestion/ingestion/writers.py:254 + :295 driving the same activities).
+         CONSEQUENCE, and it is the one that matters here: a RE-POSTED or REPLAYED HISTORICAL payload that
+         lists a runtime advances that runtime's last_scanned_at to ingest wall-clock EVEN IF the runtime
+         is absent from every machine. This run's own acceptance re-drives are exactly such writes.
+
+    (w2) authoritatively_set_guard_statuses — same file :311, and the monotonic update at :385
+                            last_scanned_at=func.greatest(DesktopAgentApplication.last_scanned_at, clamped_at),
+         Advances the column to the scan's clamped time for every asset in a scan's guard aggregate.
+         BuildGuardAggregate iterates only agents actually DETECTED in that run, so an absent runtime is
+         never in the aggregate.
+
+    (w3) the openai_compliance posture ensure-row upsert
+         python_temporal_worker/integrations/openai_compliance/posture/processor/activities.py:102 —
+         passes no timestamp, so it also lands on w1's now() default. Compliance-lane assets only.
+
+    Neither guard age-out sweep touches the column (both set only last_guard_status,
+    last_guard_status_at and updated_at).
+
+=================== 2. AND w3 CANNOT BE THE CAUSE HERE — checked, not assumed ===================
+    Every desktop-agent asset on this tenant carries the scanner source and no integration connection, so
+    the compliance/SWG/MDM lanes own none of these rows:
+             name         | source  | integration_connection 
+    ----------------------+---------+------------------------
+     Claude (coder)       | scanner | (none)
+     Claude Code (coder)  | scanner | (none)
+     Claude Code (ubuntu) | scanner | (none)
+     Codex (coder)        | scanner | (none)
+     Hermes Agent (coder) | scanner | (none)
+     OpenClaw (coder)     | scanner | (none)
+     OpenCode (coder)     | scanner | (none)
+    (7 rows)
+
+=================== 3. THE MECHANISM ATTRIBUTION — a controlled re-post through the FULL front door ===================
+    WINDOW: 2026-08-21T17:58:03Z .. 17:58:36Z. This window is DISTINCT from, and excluded from, the (2a)
+    staircase window in at7-30 (17:05:05Z .. 17:23:22Z). gen-1 was quiesced for this leg (schedule PAUSED,
+    zero gen-1 pods) so the advance is attributable to the lane under test.
+
+    THE VEHICLE, and its permission. amendment_r31 (2b) sanctions exactly this: re-POST the captured
+    historical payload through the SAME full front-door chain, and states that this labeled demonstration
+    is NOT within at7's hand-upload prohibition — while calling the writer in-process, or hand-seeding
+    rows or storage, remains forbidden. So nothing here is hand-placed: the payload re-enters at Kong and
+    traverses Kong -> vector -> Azure Blob -> Event Grid -> Service Bus -> the azure-mode consumer.
+
+    THE PAYLOAD. The archived object the scanner itself produced at 13:46:56, when OpenClaw genuinely WAS
+    installed on this box:
+        source blob   tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787320016-c4af580b-93ff-4345-9e80-7c1ba5a98378.log
+                      301723 bytes · sha256 c1d9f2a3ca8f758dc226698bb61b6f84e0a1a9dbc0dfbd57f4327821dfcaa0de
+        re-post body  304131 bytes · carries exactly 1 real openclaw agent slice
+                      The ONLY modification is the removal of the three fields vector injects from Kong's
+                      own headers (x-consumer-username, x-principal-suffix, x-source-type), because Kong
+                      re-adds them on the way through. The payload proper — data, id, metadata, method,
+                      sessionId, source_type=mcp-scanner, timestamp, traceparent, tracestate, type — is
+                      byte-for-byte the scanner's own.
+
+    --- (2b) MECHANISM-ATTRIBUTION WINDOW OPENS 2026-08-21T17:58:03Z ---
+        gen-1 quiesced for the leg: schedule PAUSED, live gen-1 pods = 0
+    
+    --- the subject is STILL absent on-box, checked the same three ways, in THIS capture ---
+          openclaw on PATH:          NOT on PATH
+          openclaw config dirs:      /home/coder/.openclaw (residual ~/.openclaw only, 68K plugins/, created 13:26:13 — binary absent)
+          npm -g openclaw entries:   0
+    SET
+             name         |        last_scanned_at        | status | is_deleted 
+    ----------------------+-------------------------------+--------+------------
+     Codex (coder)        | 2026-08-21 17:38:56.801203+00 |        | f
+     Claude Code (coder)  | 2026-08-21 17:38:52.933145+00 |        | f
+     Hermes Agent (coder) | 2026-08-21 17:38:49.988258+00 |        | f
+     Claude (coder)       | 2026-08-21 17:38:47.993625+00 |        | f
+     OpenClaw (coder)     | 2026-08-21 17:25:08.82622+00  |        | f
+     Claude Code (ubuntu) | 2026-08-20 19:12:37.437767+00 |        | f
+     OpenCode (coder)     | 2026-08-20 19:10:12.385118+00 |        | f
+    (7 rows)
+    
+    SET
+                   k                | v 
+    --------------------------------+---
+     desktop-agent assets           | 7
+     of which is_deleted            | 0
+     unique_identifiers with >1 row | 0
+    (3 rows)
+
+    THE RE-POST, through the real key-authed front door — with the negative guard in the same capture, so
+    the 200 is demonstrably the key's doing:
+        --- RE-POST through the REAL Kong front door, 2026-08-21T17:58:24Z ---
+        HTTP 200 · 304131 bytes uploaded · 1.108573s
+        response body: 
+        --- guard: the same POST without the key must be refused ---
+        no-apikey -> HTTP 401
+
+    THE CHAIN THE PAYLOAD ACTUALLY TRAVELLED, from the consumer's own log stream — a NEW blob key minted
+    by vector, a NEW Service Bus message, settled `processed`:
+        blob key    tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/
+                    1787335105-1f68e9b4-b83f-45ee-b30f-39c432eef121.log
+        message_id  96ccd461-2574-4724-853d-ce1b0d576d29
+        2026-08-21T17:58:27.838731Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=11935b00-0000-4000-8000-000000000b02/
+        2026-08-21T17:58:27.838995Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=1.273692 outcome=processed s3
+        2026-08-21T17:58:27.839652Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=266 message_id=0ec2498b-7012-46d5-9220-46419eae3d6d span_id=9a0243eec2f456ae trac
+        2026-08-21T17:58:27.844953Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/
+        2026-08-21T17:58:27.845177Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=1.27475 outcome=processed s3_
+        2026-08-21T17:58:27.845662Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=266 message_id=96ccd461-2574-4724-853d-ce1b0d576d29 span_id=0c017e47ce5a7cc2 trac
+
+    --- AFTER the Kong re-post, 2026-08-21T17:58:36Z ---
+    SET
+             name         |        last_scanned_at        | status | is_deleted 
+    ----------------------+-------------------------------+--------+------------
+     OpenClaw (coder)     | 2026-08-21 17:58:27.571731+00 |        | f
+     Codex (coder)        | 2026-08-21 17:38:56.801203+00 |        | f
+     Claude Code (coder)  | 2026-08-21 17:38:52.933145+00 |        | f
+     Hermes Agent (coder) | 2026-08-21 17:38:49.988258+00 |        | f
+     Claude (coder)       | 2026-08-21 17:38:47.993625+00 |        | f
+     Claude Code (ubuntu) | 2026-08-20 19:12:37.437767+00 |        | f
+     OpenCode (coder)     | 2026-08-20 19:10:12.385118+00 |        | f
+    (7 rows)
+    
+    SET
+                   k                | v 
+    --------------------------------+---
+     desktop-agent assets           | 7
+     of which is_deleted            | 0
+     unique_identifiers with >1 row | 0
+    (3 rows)
+
+=================== 4. WHAT THE DEMONSTRATION SHOWS ===================
+    OpenClaw's last_scanned_at advanced 2026-08-21 17:25:08.826220 -> 2026-08-21 17:58:27.571731 — three
+    seconds after the HTTP 200, and slightly ahead of the consumer's own `Completed message` at
+    17:58:27.845, which is the ordering an in-process write during object processing produces. It moved
+    ALONE: all four still-installed controls held their 17:38:47..17:38:56 values, unchanged.
+
+    The subject was re-proven absent on-box in this same capture (§3, the three-way check), so the write
+    is not the runtime reappearing. And nothing was created, duplicated or resurrected: desktop-agent
+    assets 7 -> 7, is_deleted 0 -> 0, unique_identifiers with more than one row 0 -> 0, status unchanged.
+
+    That is the signature the unexplained 16:10:48 advance had — one agent's row moving alone, no new
+    scanner_installations row (the summary insert is ON CONFLICT DO NOTHING and agent payloads are
+    different objects anyway), stamped with the ingest wall-clock. w1 reproduces it exactly and on demand.
+
+=================== 5. WHAT THIS FILE DOES NOT CLAIM ===================
+    · It is NOT a join of the 08:28 or 16:10 advances. Those pods' logs are gone; this is a mechanism
+      attribution and is labeled as one wherever it is cited.
+    · It does NOT re-admit "FROZEN" as a contract term. The honest cross-window property of this column is
+      a LAG, because w1 advances it for any ingested payload that lists the runtime — including the
+      acceptance re-drives this contract itself requires every round. amendment_r31 (2c) is explicit, and
+      no artifact or PR sentence in this run asserts an absolute cross-window freeze.
+    · The single-scan staircase — the falsifiable part — is at7-30, in its own stated window.
+
+=================== 6. CORROBORATING FACT, since it explains the history rather than excusing it =========
+    OpenClaw was genuinely reinstalled on this shared box for a period around 13:26-13:48: the residual
+    /home/coder/.openclaw directory was created 2026-08-21 13:26:13, and the scanner's OWN detected-agent
+    lists name it in that window —
+                 scan_run_id              |       scanned_at       |                        detected_agents                         
+    --------------------------------------+------------------------+----------------------------------------------------------------
+     1cae7c16-0060-4ad8-95e1-55b42077ec12 | 2026-08-21 13:29:12+00 | ["claude-code", "claude", "codex", "openclaw", "hermes-agent"]
+     32fa7988-18fb-49bb-b15d-a4881c31cb6b | 2026-08-21 13:47:57+00 | ["claude-code", "claude", "codex", "openclaw", "hermes-agent"]
+    (2 rows)
+    So payloads captured in that window legitimately carry an openclaw agent slice, and any later ingest
+    of one of them — a backlog drain, a replay, or an acceptance re-drive — advances the column by w1.
+    Offered as corroboration of the mechanism, not as a join.

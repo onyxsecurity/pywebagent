@@ -1,0 +1,45 @@
+# PRDCT-11935 at4-03 POST-FIX — the CORRECT shape still boots and still ingests (the guard is not a brick)
+# FILE LAST WRITTEN 2026-08-21T10:08:42Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-cg2fs
+# captured 2026-08-21T09:28:02Z
+#
+# THE IMAGE, PROVEN — not asserted. This artifact's capture ran on an image built from THIS head with the
+# repo's own Dockerfile.dev, and the proof is mechanical: every .py under /app/src sha256'd inside the
+# image against the head worktree — 4741 head files vs 4742 in the image, **one** differing line, and it
+# is an EMPTY /app/src/__init__.py the build creates (sha e3b0c44298fc… is the hash of zero bytes). No
+# source file differs. Digests: endpoint-asset-ingestion sha256:17dbec7e…, scanner-event-consumer
+# sha256:4c7af190…, mcp-gateway-event-consumer sha256:2464ec5a…. See evidence/at6-12-image-provenance.txt.
+#
+# WHY THIS FILE WAS RE-DRIVEN THIS ROUND. The round-25 gate found this artifact self-certifying as
+# head-exact while stamping `0665ecc545 / :prdct11935-r25` — an image built two lane-touching commits
+# back — and at10-04, generated from this very header, listed it as "1 lane-touching commit(s) landed
+# after it: a2486bb33f". Rather than argue that the head commit cannot reach a service that exits at
+# config validation, the capture was simply re-run on the head-exact image. Everything below is that run.
+#
+# A fail-closed guard is only correct if the RIGHT config still starts. This is the positive half of
+# at4, and it is the SAME shipping pod every other head capture in this round ran against.
+
+    ##### the CORRECT azure shape — the shipping deployment itself, on the head-exact image
+    -- pod: eai-azure-66d8f8595d-cg2fs
+    -- image: localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+    -- kubectl: eai-azure-66d8f8595d-cg2fs   1/1   Running   0     26m
+    READY=1/1  STATUS=Running  RESTARTS=0 — the correct shape boots and stays up.
+    -- conditions:
+    PodReadyToStartContainers=True 
+    Initialized=True 
+    Ready=True 
+    ContainersReady=True 
+    PodScheduled=True 
+    -- in-pod readiness probe result:
+       http_code=200 body={"status":"ready","service":"endpoint-asset-ingestion","checks":{"queue":"ok"}}
+    -- it is REALLY consuming (its own settlement counters, live):
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="onyx_security"} 9.0
+       asset_ingestion_objects_total{outcome="processed",tenant_schema="prdct11935_tb"} 15.0
+       asset_ingestion_objects_total{outcome="failed",tenant_schema="onyx_security"} 2.0
+       asset_ingestion_records_total{result="ok"} 24.0
+       asset_ingestion_records_total{result="unknown_tenant"} 1.0
+
+    The declared cloud and the configured transport AGREE, the pod is Ready, its own readiness endpoint
+    answers 200 with checks.queue=ok, and its settlement counters are moving — including the
+    records_total{result="unknown_tenant"} series this round's at6-01 demo created on the same pod.
+    So the guard refuses the two contradictory shapes above and passes the correct one.

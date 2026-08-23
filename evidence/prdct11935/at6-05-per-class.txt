@@ -1,0 +1,85 @@
+# PRDCT-11935 at6-05 — per-class settlement demonstrations on the NEW (Azure) lane, RE-DRIVEN ON HEAD
+# FILE LAST WRITTEN 2026-08-21T10:08:29Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch 0665ecc545 · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r25 · pod eai-azure-5d8757d74d-l528g
+# captured 2026-08-20T22:06:31Z
+#
+# IMAGE PROVENANCE, STATED HONESTLY (round-28 correction). This capture ran on
+# :prdct11935-r25, which was built from `0665ecc545`. That is NOT the head that merges: `a2486bb33f`
+# is ONE commit ahead of it. The previous revision of this header claimed r25 was "proven byte-exact to
+# head" citing at6-12 — at6-12 establishes that :prdct11935-r26 is the head-exact image, not r25 — and at10-04, generated from
+# this very header, has been listing this row as "1 lane-touching commit(s) landed after it". That claim
+# is withdrawn and replaced by the measured delta:
+#     $ git diff --name-only 0665ecc545..a2486bb33f
+#       backend_python/src/common_core/services/queue/asb.py                       (the sender lock)
+#       backend_python/src/endpoint_asset_ingestion/ingestion/writers.py           (alert-publish metering)
+#       backend_python/tests/common_core/services/test_asb_sender_concurrency.py   (new test)
+#       backend_python/tests/endpoint_asset_ingestion/ingestion/test_session_alert_failure_is_metered.py (new test)
+#     4 files changed, 181 insertions(+), 4 deletions(-)
+# WHY THIS MEASUREMENT IS STILL SOUND ON r25: this file enumerates how each settlement CLASS was settled. The delta adds one new family
+#   (session_alerts) and changes no existing class's settlement. That new family is enumerated in this
+#   round's re-derived at6-01 (captured on a2486bb33f) and carries its own closure rows in at6-06, so the
+#   family is not silently absent from the evidence set — it is simply not in THIS r25 capture, which is
+#   stated here rather than papered over.
+#
+# RE-DRIVEN THIS ROUND ON THE HEAD-EXACT IMAGE. The round-21 gate found this artifact was captured on
+# image r5 / branch b4f0b544e5 (2026-08-19). Every counter and log line below comes from the r25 pod —
+#
+# HOW TO READ THE STATUS COLUMN. Each class says how it was settled THIS round, on THIS image. Two classes
+# are pre-declared named-not-run in the plan and stay that way — they are not quietly counted as passes.
+
+  CLASS                        STATUS ON THE HEAD IMAGE THIS ROUND
+  A created                    DRIVEN — the at6 "created" leg (at6-04a / at6-09), fresh tenants, one Kong payload
+  B matched                    DRIVEN — the at6 "matched" leg (at6-04b / at6-09)
+  C reingest-skip              DRIVEN — the at6 "reingest-skip" leg (at6-04c / at6-09) + the skip counters below
+  D skipped_flag_off           DRIVEN — 21/21 settlements on a flag-off pod, 0 rows written (at1-06)
+  E wrong_source               NAMED-NOT-RUN on this lane, guarded at the RULE — at9's live SQL-rule negative: a source= blob that does
+                               not match never reaches this queue, so the writer never sees it
+  F skipped_unknown_tenant     DRIVEN — a well-formed scanner key for a tenant not in public.tenants
+  G parse_err                  DRIVEN on the head image — evidence/at6-13-parse-err.txt. RE-STAMPED
+                               ROUND 25 (gate G3): this line used to read "PRE-DECLARED NAMED-NOT-RUN
+                               in the plan", which was false — the plan pre-declares only
+                               poison-ack-fallback (wrong_source conditionally) and lists parse_err
+                               among the classes to DEMONSTRATE. A non-JSON body on the real queue
+                               produces the log point at message_handler.py:96,
+                               records_total{result="parse_err"} 1, and an ACK.
+  H unparseable -> DEAD-LETTER DRIVEN — parked in the queue's native $DeadLetterQueue
+  I poison-ack FALLBACK        PRE-DECLARED NAMED-NOT-RUN in the plan; not driven, not counted
+  J failed -> REDELIVER        DRIVEN on the head image this round — evidence/at6-14-failed-redeliver.txt
+                               (ACCESS EXCLUSIVE lock -> statement_timeout -> outcome=failed -> redelivery,
+                               message_id 156fc8bb…, receive_count=2, no duplicates after). RE-STAMPED
+                               ROUND 25 (gate G3): previously
+                               (lock expiry, receive_count=2, zero duplicates); not re-driven by me this
+                               round — stated rather than re-counted
+
+## THE LANE'S OWN COUNTERS, summed across every replica, on this image
+    asset_ingestion_dead_letters_total 1
+    asset_ingestion_objects_total{outcome="processed",tenant_schema="onyx_security"} 21
+    asset_ingestion_objects_total{outcome="processed",tenant_schema="prdct11935_tb"} 42
+    asset_ingestion_objects_total{outcome="skipped_unknown_tenant",tenant_schema="unknown"} 1
+    asset_ingestion_poison_messages_total{reason="no_ingestible_object"} 1
+    asset_ingestion_records_total{result="ok"} 64
+    mcp_reingest_skip_evaluations_total{source="scanner",tenant_schema="onyx_security",verdict="base_changed"} 26
+    mcp_reingest_skip_evaluations_total{source="scanner",tenant_schema="onyx_security",verdict="skip"} 82
+    mcp_reingest_skip_evaluations_total{source="scanner",tenant_schema="prdct11935_tb",verdict="base_changed"} 39
+    mcp_reingest_skip_evaluations_total{source="scanner",tenant_schema="prdct11935_tb",verdict="skip"} 69
+
+## D — skipped_flag_off (full receipt in at1-06)
+    outcome counts:
+         21 outcome=skipped_flag_off
+    SQS/localstack/boto references in the pod log: 0
+
+## F — skipped_unknown_tenant, this round, on head
+    2026-08-20T22:04:29.679084Z [info     ] skipping object: unknown tenant [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=90 s3_key='tenant=99
+    counter: asset_ingestion_objects_total{outcome="skipped_unknown_tenant",tenant_schema="unknown"} 1
+
+## H — poison -> the queue's NATIVE dead-letter subqueue, this round, on head
+    2026-08-20T22:04:27.852605Z [warning  ] poison message — no ingestible object, dead-lettering [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=handle lineno=
+    2026-08-20T22:04:27.853159Z [info     ] Dead-lettered message          [common_core.services.queue.asb] filename=asb.py func_name=dead_letter_message lineno=276 message_id=0310b207-8f13-4f1b-9ce0-fc3a
+    counters: asset_ingestion_poison_messages_total{reason="no_ingestible_object"} 1 · asset_ingestion_dead_letters_total 1
+
+## K — the metric vocabulary these settled on (the labels at6-01 enumerates)
+    outcome="created"
+    outcome="matched"
+    outcome="processed"
+    outcome="skipped_unknown_tenant"

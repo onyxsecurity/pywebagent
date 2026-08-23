@@ -1,0 +1,172 @@
+# PRDCT-11935 at7-30 — the desktop-agent SINGLE-SCAN STAIRCASE with controls (amendment_r31 part 2a)
+# FILE LAST WRITTEN 2026-08-21T18:01:35Z
+# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+# captured 2026-08-21T18:01:35Z · tenant onyx_security
+#
+# WHAT THIS FILE IS, AND WHAT IT IS NOT — read this before any number below.
+# It carries amendment_r31 part (2a): the falsifiable, single-scan half of the desktop-agent freshness
+# claim. Across ONE paired real second scan whose payload provably omits the uninstalled runtime, the
+# subject's last_scanned_at is byte-identical before/after that scan while same-machine still-installed
+# controls advance on it.
+#
+# IT DOES NOT CLAIM AN ABSOLUTE CROSS-WINDOW FREEZE, and no sentence here should be read as one.
+# amendment_r31 WITHDREW "last_scanned_at FROZEN" as unprovable-as-stated, and it was right to: writer
+# (w1) advances this column for ANY ingested payload that lists the runtime, stamped with the ingest
+# wall-clock — including the acceptance re-drives this contract itself requires every round. The honest
+# cross-window property of this column is a LAG. The writer inventory and the controlled demonstration
+# that produces the advance on demand are part (2b), in evidence/at7-48-lastscanned-writer.txt.
+#
+# PREVIOUS REVISIONS OF THIS FILE said "frozen since 04:33:04" and then withdrew it at §5 with "This
+# round did not chase down which [writer]". Both are superseded: the writer is now named and evidenced in
+# at7-48, and the claim here is scoped to the single scan it can actually carry.
+
+=================== 1. THE SUBJECT IS ABSENT ON-BOX — the three-way check, in THIS capture ===================
+    Payload-side absence alone would NOT satisfy (2a): a scanner silently failing to detect a
+    still-installed runtime produces an identical staircase. So the machine itself is checked.
+    openclaw on PATH:            NOT on PATH
+    openclaw config dirs:        /home/coder/.openclaw none
+    npm -g openclaw entries:     0
+    HONESTY NOTE, correcting this file's own earlier revision which claimed "no openclaw config dirs":
+    a residual /home/coder/.openclaw directory (68K, plugins/ only) exists, created 2026-08-21 13:26:13.
+    The binary is not on PATH and npm global carries zero openclaw entries. The directory is a remnant of
+    a genuine reinstall/uninstall cycle on this shared box (at7-48 §6) and is disclosed rather than
+    omitted; the scanner's own detector reports no openclaw in any scan of this window.
+
+=================== 2. THE PAIRED SCAN, and its payload's own agent list ===================
+    The (2a) scan is SCAN 2 of this window. Both scans of the window report the identical four runtimes,
+    and OpenClaw is in neither:
+        scan 1  scan_run_id 4489d383-a7fd-49ac-b9df-7af57c1af854  17:09:22-17:10:27Z
+                agent_names ["claude-code","claude","codex","hermes-agent"]  agents_detected_total 4
+        scan 2  scan_run_id 333b21ef-714b-4b8c-84ad-eaec81bc2799  17:20:03-17:21:10Z   <-- THE PAIRED SCAN
+                agent_names ["claude-code","claude","codex","hermes-agent"]  agents_detected_total 4
+    Both ran through the whole real chain: onyx-scanner -> Kong (key-auth) -> vector -> Azure Blob ->
+    Event Grid -> Service Bus -> the azure-mode consumer. And they provably landed: device_sources
+    last_synced_at for source=scanner advanced to 2026-08-21 17:21:08+00, which is what distinguishes
+    "the agent stopped being observed" from "the scan never arrived".
+
+    The window is input-controlled — gen-1 fully stopped for its duration, so no backlog could be
+    re-ingested behind the measurement:
+    --- gen-1 quiesce, 2026-08-21T17:02:06Z ---
+    command terminated with exit code 3
+    deployment.apps/scanner-event-consumer scaled
+    deployment.apps/temporal-scanner-worker scaled
+    deployment.apps/temporal-general-worker scaled
+    --- the gen-1 receipt at the moment the window opens ---
+        scanner-event-consumer                    <none>
+        temporal-general-worker                   <none>
+        temporal-scanner-worker                   <none>
+        live gen-1 pods: 2
+    
+    Schedule updated
+        schedule state:
+                    ScheduleId                WorkflowType        Paused              Notes               RunningWorkflows  NextRunTime    LastRunTime                           Specification                          
+        scanner-event-consumer                    <none>
+        temporal-general-worker                   <none>
+        temporal-scanner-worker                   <none>
+        live gen-1 pods: 0
+
+=================== 3. THE STAIRCASE ACROSS THAT ONE SCAN ===================
+    BEFORE the paired scan (state after scan 1, read 17:12Z)
+             name         |        last_scanned_at        |        row_updated_at         | status | is_deleted 
+    ----------------------+-------------------------------+-------------------------------+--------+------------
+     Codex (coder)        | 2026-08-21 17:12:14.512695+00 | 2026-08-21 17:12:14.494392+00 |        | f
+     Claude Code (coder)  | 2026-08-21 17:12:11.370594+00 | 2026-08-21 17:12:11.349817+00 |        | f
+     Hermes Agent (coder) | 2026-08-21 17:12:09.093359+00 | 2026-08-21 17:12:09.065889+00 |        | f
+     Claude (coder)       | 2026-08-21 17:12:07.76452+00  | 2026-08-21 17:12:07.743121+00 |        | f
+     OpenClaw (coder)     | 2026-08-21 16:10:48.175539+00 | 2026-08-21 16:10:48.143591+00 |        | f
+     Claude Code (ubuntu) | 2026-08-20 19:12:37.437767+00 | 2026-08-20 19:12:37.382083+00 |        | f
+     OpenCode (coder)     | 2026-08-20 19:10:12.385118+00 | 2026-08-20 19:10:12.307892+00 |        | f
+    (7 rows)
+
+    AFTER the paired scan (read 17:23:22Z)
+             name         |        last_scanned_at        |        row_updated_at         | status | is_deleted 
+    ----------------------+-------------------------------+-------------------------------+--------+------------
+     Codex (coder)        | 2026-08-21 17:22:23.407717+00 | 2026-08-21 17:22:23.380201+00 |        | f
+     Claude Code (coder)  | 2026-08-21 17:22:20.196832+00 | 2026-08-21 17:22:20.15876+00  |        | f
+     Hermes Agent (coder) | 2026-08-21 17:22:18.191217+00 | 2026-08-21 17:22:18.167044+00 |        | f
+     Claude (coder)       | 2026-08-21 17:22:17.001798+00 | 2026-08-21 17:22:16.96898+00  |        | f
+     OpenClaw (coder)     | 2026-08-21 16:10:48.175539+00 | 2026-08-21 16:10:48.143591+00 |        | f
+     Claude Code (ubuntu) | 2026-08-20 19:12:37.437767+00 | 2026-08-20 19:12:37.382083+00 |        | f
+     OpenCode (coder)     | 2026-08-20 19:10:12.385118+00 | 2026-08-20 19:10:12.307892+00 |        | f
+    (7 rows)
+    
+    --- device_sources scanner freshness (positive control that the scans landed) ---
+     source  |     last_synced_at     
+    ---------+------------------------
+     scanner | 2026-08-21 17:21:08+00
+     scanner | 2026-08-20 07:02:21+00
+    (2 rows)
+
+    Read the OpenClaw row across the pair: 2026-08-21 16:10:48.175539+00 -> 2026-08-21 16:10:48.175539+00,
+    BYTE-IDENTICAL to the microsecond, not advanced by the scan. Four same-machine still-installed
+    controls advanced on that same scan — Codex 17:12:14.512695 -> 17:22:23.407717, Claude Code
+    17:12:11.370594 -> 17:22:20.196832, Hermes Agent 17:12:09.093359 -> 17:22:18.191217, Claude
+    17:12:07.764520 -> 17:22:17.001798. Four controls, where (2a) requires at least two.
+
+    LAG AT CAPTURE TIME (descriptive corroboration only — the falsifiable teeth are the staircase above
+    and at7-48's attribution; a lag alone is never offered as proof): the subject's value trails every
+    same-machine still-installed control by about 71 minutes at the 17:23:22Z read.
+
+=================== 4. status AND is_deleted, CARRIED AS MEASURED VALUES ===================
+    (2a) requires these as measured values rather than prose. They are in the two tables above, where
+    psql renders a NULL status as an empty column; here is the same read made legible, taken 2026-08-21T18:01:35Z:
+             name         |                        status_value                        | is_deleted 
+    ----------------------+------------------------------------------------------------+------------
+     Claude (coder)       | (NULL — this class carries no status value on this tenant) | f
+     Claude Code (coder)  | (NULL — this class carries no status value on this tenant) | f
+     Claude Code (ubuntu) | (NULL — this class carries no status value on this tenant) | f
+     Codex (coder)        | (NULL — this class carries no status value on this tenant) | f
+     Hermes Agent (coder) | (NULL — this class carries no status value on this tenant) | f
+     OpenClaw (coder)     | (NULL — this class carries no status value on this tenant) | f
+     OpenCode (coder)     | (NULL — this class carries no status value on this tenant) | f
+    (7 rows)
+
+    AN HONEST DEPARTURE FROM THE AMENDMENT'S WORDING, reported rather than smoothed over.
+    amendment_r28 and amendment_r31 both phrase this term as "status stays Discovered". On this tenant the
+    desktop-agent class does not carry that value at all — every one of the seven rows has status NULL,
+    before and after the paired scan alike. It is not that the subject lost a status: the class never had
+    one here, while other classes do:
+             status_value      | assets 
+        -----------------------+--------
+         AssetStatusDiscovered |    395
+         (NULL)                |     23
+         AssetStatusSanctioned |      3
+        (3 rows)
+    What the term is actually protecting — that the second scan does not move the uninstalled runtime into
+    some changed or deleted-looking lifecycle state — holds exactly: status is unchanged (NULL -> NULL) and
+    is_deleted is unchanged (f -> f) across the pair, for the subject and for all six others. Reported this
+    way because writing "status stays Discovered" would have been false, and the earlier revisions of this
+    file and of at7-23 did write it.
+
+=================== 5. NOT RESURRECTED, NOT DUPLICATED (amendment_r28 part 1, unchanged) ===================
+                   k                | v 
+    --------------------------------+---
+     desktop-agent assets           | 7
+     of which is_deleted            | 0
+     unique_identifiers with >1 row | 0
+    (3 rows)
+
+=================== 6. (2d) THE STRONGER RESULT, OFFERED IN ADDITION AND LABELED AS SUCH ===================
+    amendment_r31 (2d) permits a whole-observation-window freeze to be presented in addition, labeled with
+    its exact window and payload-absence proof, provided it never substitutes for (2b)'s attribution and
+    never re-admits FROZEN as a contract term. Both conditions are honoured: (2b) is at7-48, and this is
+    labeled as an observation-window result, not a property of the column.
+
+        WINDOW            2026-08-21T17:05:05Z .. 2026-08-21T17:23:22Z
+        PAYLOAD ABSENCE   the subject's identity appears in NO payload ingested in that window — both
+                          scans' agent lists are quoted in §2 and neither names it, gen-1 was stopped
+                          throughout so no backlog drained, and the (2b) re-post that DOES name it happened
+                          later, at 17:58, in a window explicitly excluded from this one.
+        RESULT            2026-08-21 16:10:48.175539+00 at 17:05:05Z, unchanged at 17:12Z, unchanged at
+                          17:23:22Z — across TWO real scans, while the four controls advanced TWICE.
+
+    This satisfies (2a) a fortiori. It is not evidence that the column cannot advance without a scan: it
+    demonstrably can and does, which is exactly what at7-48 shows on demand.
+
+=================== 7. WHAT THIS IS AND IS NOT ===================
+    This is a DATABASE measurement and is claimed as nothing else. amendment_r28 part (3) — unchanged by
+    r31 — is explicit that presenting this staircase as a product-VISIBLE stale state is a FAIL, and
+    nothing here or in the PR does so: the product ships no stale or deleted representation for this
+    class, "Last Seen" binds to updated_at and reads the identical day-granular value for the uninstalled
+    runtime and every control (at7-44). The staircase is offered only as the DB-level freshness contrast
+    it is, over the single scan it can carry.

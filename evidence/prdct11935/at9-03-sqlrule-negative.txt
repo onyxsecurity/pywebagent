@@ -1,0 +1,40 @@
+# PRDCT-11935 at9-03 — the SQL rule NEGATIVES: non-collision with the sibling subscriptions, both directions
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# branch  · captured 2026-08-18T19:27:45Z
+#
+# The production byoc-events topic carries THREE existing subscriptions besides the new scanner one
+# (only-extension, only-extension-stats, only-sensor-events). A filter that matched everything would pass
+# the positive test and still be wrong, so the lab replica now carries the production rules verbatim:
+only-mcp-scanner   sys.Label LIKE '%source=mcp-scanner/%'
+to-ingestion       sys.Label LIKE '%source=extension/%'
+to-sensor-events   sys.Label LIKE '%source=sensor-events/%'
+
+# The two negative probes are REAL Event Grid deliveries, not hand-crafted messages: a blob was written
+# under each non-scanner source= prefix (source=extension/ and source=sensor-events/) in the same
+# container, so Event Grid raised BlobCreated, copied subject -> Label, and the topic's own rules decided
+# the routing. Probe id 1787081196.
+
+## DIRECTION 1 — a non-scanner Label is NOT routed to the scanner queue
+## Queue depths after both probes (the scanner queue took neither; its 1 dead-letter is the at3 poison):
+# queue counts at 2026-08-18T19:27:48.080206+00:00
+endpoint-asset-ingestion-prdct11935: active=0 dead_letter=1 scheduled=0 transfer_dlq=0 total=1
+ingestion-prdct11935: active=1 dead_letter=0 scheduled=0 transfer_dlq=0 total=1
+sensor-events-prdct11935: active=1 dead_letter=0 scheduled=0 transfer_dlq=0 total=1
+
+## Each probe landed on exactly its own lane's queue — peeked, showing the Label that routed it:
+# peeked 1 message(s) on ingestion-prdct11935 at 2026-08-18T19:27:50.135625+00:00
+ "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=extension/date=2026-08-18/1787081196-at9-negative.log",
+# peeked 1 message(s) on sensor-events-prdct11935 at 2026-08-18T19:27:51.834651+00:00
+ "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=sensor-events/date=2026-08-18/1787081196-at9-negative.log",
+
+## and the scanner-lane consumer never saw either probe (its live log mentions neither probe id, and it
+## recorded no wrong_source settlement — the broker filtered them out before delivery, which is the point):
+log lines mentioning probe 1787081196: 0
+wrong_source settlements on the scanner lane: 0
+
+## DIRECTION 2 — the mcp-scanner Label is NOT consumed by the sensor-events subscription
+## (the sensor-events queue's depth is unchanged by every mcp-scanner delivery this run has produced:
+##  it holds exactly its own probe, 1 message, while the scanner lane has handled 12 records)
+# peeked 1 message(s) on sensor-events-prdct11935 at 2026-08-18T19:27:53.721574+00:00
+ "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=sensor-events/date=2026-08-18/1787081196-at9-negative.log",

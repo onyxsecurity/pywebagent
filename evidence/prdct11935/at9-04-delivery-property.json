@@ -1,0 +1,65 @@
+# PRDCT-11935 at9-04 — the Event Grid subscription's delivery property: subject -> Service Bus Label
+# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# captured 2026-08-18T19:36:14Z · onyx branch 153d29c86a
+#
+# WHY IT MATTERS: every byoc-events subscription rule filters on sys.Label. Without this delivery
+# property the Label is empty, no rule matches, and every scanner object is silently never routed —
+# a renders-green dead path. So it is asserted on a REAL delivery, not read off the TF.
+
+## 1. The authored TF that creates it (infrastructure @ factory-eval-v32/PRDCT-11935,
+##    modules/azure/blob_events_to_servicebus/main.tf):
+      delivery_property {
+        header_name  = "Label"
+        type         = "Dynamic"
+        source_field = "subject"
+      }
+
+## 2. The live lab subscription built to that same shape (note destination.deliveryAttributeMappings):
+{
+ "destination": {
+  "deliveryAttributeMappings": [
+   {
+    "name": "Label",
+    "sourceField": "subject",
+    "type": "Dynamic"
+   }
+  ],
+  "endpointType": "ServiceBusTopic",
+  "resourceId": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/topics/byoc-events"
+ },
+ "eventDeliverySchema": "EventGridSchema",
+ "filter": {
+  "advancedFilters": null,
+  "enableAdvancedFilteringOnArrays": null,
+  "includedEventTypes": [
+   "Microsoft.Storage.BlobCreated"
+  ],
+  "isSubjectCaseSensitive": null,
+  "subjectBeginsWith": "",
+  "subjectEndsWith": ""
+ },
+ "name": "to-byoc-events"
+}
+
+## 3. A REAL delivery off that wiring, as received on the Service Bus queue — the Label carries the
+##    blob subject verbatim, which is what "sys.Label LIKE '%source=mcp-scanner/%'" matched:
+{
+ "message_id": "f752afad-bba6-4d5d-8f95-1202c09d162f",
+ "Label (sys.Label)": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071305-604bff7b-9e5b-4708-877f-a1423f2aa5c2.log",
+ "body.subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071305-604bff7b-9e5b-4708-877f-a1423f2aa5c2.log",
+ "body.eventType": "Microsoft.Storage.BlobCreated",
+ "aeg_properties": {
+  "aeg-subscription-name": "TO-BYOC-EVENTS",
+  "aeg-delivery-count": "0",
+  "aeg-data-version": "",
+  "aeg-metadata-version": "1",
+  "aeg-event-type": "Notification"
+ }
+}
+
+## 4. The same mechanism on the two negative probes, routed by the sibling rules by their own source=
+##    (read with the harness SAS reader, not the consumer identity — its Data Receiver role is scoped
+##    to the scanner queue alone, which is why it cannot read these):
+ "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=extension/date=2026-08-18/1787081196-at9-negative.log",
+ "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=sensor-events/date=2026-08-18/1787081196-at9-negative.log",

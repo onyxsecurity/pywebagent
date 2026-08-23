@@ -1,0 +1,60 @@
+# PRDCT-11935 at1-07 — CUTOVER GUARD: the old lane off, the new lane still lands the scan
+# FILE LAST WRITTEN 2026-08-21T10:08:29Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx branch 0665ecc545 · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r25 · pod eai-azure-5d8757d74d-l528g
+# captured 2026-08-20T21:45:02Z
+#
+# IMAGE PROVENANCE, STATED HONESTLY (round-28 correction). This capture ran on
+# :prdct11935-r25, which was built from `0665ecc545`. That is NOT the head that merges: `a2486bb33f`
+# is ONE commit ahead of it. The previous revision of this header claimed r25 was "proven byte-exact to
+# head" citing at6-12 — at6-12 establishes that :prdct11935-r26 is the head-exact image, not r25 — and at10-04, generated from
+# this very header, has been listing this row as "1 lane-touching commit(s) landed after it". That claim
+# is withdrawn and replaced by the measured delta:
+#     $ git diff --name-only 0665ecc545..a2486bb33f
+#       backend_python/src/common_core/services/queue/asb.py                       (the sender lock)
+#       backend_python/src/endpoint_asset_ingestion/ingestion/writers.py           (alert-publish metering)
+#       backend_python/tests/common_core/services/test_asb_sender_concurrency.py   (new test)
+#       backend_python/tests/endpoint_asset_ingestion/ingestion/test_session_alert_failure_is_metered.py (new test)
+#     4 files changed, 181 insertions(+), 4 deletions(-)
+# WHY THIS MEASUREMENT IS STILL SOUND ON r25: this leg asserts WHICH lane is running (gen-1 at zero replicas, the new writer consuming) and that the
+#   tenant keeps getting rows across a cutover. The delta adds a sender lock and a metric; it changes no
+#   row, no lane selection and no schedule.
+#
+# RE-DRIVEN THIS ROUND ON THE HEAD-EXACT IMAGE. The round-21 gate found this required_evidence item had
+# last been captured 2026-08-19T17:18Z on image :prdct11935-r5. This is a fresh drive on
+#
+# This is the footgun the ticket exists to close: an Azure tenant that follows the documented cutover
+# order (disable the old scheduled lane, enable the new one) must not end up with no writer at all.
+#
+# HOW THE OLD LANE IS OFF HERE: every deployment that could execute it is at ZERO REPLICAS with no pods —
+# stronger than pausing its schedule, because a schedule may keep firing while nothing can run it.
+
+=== 1. the old lane cannot execute (replica counts and the pods that do NOT exist)
+temporal-general-worker    0     <none>
+temporal-scanner-worker    0     <none>
+scanner-event-consumer     0     <none>
+endpoint-asset-ingestion   0     <none>
+    pods alive for those four deployments:
+      0  (0 = the old lane has no process anywhere in the cluster)
+    the NEW lane, still running, on the head-exact image:
+eai-azure   localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r25   1
+
+=== 2. a FRESH real scan through the product's own front door, with the old lane down
+    scanner_installations max id before: 326
+    SCAN START 2026-08-20T21:41:50Z
+    scanner exit=0
+    "scan_run_id": "416d2663-ea52-4291-8c8c-e51987ef6818"
+
+=== 3. the new lane LANDED it — the tenant's own receipt for that exact scan_run_id
+     id  |             scan_run_id              | total_agents | total_mcp_servers | total_skills |       scanned_at       |                                                                key                                                                 
+    -----+--------------------------------------+--------------+-------------------+--------------+------------------------+------------------------------------------------------------------------------------------------------------------------------------
+     328 | 416d2663-ea52-4291-8c8c-e51987ef6818 |            3 |                17 |          120 | 2026-08-20 21:42:49+00 | tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-20/1787262171-ce27e713-271c-4e97-a5c9-853a2a064356.log
+    (1 row)
+    
+
+=== 4. what this proves
+    With gen-1's two Temporal workers, the gen-2 scanner-event-consumer and the AWS-mode writer all at
+    zero pods, a real scan posted to Kong still reached the tenant DB — through Blob -> Event Grid ->
+    Service Bus -> the azure-mode writer alone. The object key on the row (source=mcp-scanner/...) is the
+    Azure path, and the scan_run_id matches the one the scanner printed, so the row cannot have come from
+    an earlier replay. On the frozen base this same cutover left the tenant with NO writer at all.

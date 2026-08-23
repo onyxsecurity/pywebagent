@@ -1,0 +1,7 @@
+## the 3 sanctioned substitutions (authored token -> live lab value):
+   connection_string: '${CONNECTION_STRING}'  ->  'BlobEndpoint=https://prdct11935st.blob.core.windows.net;SharedAccessSignature=<user-delegation SAS, racwl, +24h — minted by the authored generator procedure>'
+   container_name: '${CONTAINER_NAME}'  ->  'ingestion'
+   inputs: ['s3_depth_guard']  ->  ['extract_tenant_id']
+
+## normalized diff (empty = the live sink IS the authored render):
+   (empty — byte-identical after the 3 substitutions)
