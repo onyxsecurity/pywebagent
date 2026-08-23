@@ -1,0 +1,53 @@
+# PRDCT-11935 at11-04 — the AWS-lane base-vs-head tenant-DB diff: ZERO changed lines
+# FILE LAST WRITTEN 2026-08-23T13:41:30Z
+# captured 2026-08-23T13:41:30Z
+#
+# base leg  image localhost:5001/onyx/endpoint-asset-ingestion:r45-base  (merge-base c2a5bb6c58)
+#           digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:874808ba81fb440b5ca1cbf8d06853a7b2f0552fbca666dbd313dcd8c97bfd63
+#           tenant 11935f18-0000-4000-8000-000000000101  schema prdct11935_v18t1
+# head leg  image localhost:5001/onyx/endpoint-asset-ingestion:r45-head  (head ecf60f81c7)
+#           digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:e31cac11db8bada7a750b752cefa39af8c230e7b97c208b55555ba8aa1b6ef79
+#           tenant 11935f18-0000-4000-8000-000000000102  schema prdct11935_v18t2
+#
+# The dump is /tmp/prdct11935/lane-dump.sh — eleven queries over the whole ingestion-owned graph
+# (assets by class, every asset row's identity+state, mcp servers, mcp tools, skills, subagents,
+# usage sessions, scanner installations, asset connections, issue instances, dedup state). Row ids
+# and timestamps are excluded by construction: two independent runs cannot match those, and they
+# are not what 'same behaviour' means.
+
+=== settled state, both legs ===
+    base           13:27:35 queue_inflight=0  assets|conns|state = 342|338|21
+    head           13:40:30 queue_inflight=0  assets|conns|state = 342|338|21
+
+=== $ diff dump-base.txt dump-head.txt ===
+    (no output — the two dumps are byte-identical)
+
+    dump lines each : 1080
+    changed lines   : 0
+
+    sha256 base     : 035e7784c670886534138db3535f220f29e2ab559195388d074008411fa1e23d
+    sha256 head     : 035e7784c670886534138db3535f220f29e2ab559195388d074008411fa1e23d
+
+=== the same thing said in counts, so a reader does not have to trust the diff alone ===
+    leg|assets|mcp|skills|subagents|tools|conns|installs
+    base(v18t1)|342|21|260|57|0|338|1
+    head(v18t2)|342|21|260|57|0|338|1
+    (2 rows)
+
+=== VERDICT ===
+    The AWS lane, driven through its real front door with identical bytes, writes exactly the same
+    rows on the head image as on the frozen-base image. Combined with the diff audit (at11-01) and
+    the per-cell render diffs (at11-08), that is the evidence behind the PR body's claim that this
+    PR changes no behaviour on an AWS cell.
+
+=== HEAD-MOVE NOTE (appended 2026-08-23T13:50:09Z) ===
+    The images driven above were built from ecf60f81c7. The branch head then moved once, to
+    12461e0002f512cd1d89cac9509fedb9833b92eb, for a TEST-ONLY commit ("Pin the cloud in the aws-arm service tests").
+    That commit is not in the images and cannot be: the prod Dockerfile copies pyproject.toml,
+    uv.lock and ./src, and nothing else.
+      $ git diff --name-only ecf60f81c7..12461e0002f512cd1d89cac9509fedb9833b92eb
+        backend_python/tests/endpoint_asset_ingestion/test_service.py
+      $ git diff --stat ecf60f81c7..12461e0002f512cd1d89cac9509fedb9833b92eb -- backend_python/src backend_python/pyproject.toml \
+                          backend_python/uv.lock infra docs
+        (empty)
+    So every shipping byte these legs exercised is the head's shipping byte.
