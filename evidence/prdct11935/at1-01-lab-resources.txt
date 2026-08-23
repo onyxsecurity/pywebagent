@@ -1,32 +1,85 @@
-# PRDCT-11935 Azure lab replica (provisioned 2026-08-18T16:22:15Z) — sub b3f77526 (Agents Development), region eastus2
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# PRDCT-11935 at1-01 — the live Azure lab resources (az reads)
+# FILE LAST WRITTEN 2026-08-23T20:22:54Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T19:44:46Z
+#
+# RE-MEASURED THIS ROUND on the current shipped head. Every block below is the literal command and
+# its literal output; nothing is summarised or re-typed. No secret is read here (all reads are
+# control-plane metadata; no keys, connection strings or SAS tokens are requested or printed).
+#
+# The lane these resources form:
+#   Kong http://ingest-onyx:8080/mcp-scanner -> vector azure_blob sink
+#   -> Blob prdct11935st/ingestion
+#   -> Event Grid system topic prdct11935-blob-events (Microsoft.Storage.BlobCreated,
+#      delivery attribute mapping subject -> Label)
+#   -> Service Bus topic byoc-events
+#   -> subscription only-mcp-scanner  (sys.Label LIKE '%source=mcp-scanner/%')  forwardTo=
+#      queue endpoint-asset-ingestion-prdct11935
+#   -> deployment eai-azure (ns onyxd, container app) -> tenant DB.
+#
+# The two Event-Grid-side facts the plan names explicitly are both below, verbatim:
+#   · the delivery attribute mapping  {"name":"Label","sourceField":"subject","type":"Dynamic"}
+#     on event subscription to-byoc-events, and
+#   · the subscription forwardTo:     only-mcp-scanner -> endpoint-asset-ingestion-prdct11935.
+#
+# DISCLOSURE — the byoc-events topic carries MORE subscriptions than the lane's own. The full list is
+# printed below unfiltered. Of the 13, exactly ONE forwards into endpoint-asset-ingestion-prdct11935
+# (only-mcp-scanner); the rest are other lanes (to-ingestion / to-scanner-events /
+# to-mcp-gateway-events / to-sensor-events) or parked probe subscriptions left by earlier verifier
+# rounds (vr28-*, vr39a-*). None of them can double-deliver into this AT's queue. The competing-
+# consumer check for the QUEUE side is in at1-04.
+
+### az account show --query '{sub:id,name:name,tenant:tenantId,user:user.name}' -o json
+{
+  "name": "Agents Development",
+  "sub": "b3f77526-827b-4354-9166-bcbff86b9749",
+  "tenant": "533678d2-fb6f-4d33-a389-e4693a8ff450",
+  "user": "738c6745-c052-44d0-b269-e7658103466b"
+}
+
+### az group show -n prdct11935-rg --query id -o tsv
 /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg
+
+### az storage account show -n prdct11935st -g prdct11935-rg --query '{id:id,blobEndpoint:primaryEndpoints.blob,location:location}' -o json
 {
   "blobEndpoint": "https://prdct11935st.blob.core.windows.net/",
-  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st"
+  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st",
+  "location": "eastus2"
 }
+
+### az storage container list --account-name prdct11935st --auth-mode login --query '[].name' -o json
+[
+  "evidence",
+  "ingestion"
+]
+
+### az servicebus namespace show -n prdct11935bus -g prdct11935-rg --query '{id:id,endpoint:serviceBusEndpoint}' -o json
 {
   "endpoint": "https://prdct11935bus.servicebus.windows.net:443/",
   "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus"
 }
+
+### az servicebus topic show -n byoc-events --namespace-name prdct11935bus -g prdct11935-rg --query id -o tsv
 /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/topics/byoc-events
+
+### az servicebus queue show -n endpoint-asset-ingestion-prdct11935 --namespace-name prdct11935bus -g prdct11935-rg --query '{id:id,maxDeliveryCount:maxDeliveryCount,lockDuration:lockDuration,ttl:defaultMessageTimeToLive,dlqOnExpiry:deadLetteringOnMessageExpiration}' -o json
 {
+  "dlqOnExpiry": true,
   "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/endpoint-asset-ingestion-prdct11935",
-  "maxDeliveryCount": 5
+  "lockDuration": "PT5M",
+  "maxDeliveryCount": 5,
+  "ttl": "P14D"
 }
-{
-  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/scanner-events-prdct11935",
-  "maxDeliveryCount": 5
-}
-{
-  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/mcp-gateway-events-prdct11935",
-  "maxDeliveryCount": 5
-}
+
+### az servicebus topic subscription list --topic-name byoc-events --namespace-name prdct11935bus -g prdct11935-rg --query '[].{name:name,forwardTo:forwardTo}' -o json
 [
   {
     "forwardTo": "endpoint-asset-ingestion-prdct11935",
     "name": "only-mcp-scanner"
+  },
+  {
+    "forwardTo": "ingestion-prdct11935",
+    "name": "to-ingestion"
   },
   {
     "forwardTo": "mcp-gateway-events-prdct11935",
@@ -35,37 +88,67 @@
   {
     "forwardTo": "scanner-events-prdct11935",
     "name": "to-scanner-events"
-  }
-]
-rules(only-mcp-scanner):
-[
+  },
   {
-    "name": "mcp-scanner-rule",
-    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
-  }
-]
-rules(to-scanner-events):
-[
+    "forwardTo": "sensor-events-prdct11935",
+    "name": "to-sensor-events"
+  },
   {
-    "name": "mcp-scanner-rule",
-    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
-  }
-]
-rules(to-mcp-gateway-events):
-[
+    "forwardTo": "vr28-at2-eai",
+    "name": "vr28-at2"
+  },
   {
-    "name": "mcp-scanner-rule",
-    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+    "forwardTo": "vr28-flagoff-q",
+    "name": "vr28-flagoff"
+  },
+  {
+    "forwardTo": "vr28sub-g2r-mcpgw",
+    "name": "vr28sub-g2r-mcpgw"
+  },
+  {
+    "forwardTo": "vr28sub-g2r-scanner",
+    "name": "vr28sub-g2r-scanner"
+  },
+  {
+    "forwardTo": "vr28-tap",
+    "name": "vr28-tap"
+  },
+  {
+    "forwardTo": null,
+    "name": "vr28v-tap-all"
+  },
+  {
+    "forwardTo": null,
+    "name": "vr28v-tap-scanner"
+  },
+  {
+    "forwardTo": "vr39a-flagoff-q",
+    "name": "vr39a-flagoff"
   }
 ]
-/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.EventGrid/systemTopics/prdct11935-blob-events
+### az eventgrid system-topic show -n prdct11935-blob-events -g prdct11935-rg --query '{id:id,source:source,topicType:topicType,provisioningState:provisioningState}' -o json
 {
-  "deliveryMappings": null,
-  "destination": "ServiceBusTopic",
-  "filter": [
-    "Microsoft.Storage.BlobCreated"
-  ]
+  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.EventGrid/systemTopics/prdct11935-blob-events",
+  "provisioningState": "Succeeded",
+  "source": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st",
+  "topicType": "Microsoft.Storage.StorageAccounts"
 }
+
+### az eventgrid system-topic event-subscription list --system-topic-name prdct11935-blob-events -g prdct11935-rg --query '[].{name:name,provisioningState:provisioningState,eventTypes:filter.includedEventTypes,destinationType:destination.endpointType,destinationResourceId:destination.resourceId}' -o json
+[
+  {
+    "destinationResourceId": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/topics/byoc-events",
+    "destinationType": "ServiceBusTopic",
+    "eventTypes": [
+      "Microsoft.Storage.BlobCreated"
+    ],
+    "name": "to-byoc-events",
+    "provisioningState": "Succeeded"
+  }
+]
+
+### full destination (delivery attribute mapping) for each event subscription:
+--- event-subscription: to-byoc-events
 {
   "deliveryAttributeMappings": [
     {
@@ -77,3 +160,96 @@ rules(to-mcp-gateway-events):
   "endpointType": "ServiceBusTopic",
   "resourceId": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/topics/byoc-events"
 }
+
+### SQL rules + forwardTo on each byoc-events subscription:
+--- subscription: only-mcp-scanner   forwardTo=endpoint-asset-ingestion-prdct11935
+[
+  {
+    "name": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+--- subscription: to-ingestion   forwardTo=ingestion-prdct11935
+[
+  {
+    "name": "only-extension",
+    "sql": "sys.Label LIKE '%source=extension/%'"
+  }
+]
+--- subscription: to-mcp-gateway-events   forwardTo=mcp-gateway-events-prdct11935
+[
+  {
+    "name": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+--- subscription: to-scanner-events   forwardTo=scanner-events-prdct11935
+[
+  {
+    "name": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+--- subscription: to-sensor-events   forwardTo=sensor-events-prdct11935
+[
+  {
+    "name": "only-sensor-events",
+    "sql": "sys.Label LIKE '%source=sensor-events/%'"
+  }
+]
+--- subscription: vr28-at2   forwardTo=vr28-at2-eai
+[
+  {
+    "name": "only-t1",
+    "sql": "sys.Label LIKE '%tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/%'"
+  }
+]
+--- subscription: vr28-flagoff   forwardTo=vr28-flagoff-q
+[
+  {
+    "name": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+--- subscription: vr28sub-g2r-mcpgw   forwardTo=vr28sub-g2r-mcpgw
+[
+  {
+    "name": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+--- subscription: vr28sub-g2r-scanner   forwardTo=vr28sub-g2r-scanner
+[
+  {
+    "name": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+--- subscription: vr28-tap   forwardTo=vr28-tap
+[
+  {
+    "name": "mcp-scanner-rule",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+--- subscription: vr28v-tap-all   forwardTo=
+[
+  {
+    "name": "$Default",
+    "sql": "1=1"
+  }
+]
+--- subscription: vr28v-tap-scanner   forwardTo=
+[
+  {
+    "name": "only-mcp-scanner",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
+--- subscription: vr39a-flagoff   forwardTo=vr39a-flagoff-q
+[
+  {
+    "name": "only-mcp-scanner",
+    "sql": "sys.Label LIKE '%source=mcp-scanner/%'"
+  }
+]
