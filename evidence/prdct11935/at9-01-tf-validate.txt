@@ -1,40 +1,243 @@
 # PRDCT-11935 at9-01 — the terraform bar for the sibling change, RUN ON THIS BOX
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T19:46:06Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyxsecurity/infrastructure PR #1575 · branch factory-eval-v32/PRDCT-11935 @ 984444a4f076
-# onyx branch 257f4c7b3c · captured 2026-08-20T13:10:14Z
-# terraform v1.9.8
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T19:04:50Z
 #
-# RE-CAPTURED IN ROUND 20, because the previous version of this file did not contain the artifact
-# its required_evidence names. It carried a CI run list instead of fmt/validate output, and
-# justified the absence with 'this box has no cloud credentials for a provider init'. That claim
-# was false — `terraform init -backend=false` needs none — and the round-19 gate ran the bar
-# itself to prove it. Here it is, run rather than argued about.
+# RE-RUN THIS ROUND on the CURRENT heads, because the previous at9-01 was stamped on a superseded
+# onyx sha (257f4c7b3c) and a superseded infrastructure sha (984444a4f076). Nothing here is copied
+# from that capture; every command below was executed now and its literal output pasted.
+#
+# repos as measured:
+#   onyx            /home/coder/onyx            2b60fdc4df25188104e737e6311087681355eff8  (2026-08-23 17:11:02 +0000)
+#   infrastructure  /home/coder/infrastructure  da993d1ae2eb25c13626e02b7ce8f1d1269cdc7f  branch factory-eval-v32/PRDCT-11935
+#   flux-fleet      /home/coder/flux-fleet      a4493c1e5ac0545fdf7fcd2f349060288111c42c  branch factory-eval-v32/PRDCT-11935
+#   all three working trees CLEAN before and after this capture (`git status --porcelain` empty).
+#   terraform init writes only .terraform/ and .terraform.lock.hcl, both gitignored
+#   (infrastructure/.gitignore:1-2 `**/.terraform/*`, :41 `.terraform.lock.hcl`), so no repo file changed.
+#
+# $ terraform version
+Terraform v1.9.8
+on linux_amd64
 
-## $ terraform fmt -check -recursive   — every directory this branch changes
-    environments/production/cells/azure/east-us-2/c02/instances/centerpoint rc=0  CLEAN
-    environments/production/cells/azure/east-us-2/c02/instances/saas rc=0  CLEAN
-    modules/azure/blob_events_to_servicebus                    rc=0  CLEAN
-    modules/byoc/azure/data-plane                              rc=0  CLEAN
-    modules/onyx/cell-azure-instance                           rc=0  CLEAN
+=========================================================================================================
+## GATE 1 — terraform fmt -check -recursive, over every directory this branch authors
+=========================================================================================================
+$ cd /home/coder/infrastructure
+$ for d in environments/production/cells/azure/east-us-2/c02/instances/centerpoint \
+           environments/production/cells/azure/east-us-2/c02/instances/saas \
+           modules/azure/blob_events_to_servicebus \
+           modules/byoc/azure/data-plane \
+           modules/onyx/cell-azure-instance; do
+      terraform -chdir="$d" fmt -check -recursive; echo "rc=$?"
+  done
 
-## $ terraform init -backend=false && terraform validate
-    modules/azure/blob_events_to_servicebus                    rc=0  Success! The configuration is valid.
-    environments/production/cells/azure/east-us-2/c02/instances/saas rc=0  Warning: Argument is deprecated
-    environments/production/cells/azure/east-us-2/c02/instances/centerpoint rc=0  Warning: Argument is deprecated
+### $ terraform -chdir=environments/production/cells/azure/east-us-2/c02/instances/centerpoint fmt -check -recursive
+rc=0
+### $ terraform -chdir=environments/production/cells/azure/east-us-2/c02/instances/saas fmt -check -recursive
+rc=0
+### $ terraform -chdir=modules/azure/blob_events_to_servicebus fmt -check -recursive
+rc=0
+### $ terraform -chdir=modules/byoc/azure/data-plane fmt -check -recursive
+rc=0
+### $ terraform -chdir=modules/onyx/cell-azure-instance fmt -check -recursive
+rc=0
 
-## the ONE directory that cannot be validated standalone, with the reason terraform itself gives:
-    Error: missing provider provider["registry.terraform.io/hashicorp/aws"].shared_infra
-    modules/onyx/cell-azure-instance declares provider configuration_aliases its CALLER passes
-    (aws.shared_infra). A child module with aliases has no provider to resolve on its own, so it is
-    validated through the two instance roots above, which do pass it — not skipped.
+  (`fmt -check` prints the path of every file it would reformat and exits 3 if there is one. All five
+   printed NOTHING and exited 0 — that empty output IS the pass, not an omitted capture.)
 
-## $ terraform test   — the new module's own test suite
-      run "no_destination_creates_topic_only"... pass
-      run "rejects_a_subscription_with_no_destination"... pass
-      run "rejects_a_non_topic_resource_id"... pass
-      run "rejects_more_filter_values_than_event_grid_allows"... pass
-    tests/blob_events_to_servicebus.tftest.hcl... tearing down
-    tests/blob_events_to_servicebus.tftest.hcl... pass
-    
-    Success! 6 passed, 0 failed.
+  GATE 1 VERDICT: PASS — 5/5 directories clean, exit code 0 on each.
+
+=========================================================================================================
+## GATE 2 — terraform init -backend=false && terraform validate
+=========================================================================================================
+$ terraform -chdir=<dir> init -backend=false -no-color   (tail shown)
+$ terraform -chdir=<dir> validate -no-color
+
+--------------------------------------------------------------------------------------------------------
+### $ terraform -chdir=modules/azure/blob_events_to_servicebus init -backend=false
+- Reusing previous version of hashicorp/azurerm from the dependency lock file
+- Using previously-installed hashicorp/azurerm v4.81.0
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+init rc=0
+### $ terraform -chdir=modules/azure/blob_events_to_servicebus validate
+Success! The configuration is valid.
+
+validate rc=0
+
+--------------------------------------------------------------------------------------------------------
+### $ terraform -chdir=environments/production/cells/azure/east-us-2/c02/instances/saas init -backend=false
+- Using previously-installed hashicorp/aws v6.60.0
+- Using previously-installed hashicorp/kubernetes v2.38.0
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+init rc=0
+### $ terraform -chdir=environments/production/cells/azure/east-us-2/c02/instances/saas validate
+
+Warning: Argument is deprecated
+
+  with module.instance_saas.azurerm_cdn_frontdoor_custom_domain.app,
+  on ../../../../../../../../modules/onyx/cell-azure-instance/front_door_routes.tf line 31, in resource "azurerm_cdn_frontdoor_custom_domain" "app":
+  31:     minimum_tls_version = "TLS12"
+
+`minimum_tls_version` has been deprecated in favour of `minimum_version` and
+will be removed in v5.0 of the AzureRM provider
+
+(and 5 more similar warnings elsewhere)
+Success! The configuration is valid, but there were some validation warnings
+as shown above.
+
+validate rc=0
+
+--------------------------------------------------------------------------------------------------------
+### $ terraform -chdir=environments/production/cells/azure/east-us-2/c02/instances/centerpoint init -backend=false
+- Using previously-installed hashicorp/aws v6.60.0
+- Using previously-installed hashicorp/kubernetes v2.38.0
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+init rc=0
+### $ terraform -chdir=environments/production/cells/azure/east-us-2/c02/instances/centerpoint validate
+
+Warning: Argument is deprecated
+
+  with module.instance_centerpoint.azurerm_cdn_frontdoor_custom_domain.app,
+  on ../../../../../../../../modules/onyx/cell-azure-instance/front_door_routes.tf line 31, in resource "azurerm_cdn_frontdoor_custom_domain" "app":
+  31:     minimum_tls_version = "TLS12"
+
+`minimum_tls_version` has been deprecated in favour of `minimum_version` and
+will be removed in v5.0 of the AzureRM provider
+
+(and 5 more similar warnings elsewhere)
+Success! The configuration is valid, but there were some validation warnings
+as shown above.
+
+validate rc=0
+  (the deprecation warnings are pre-existing and are in front_door_routes.tf, untouched by this branch.)
+
+--------------------------------------------------------------------------------------------------------
+## the TWO directories that cannot be validated standalone, with the reason terraform itself gives.
+## Both are CHILD modules that declare `configuration_aliases`: a child module with provider aliases has
+## no provider to resolve on its own, so it is validated THROUGH its caller root — not skipped. The
+## previous at9-01 named only one of these because it did not run the other; both are run here.
+
+### $ terraform -chdir=modules/onyx/cell-azure-instance init -backend=false
+- Using previously-installed hashicorp/azurerm v4.81.0
+- Using previously-installed hashicorp/aws v6.60.0
+
+Terraform has been successfully initialized!
+init rc=0
+### $ terraform -chdir=modules/onyx/cell-azure-instance validate
+Error: missing provider provider["registry.terraform.io/hashicorp/aws"].shared_infra
+
+validate rc=1
+    -> the alias its CALLER passes (aws.shared_infra). Validated through the two instance roots above,
+       which both pass it and both return rc=0.
+
+### $ terraform -chdir=modules/byoc/azure/data-plane init -backend=false
+- Using previously-installed hashicorp/time v0.14.1
+- Using previously-installed hashicorp/azurerm v4.81.0
+
+Terraform has been successfully initialized!
+init rc=0
+### $ terraform -chdir=modules/byoc/azure/data-plane validate
+
+Error: Provider configuration not present
+
+To work with azurerm_key_vault_secret.postgresql_credentials its original
+provider configuration at
+provider["registry.terraform.io/hashicorp/azurerm"].control_plane is
+required, but it has been removed. This occurs when a provider configuration
+is removed while objects created by that provider still exist in the state.
+Re-add the provider configuration to destroy
+azurerm_key_vault_secret.postgresql_credentials, after which you can remove
+the provider configuration again.
+
+validate rc=1
+    -> same class, NOT a state artefact: there is no state file in that directory
+       ($ ls modules/byoc/azure/data-plane/*.tfstate* -> "No such file or directory").
+       The alias is declared in versions.tf:
+           configuration_aliases = [
+             azurerm,               # Customer (data plane) subscription
+             azurerm.control_plane, # Onyx subscription (for Key Vault secrets)
+           ]
+       and postgresql-secret.tf:6 sets `provider = azurerm.control_plane`. Validated through its
+       caller root instead:
+
+### $ terraform -chdir=environments/production/cells/azure/east-us-2/c02/data-planes/centerpoint init -backend=false
+init rc=0
+### $ terraform -chdir=environments/production/cells/azure/east-us-2/c02/data-planes/centerpoint validate
+
+Warning: Argument is deprecated
+
+  with module.data_plane.azurerm_key_vault.cmk,
+  on ../../../../../../../../modules/byoc/azure/data-plane/postgresql-cmk.tf line 60, in resource "azurerm_key_vault" "cmk":
+  60:   enable_rbac_authorization  = true
+
+This property has been renamed to `rbac_authorization_enabled` and will be
+removed in v5.0 of the provider
+
+(and one more similar warning elsewhere)
+Success! The configuration is valid, but there were some validation warnings
+as shown above.
+
+validate rc=0
+
+  GATE 2 VERDICT: PASS — every authored directory validates: 4 roots/modules directly (rc=0), and the
+  2 alias-bearing child modules through their caller roots (rc=0). The 2 standalone rc=1 results are the
+  documented `configuration_aliases` behaviour, shown above with terraform's own words rather than argued.
+
+=========================================================================================================
+## GATE 3 — terraform test, the new module's own test suite
+=========================================================================================================
+$ ls modules/azure/blob_events_to_servicebus/tests/
+blob_events_to_servicebus.tftest.hcl
+
+### $ terraform -chdir=modules/azure/blob_events_to_servicebus test
+tests/blob_events_to_servicebus.tftest.hcl... in progress
+  run "topic_destination_publishes_everything"... pass
+  run "topic_destination_narrowed_to_one_lane"... pass
+  run "no_destination_creates_topic_only"... pass
+  run "rejects_a_subscription_with_no_destination"... pass
+  run "rejects_a_non_topic_resource_id"... pass
+  run "rejects_more_filter_values_than_event_grid_allows"... pass
+tests/blob_events_to_servicebus.tftest.hcl... tearing down
+tests/blob_events_to_servicebus.tftest.hcl... pass
+
+Success! 6 passed, 0 failed.
+test rc=0
+
+  GATE 3 VERDICT: PASS — 6 passed, 0 failed, exit code 0.
+  (The previous at9-01 printed only 4 of the 6 run names above its own "6 passed" line — an incomplete
+   paste, not a different result. All six are listed here.)
+
+=========================================================================================================
+## SUMMARY ON THE CURRENT HEAD
+=========================================================================================================
+  fmt -check -recursive   PASS   5/5 directories clean, rc=0
+  init -backend=false     PASS   6/6 initialise, rc=0
+  validate                PASS   4 directly + 2 via caller roots, rc=0; 0 errors in authored config
+  terraform test          PASS   6 passed, 0 failed, rc=0
