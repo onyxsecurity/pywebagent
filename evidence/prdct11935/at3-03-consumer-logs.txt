@@ -1,46 +1,112 @@
-# PRDCT-11935 at3-03 — the consumer's own log lines and counter for the parked message
-# FILE LAST WRITTEN 2026-08-21T22:10:54Z
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-db9nv
-# captured 2026-08-21T21:47:19Z · tenant onyx_security
+# PRDCT-11935 at3-03 — the consumer's own log lines + the counters scraped from the pod that parked it, and the siblings' processed lines
+# FILE LAST WRITTEN 2026-08-23T21:42:39Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T21:41:25Z
 #
-# RE-DRIVEN ON THE ACTUAL HEAD (round-29 gate, G7a). The previous at3-01/02/03 were stamped
-# `onyx branch f4b3e9dfb2 · image :prdct11935-r24` — head~2 — while at3-03's line 6 claimed
-# "Re-captured on the FINAL head image". That sentence was false about its own capture, and the fix is a
-# re-drive rather than a re-stamp: these three now document a poison message sent, parked and read back
-# on a2486bb33f / :prdct11935-r26, the image the PR ships.
-#
-# AND THE SECOND CLAIM IS DROPPED, NOT REPAIRED. The old premise was "the DLQ was drained to empty before
-# the send, so nothing older can be mistaken for this run" — contradicted by at3-01's own line, which
-# printed `active=0 dead_letter=6` immediately after that drain. Draining the ACTIVE queue does not empty
-# the DEAD-LETTER sub-queue, and this run has since parked 95 messages there legitimately. So this capture
-# does not claim an empty DLQ. It identifies its own message two stronger ways instead: a unique marker id
-# carried INSIDE the body (r32-poison-214512), and the broker message_id the writer's own log
-# names as it parks it. Both are matched on the way back out.
+# RE-DRIVEN FROM SCRATCH ON THE CURRENT SHIPPED HEAD (2b60fdc4df) together with at3-01/02/04.
+# The counters below were scraped from the VERY POD that dead-lettered the message, while it was still
+# running — pod eai-azure-7c4f9bd78c-d8nnc, restartCount 0, started 2026-08-23T20:18:57Z, never rolled
+# during or after this window. A previous round lost these by rolling the pod first.
 
-=================== THE LOG LINES, verbatim from the shipping pod's stream ===================
-    2026-08-21T21:45:18.299357Z [warning  ] poison message — no ingestible object, dead-lettering [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=handle lineno=108 message_id=67b50
-    2026-08-21T21:45:18.299862Z [info     ] Dead-lettered message          [common_core.services.queue.asb] filename=asb.py func_name=dead_letter_message lineno=288 message_id=67b505b5-7a93-4efd-9d5c-21eaecc39aeb reason='no
+=================== 1. THE PARK, verbatim from the shipping pod's stream ===================
+    (ANSI colour stripped, run-lengths of spaces collapsed, trailing otel* fields trimmed; nothing else.)
+    2026-08-23T21:32:33.162883762Z 2026-08-23T21:32:33.162668Z [warning ] poison message — no ingestible object, dead-lettering [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=handle lineno=108 message_id=e9803f4a-42ee-4a49-a2ee-9b2d2e409e43 reason='no ingestible object in the message' span_id=e2c621bdc714fbd8 trace_flags=01 trace_id=cce9adabefc064500f8922e7a18d56dd
+    2026-08-23T21:32:33.163705283Z 2026-08-23T21:32:33.163400Z [info ] Dead-lettered message [common_core.services.queue.asb] filename=asb.py func_name=dead_letter_message lineno=251 message_id=e9803f4a-42ee-4a49-a2ee-9b2d2e409e43 reason='no ingestible object in the message' span_id=e2c621bdc714fbd8 trace_flags=01 trace_id=cce9adabefc064500f8922e7a18d56dd
 
-    Read the two call sites: `message_handler.py:108` decides the message names no ingestible object, and
-    `asb.py:288` performs the dead-letter against the broker. Same message_id in both, and the same id
-    at3-02 reads back out of the sub-queue.
+    Read the two call sites, both re-checked against THIS head:
+      message_handler.py:108   the handler decides the message names no ingestible object and logs it
+                               (the reason string is built one line up, :107)
+      asb.py:251               ASBQueueClient.dead_letter_message performs the park against the broker
+                               and logs it — same message_id, same reason
+    Same id in both lines, and the same id at3-02 reads back out of the sub-queue.
 
-=================== THE COUNTER ===================
-    The lane's poison family is `asset_ingestion_poison_messages_total{reason}` plus the unlabelled
-    `asset_ingestion_dead_letters_total`; the reason for this class is `no_ingestible_object`
-    (message_handler.py:109 -> :132). The queue-side delta measured in at3-01 (dead_letter 95 -> 96) is the
-    broker's own view of the same event.
+=================== 2. NO SILENT ACK, NO POISON LOOP — counted over the pod's WHOLE lifetime ===================
+    $ kubectl -n onyxd logs eai-azure-7c4f9bd78c-d8nnc -c app --timestamps | sed 's/ANSI//' > podfull.log
+    $ ID=e9803f4a-42ee-4a49-a2ee-9b2d2e409e43
+    $ for pat in "redelivered queue message" "Completed message" "Abandoned message for redelivery" \
+                 "Dead-lettered message" "poison message"; do
+        printf '%-38s %s\n' "$pat:" "$(grep -a "$ID" podfull.log | grep -ac "$pat")"; done
+    redelivered queue message:             0
+    Completed message:                     0
+    Abandoned message for redelivery:      0
+    Dead-lettered message:                 1
+    poison message:                        1
 
-=================== THE SIBLING'S PROCESSED LINE — this AT's second required half ===================
-    A poison park must not stall the lane, so a VALID payload was driven through the real front door in
-    the SAME window, on the same consumer: a fresh skill `at3sib-20260821214753` on disk, a real
-    onyx-scanner run POSTed to http://ingest-onyx:8080/mcp-scanner
-    (scan_run_id 97fe7126-7b22-499a-a1ec-cc52b362f628), landing as a real blob through real Event Grid.
-    The consumer settled it normally, minutes after parking the poison:
+    $ grep -a "$ID" podfull.log | grep -oE "^[0-9T:.Z-]+|\[(info|warning|error) *\] [A-Za-z —,-]*" | paste - -
+    2026-08-23T21:32:33.162883762Z	[warning  ] poison message — no ingestible object, dead-lettering
+    2026-08-23T21:32:33.163705283Z	[info     ] Dead-lettered message
 
-    2026-08-21T21:49:20.502292Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=61750f27-8fbd-42a
-    2026-08-21T21:49:20.502709Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.425474 
-    2026-08-21T21:49:20.503337Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=266 message_id=a682640a-a0fc-4764-a090-4bc34ec3bec4 span_id=a
+    TWO lines, 0.8 ms apart, and no others anywhere in the pod's stream. 0 redelivery lines and
+    0 "Completed message" lines for that id is exactly the pair at3's guard asks for: it was not acked
+    away, and it was not re-presented even once.
 
-    `outcome=processed` and `Completed message` — the poison park neither stalled the pool nor poisoned
-    the sibling. at3-04 carries the rows that sibling wrote.
+=================== 3. THE COUNTERS, from the pod that parked it, before it was rolled ===================
+    BEFORE the send (21:31Z) — the two poison series did not exist yet, which is how a Prometheus
+    counter with no observations presents:
+
+    $ kubectl -n onyxd exec eai-azure-7c4f9bd78c-d8nnc -c app -- \
+        sh -lc 'curl -s localhost:8007/metrics | grep -E "^asset_ingestion_(poison_messages|dead_letters|redeliveries|messages_received)_total"'
+    asset_ingestion_messages_received_total 27.0
+    asset_ingestion_redeliveries_total 3.0
+
+    AFTER the park (21:32:5xZ), same command, same pod:
+    asset_ingestion_messages_received_total 50.0
+    asset_ingestion_redeliveries_total 3.0
+    asset_ingestion_poison_messages_total{reason="no_ingestible_object"} 1.0
+    asset_ingestion_dead_letters_total 1.0
+
+    and again at the end of the window (21:36Z), after both sibling legs had run — still exactly one:
+    asset_ingestion_messages_received_total 74.0
+    asset_ingestion_redeliveries_total 3.0
+    asset_ingestion_poison_messages_total{reason="no_ingestible_object"} 1.0
+    asset_ingestion_dead_letters_total 1.0
+
+      asset_ingestion_poison_messages_total{reason="no_ingestible_object"}  0 (absent) → 1
+      asset_ingestion_dead_letters_total                                    0 (absent) → 1
+
+    The `reason` label is the one message_handler.py:109 passes (poison_reason="no_ingestible_object");
+    dead_letters is bumped at :135, i.e. only AFTER the broker accepted the park — so the two being equal
+    at 1 is the app's own statement that it parked one message and the park succeeded. The broker agrees:
+    dead_letter 120 → 121 (at3-01).
+
+=================== 4. THE SIBLINGS — this AT's second required half ===================
+    A poison park must not stall the lane, so VALID payloads were driven through the REAL front door in
+    the SAME window, on the SAME consumer — and one of the two legs rode entirely AFTER the park:
+
+      leg A  marker skill vr50-at3-20260823213124 created on disk, then
+             /tmp/onyx-scanner scan --verbose --endpoint http://ingest-onyx:8080/mcp-scanner --api-key <redacted>
+             scan_run_id d9ed8060-7137-4f99-b73b-d05d2a129584, payloads_sent 6, skills_total 263, exit 0
+             (21:31:33Z → 21:32:41Z — straddles the park at 21:32:33Z)
+      leg B  marker skill vr50-at3b-20260823213507 created on disk, same command
+             scan_run_id 15ef6234-df34-4149-a40c-dc23ccee004d, payloads_sent 6, skills_total 264, exit 0
+             (21:35:07Z → 21:36:16Z — begins 2.5 minutes AFTER the park, while the poison sits in the DLQ)
+
+    Kong → vector → lab Blob → real Event Grid → the same Service Bus queue → the same consumer. Their
+    settlement lines, in order (s3_key path middle elided for width):
+
+    2026-08-23T21:32:02.757123539Z 2026-08-23T21:32:02.756740Z [info ] ingested scanner object [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=152 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/…/1787520720-da706a2e-6838-4a2b-a91a-aff3e0e600cd.log'
+    2026-08-23T21:32:02.757326747Z 2026-08-23T21:32:02.757095Z [info ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.473372 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/…/
+    2026-08-23T21:32:02.758005423Z 2026-08-23T21:32:02.757739Z [info ] Completed message [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=b55fd6a2-79c7-4227-a1cc-cf3d5b3896a5
+    
+    2026-08-23T21:32:59.021671828Z 2026-08-23T21:32:59.021432Z [info ] ingested scanner object [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=152 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/…/1787520776-b2f09990-7cda-47fe-8eda-8a35672f2bd8.log'
+    2026-08-23T21:32:59.021917907Z 2026-08-23T21:32:59.021704Z [info ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.406853 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/…/
+    2026-08-23T21:32:59.022590643Z 2026-08-23T21:32:59.022400Z [info ] Completed message [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=71315f43-3db7-4afe-aaa7-bea68e8cc1bd
+    
+    2026-08-23T21:35:36.174101549Z 2026-08-23T21:35:36.173513Z [info ] ingested scanner object [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=152 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/…/1787520933-9129f107-44fa-49dc-a16c-c16d0b63f298.log'
+    2026-08-23T21:35:36.174284072Z 2026-08-23T21:35:36.173963Z [info ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.426811 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/…/
+    2026-08-23T21:35:36.176100632Z 2026-08-23T21:35:36.175361Z [info ] Completed message [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=44cf3686-0bbe-4679-b36f-543a36f4a905
+    
+    2026-08-23T21:36:35.102653568Z 2026-08-23T21:36:35.102369Z [info ] ingested scanner object [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=152 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/…/1787520992-ff7658cb-3fc8-4fb6-8717-0411d0a6629d.log'
+    2026-08-23T21:36:35.104579680Z 2026-08-23T21:36:35.102698Z [info ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.455118 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/…/
+    2026-08-23T21:36:35.104595494Z 2026-08-23T21:36:35.103370Z [info ] Completed message [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=8a3d436f-3642-4987-9509-44e21aebaee7
+    
+    Every one is `outcome=processed` followed by `Completed message` (asb.py:244) — the poison park
+    neither stalled the pool nor poisoned a sibling, and object_age_seconds stays under half a second
+    throughout. at3-04 carries the rows those siblings wrote.
+
+    $ python3 /tmp/prdct11935/r50/qprops.py       # end of window
+    queue=endpoint-asset-ingestion-prdct11935 lock_duration=0:05:00 max_delivery_count=5 requires_session=False
+      active=0 dead_letter=121 scheduled=0 total=121
+
+    active 0 — nothing left stuck; dead_letter still 121 — exactly the one message this window parked,
+    and the sibling traffic added none.
