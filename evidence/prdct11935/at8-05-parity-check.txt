@@ -1,20 +1,55 @@
-# PRDCT-11935 at8-05 — flux-fleet's own gates, re-run on the current branch head
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# PRDCT-11935 at8-05 — flux-fleet's own gates, re-run on the MERGED branch head
+# FILE LAST WRITTEN 2026-08-23T19:01:24Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx dfe23b9e83 · flux-fleet factory-eval-v32/PRDCT-11935 @ e3fc1646ab2b · captured 2026-08-20T05:52:19Z
+# onyx head a4493c1e5ac0545fdf7fcd2f349060288111c42c · flux-fleet factory-eval-v32/PRDCT-11935 @ a4493c1e5ac0 · captured 2026-08-23T19:00:29Z
 #
-# Header note: an earlier version of this file pasted the FLUX sha into its onyx field. The two are
-# named separately above and both are read from their own repo at write time.
+# The round-39 gate found flux-fleet#2307 OPEN with mergeable: CONFLICTING / mergeStateStatus: DIRTY
+# and approval-gate = failure, while it carries ticket deliverable C. The conflict is resolved (one
+# file, versions.yaml, on both instances — main bumped the cell's tags 1.1.874 -> 1.1.877 while this
+# branch added one more pinned key beside them; resolved by taking main's bump AND moving the new
+# endpoint-asset-ingestion pin to the same tag, because that key's own comment says
+# bump-flux-fleet.py only rewrites keys that ALREADY pin a tag — a new key that lands stale stays
+# stale). These are the repo's own gates re-run on the merged head.
 
-## $ make check
-  ✅ no duplicate YAML keys (853 files)
-    ✓ ox-az-p-eus2-c02 onyx-app cloud delta (per-tenant values come from ${…})
-    ✓ ox-az-p-eus2-c02 onyx-app AWS-only value removals
-  ✅ no stale path references
-  ✅ cell template matches clusters/ox-aws-p-use1-c04 (17 files, 1 reviewed delta(s))
-  ✅ make check passed (164 kustomizations built + schema-validated)
+=== every gate the repo ships, on this head ===
+    gate                         result
+    check_tenant_parity.py       EXIT=0   ✓ ox-az-p-eus2-c02 onyx-app AWS-only value removals
+    check_substitutions.py       EXIT=0   29 overlay(s) skipped (no postBuild.substituteFrom).
+    check_paths_exist.py         EXIT=0   ✅ no stale path references
+    check_duplicate_keys.py      EXIT=0   ✅ no duplicate YAML keys (858 files)
+    check_cell_template.py       EXIT=0   ✅ cell template matches clusters/ox-aws-p-use1-c04 (17 files, 2 reviewed delta(s))
+    check_docs.py                EXIT=0   docs OK — 0 warning(s).
+    find_orphans.py              EXIT=0   0 unreachable of 835 YAML files (21 intentional, hidden)
 
-## $ python3 scripts/check_tenant_parity.py
-    ✓ ox-az-p-eus2-c02 onyx-app cloud delta (per-tenant values come from ${…})
-    ✓ ox-az-p-eus2-c02 onyx-app AWS-only value removals
-  PARITY_EXIT=0
+=== check_tenant_parity.py in full — the gate that owns this change ===
+      ✓ ox-az-p-eus2-c02 onyx-app cloud delta (per-tenant values come from ${…})
+      ✓ ox-az-p-eus2-c02 onyx-app AWS-only value removals
+
+=== kustomize build, both Azure instances, on the merged head ===
+    saas         exit=0  3536 lines  endpoint-asset-ingestion refs=6  cloud: azure=7  image.tag=1.1.877
+    centerpoint  exit=0  3536 lines  endpoint-asset-ingestion refs=6  cloud: azure=7  image.tag=1.1.877
+=== the PR's live state after the merge ===
+    #2307 OPEN   mergeable=MERGEABLE   mergeStateStatus=BLOCKED   reviewDecision=REVIEW_REQUIRED
+    head=a4493c1e5ac0545fdf7fcd2f349060288111c42c
+    BEFORE this round it was: OPEN  mergeable=CONFLICTING  mergeStateStatus=DIRTY  approval-gate=failure
+
+    --- checks on that head (Actions runs API + commit status; the App token has no checks:read,
+        a standing instrument gap disclosed in env_setup.md §14) ---
+      success      Approval Policy
+      success      Docs Check
+      success      Helm Diff Preview
+      success      Kustomize Build
+      success      PR Title Validation
+      skipped      Topaz
+      success      Validate · pull_request · factory-eval-v32/PRDCT-11935
+      total workflow runs: 7 {'success': 6, 'skipped': 1}
+      combined status: failure  (1 context(s))
+        failure    approval-gate  Approval policy not satisfied — see run summary
+
+    Reading the approval-gate failure, because it is easy to misread as a broken check: the
+    "Approval Policy" WORKFLOW succeeded (all 11 steps green, run 32659600045) — its last step
+    "Publish approval-gate status" then published `failure` because the policy it evaluated found no
+    CODEOWNER approval on the PR yet. It is the human review gate expressing itself as a commit
+    status, the same thing onyx#12329's mergeStateStatus=BLOCKED says. It is not a failing test and
+    it is not something an author can clear by pushing code. What WAS an author's to clear — the
+    CONFLICTING/DIRTY state that made the PR unmergeable — is cleared.
