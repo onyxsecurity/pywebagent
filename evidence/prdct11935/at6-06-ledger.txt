@@ -1,11 +1,63 @@
+# PRDCT-11935 at6-06 — the closure table, the transport-divergence ledger, and the OWNER-ACCEPTED GAP
+# FILE LAST WRITTEN 2026-08-23T19:42:28Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T19:42:28Z
+#
+# ROUND-48 HEADER. Everything below the "=== HISTORICAL LEDGER" marker is the ledger as earlier rounds
+# built it, kept because its measurements are real. What changed is the FRAME: the round-45 owner ruling
+# made the gen-1-vs-new-writer half of C13 an OWNER-ACCEPTED GAP, so this file no longer claims parity.
+# The three sections below are this round's, measured on the shipped head.
+
+=== A. THE OWNER-ACCEPTED GAP, in the owner's own words ===
+    From owner_ruling_r45.ruling_verbatim, recorded verbatim in test_plan.json:
+
+      Then update the PR body: C13 is NO LONGER claimed as proven. State plainly that the new lane
+      diverges from gen-1 — it does not write seeded Claude connectors, does not derive mcpb
+      extension provenance, and does not stamp scanner_version — that this is out of scope for
+      this ticket, and that it is tracked separately. The owner will rule C13 as an accepted gap.
+      Do not re-add the parity fixes and do not open a separate PR for them yourself.
+
+    So this file makes NO claim that gen-1 parity holds and NO claim that C13 is proven. The gen-1 union
+    half of clause 1 is recorded, not executed. The five reverted capabilities are enumerated on the
+    tracker (PRDCT-12061, live fetch in evidence/at10-06-tracker-fetch.txt).
+
+=== B. THE TRANSPORT-DIVERGENCE LEDGER — the claim that DOES survive, re-measured on this head ===
+    One writer image, two transports, one payload. Per content class:
+
+      class            AWS lane (SQS/S3)      Azure lane (ASB/Blob)   diff        artifact
+      created          prdct11935_ta          prdct11935_tb           0 lines     at6-07
+      matched          prdct11935_ta          prdct11935_tb           0 lines     at6-04b
+      reingest-skip    prdct11935_ta          prdct11935_tb           0 lines     at6-04c
+
+    LOSSES IN THIS LEDGER: none. Not "none material" — the dumps are byte-identical, sha printed in each
+    artifact. Instrument note, because the previous round reported 43 changed lines here: gen-1 was
+    quiesced for the WHOLE three-class sequence rather than per-leg, and both tenants are now read inside
+    ONE repeatable-read snapshot after a measured quiet check. The 43 lines were 11 gen-1-created rows
+    plus two sequential dumps straddling a live write, not a transport difference.
+
+=== C. THE CLOSURE TABLE — every settlement class the single writer can reach ===
+      class                     status this round                                    where
+      processed (created)       DEMONSTRATED both transports, 0-diff                 at6-07
+      matched                   DEMONSTRATED both transports, 0-diff                 at6-04b
+      reingest-skip             DEMONSTRATED both transports, 0-diff                 at6-04c
+      skipped_unknown_tenant    DEMONSTRATED live, real Kong consumer, 0 rows        at6-05
+      skipped_flag_off          DEMONSTRATED live, real LD SDK, 0 rows               at6-05
+      parse_err                 DEMONSTRATED live, junk on the real queue, acked     at6-05
+      failed -> redelivered     DEMONSTRATED live, real DB fault + real abandon      at6-05
+      unparseable -> DLQ        cross-referenced, live $DeadLetterQueue receive      at3
+      wrong_source              PRE-DECLARED NOT-RUN + at9 SQL-rule negative guard   at6-05 / at9-03
+      poison-ack-fallback       PRE-DECLARED NOT-RUN (plan's own wording) + cite     at6-05
+    Nothing in this table is "assumed from code" except the two rows the plan itself pre-declares, and
+    both carry a call-site cite and a measured guard rather than a promise.
+
+=== HISTORICAL LEDGER (earlier rounds; read it with section A attached) ===
+
 # PRDCT-11935 at6-06 — DIVERGENCE LEDGER (with direction) and the CLOSURE TABLE
-# FILE LAST WRITTEN 2026-08-22T07:04:01Z
 #
 # ROUND-33 CITE REFRESH (S12, line-number-only). `activities.py:588-592` -> `mcp_asset_creation/activities.py:533` — `calculate_mcp_id` moved up within the same file; same function, same identity-collapse mechanism. Mirrored from the plan's
 # CORRECTION LOG under the orchestrator-authorized joint S1-S12 refresh (plan re-frozen at
 # sha256 7f26074e90cf643d...); the corrected line was re-read with sed at HEAD before this edit.
 # Nothing else in this file changed. Full mirror record: evidence/at10-07-stale-cite-refresh.txt.
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx branch 0665ecc545 · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r25
 #
 # IMAGE PROVENANCE, STATED HONESTLY (round-28 correction). This capture ran on
