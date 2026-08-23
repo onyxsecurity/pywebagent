@@ -1,0 +1,88 @@
+# PRDCT-11935 at10-06 — the follow-up trackers, fetched live AFTER being updated this round
+# FILE LAST WRITTEN 2026-08-23T18:51:29Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# captured 2026-08-23T18:51:29Z · onyx head 2b60fdc4df25188104e737e6311087681355eff8
+#
+# WHY THIS FILE EXISTS. The round-39 gate found the PR body's 'tracked separately' proven by nothing
+# but its own sentence: PRDCT-12061's live description and all its comments contained ZERO
+# occurrences of seeded / connector / mcpb / scanner_version / processed_with_failures /
+# agent_slices_dropped / _meter_session_alerts / InventoryWriteResult / failed_agent_slices. That was
+# correct. The tracker has now actually been updated, and this is the live fetch that shows it.
+
+=== WHAT WAS DONE, so this is not just a re-read of the same ticket ===
+    PRDCT-12061 — description APPENDED (PUT /api/v2/task/86bbhqxe8, 200) with a new section:
+      'ADDED 2026-08-23 — the round-45 owner ruling reverted five more gen-1 parity capabilities
+       out of onyx#12329; they land here'. It enumerates R-1 seeded Claude connectors, R-2 mcpb
+      extension provenance, R-3 the scanner_version stamp, R-4 the processed_with_failures /
+      agent_slices_dropped / failed_agent_slices observability split, R-5 _meter_session_alerts —
+      each with the file it was reverted from and what the product loses meanwhile — plus what
+      closing the ticket now has to cover. Nothing was removed; the L-2/L-3 body is untouched.
+    PRDCT-12070 — COMMENT posted (POST /api/v2/task/86bbj2pqn/comment, id 90140245894581) recording
+      that the round-46 ruling's deferred retry pacing lands on this ticket, quoting the owner
+      verbatim and naming the symbols onyx#12329 removed (redelivers_immediately,
+      _pace_immediate_redelivery) so whoever picks it up has the shape, not just the intent.
+
+=== THE LIVE FETCH, and the gate's own keyword scan re-run over it ===
+    Fetched 2026-08-23T18:51:29Z via the ClickUp v2 API — task description + EVERY comment concatenated, which is
+    exactly the corpus the round-39 gate scanned and found empty.
+
+    ====================================================================================================
+    PRDCT-12061  (86bbhqxe8)   https://app.clickup.com/t/86bbhqxe8
+      status       : eng: code review
+      updated      : 2026-08-23T18:50:23Z
+      description  : 8801 bytes
+      comments     : 6  (latest 2026-08-20T19:29:23Z)
+      --- the reverted-capability keyword scan the round-39 gate ran (description + ALL comments) ---
+          seeded                     2
+          connector                  3
+          mcpb                       4
+          scanner_version            6
+          processed_with_failures    1
+          agent_slices_dropped       1
+          _meter_session_alerts      1
+          InventoryWriteResult       1
+          failed_agent_slices        1
+      --- pacing keywords ---
+          backoff                    0
+          max_delivery_count         0
+          pacing                     0
+          redelivers_immediately     0
+          _pace_immediate_redelivery 0
+          DEFERRED, NOT DROPPED      0
+    ====================================================================================================
+    PRDCT-12070  (86bbj2pqn)   https://app.clickup.com/t/86bbj2pqn
+      status       : eng: code review
+      updated      : 2026-08-23T18:50:43Z
+      description  : 2767 bytes
+      comments     : 3  (latest 2026-08-21T12:33:55Z)
+      --- the reverted-capability keyword scan the round-39 gate ran (description + ALL comments) ---
+          seeded                     0
+          connector                  0
+          mcpb                       0
+          scanner_version            0
+          processed_with_failures    0
+          agent_slices_dropped       0
+          _meter_session_alerts      0
+          InventoryWriteResult       0
+          failed_agent_slices        0
+      --- pacing keywords ---
+          backoff                    5
+          max_delivery_count         5
+          pacing                     2
+          redelivers_immediately     1
+          _pace_immediate_redelivery 1
+          DEFERRED, NOT DROPPED      1
+
+=== READING THE NUMBERS ===
+    PRDCT-12061: all nine reverted-capability keywords went 0 -> non-zero. The gate's finding is
+    discharged by the tracker's content, not by a sentence in the PR.
+    PRDCT-12070: 'DEFERRED, NOT DROPPED' x1 (the owner's words, quoted), max_delivery_count x5,
+    backoff x5, and both removed symbol names present. The pacing follow-up is named, fetchable,
+    and describes the shape that was removed.
+
+=== WHY 12061 AND NOT A NEW TICKET ===
+    PRDCT-12061 already IS the 'gen-1 writes something the new writer does not, and it blocks gen-1
+    retirement' ticket — that is what L-2 and L-3 are. The five reverted capabilities are the same
+    class with the same blocking relationship (PRDCT-11935 footgun 4) and the same exposure clause
+    (a tenant cut over before it closes carries the loss). Filing a second ticket would split one
+    cutover prerequisite across two, and the cutover owner (PRDCT-9710) would have to find both.
