@@ -1,7 +1,7 @@
 # PRDCT-11935 at11-07 — the two gen-2 consumers in AWS mode, merge-base vs head, side by side
-# FILE LAST WRITTEN 2026-08-23T16:55:35Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T17:32:37Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 4ac8a3f538a9e036f981d2bcb8bc8398fb402303 · captured 2026-08-23T16:52:57Z
+# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T17:31:48Z
 #
 # WHY THIS LEG EXISTS. This PR deletes a dead Azure branch from scanner_event_consumer_service and
 # mcp_gateway_event_consumer_service and adds an assert_cloud_supported validator to both. Those two
@@ -12,7 +12,7 @@
 # The validator passing is not a log line to look for — it is a model_validator, so a pod that
 # reaches 'SQS client connected' has already passed it. Booting IS the assertion.
 #
-# ONE METHOD FIX, WORTH STATING. The first two attempts at this leg came out asymmetric (2/2 on one
+# ONE METHOD FIX, WORTH STATING. Two earlier attempts at this leg came out asymmetric (2/2 on one
 # image, 0 on the other) and the cause was the harness, not the code: a TERMINATING pod still polls
 # its queue, so a message driven right after a rollout can be eaten by the image not under
 # measurement. The leg now blocks until exactly one pod per consumer is alive, purges both queues,
@@ -20,11 +20,11 @@
 # why, rather than seeing only the run that agreed.
 
 ################################################################ LEG=base
-### SIBLING CONSUMERS, AWS mode, leg=base image tag=r45c-base   2026-08-23T16:43:16Z
+### SIBLING CONSUMERS, AWS mode, leg=base image tag=r45c-base   2026-08-23T17:18:53Z
 
 === scanner-event-consumer
 deployment "scanner-event-consumer" successfully rolled out
-  pod     : scanner-event-consumer-7f7ccb8bf9-ttwwm
+  pod     : scanner-event-consumer-7f7ccb8bf9-c9l5r
   image   : localhost:5001/onyx/scanner-event-consumer:r45c-base
   digest  : localhost:5001/onyx/scanner-event-consumer@sha256:22d4a28aefb32fa73fea17435fd267b1b812e2ad55cde41b33bafba46c26c108
   it BOOTED — which is itself the assert_cloud_supported check passing for cloud=aws
@@ -32,7 +32,7 @@ deployment "scanner-event-consumer" successfully rolled out
 
 === mcp-gateway-event-consumer
 deployment "mcp-gateway-event-consumer" successfully rolled out
-  pod     : mcp-gateway-event-consumer-7d7b79fd6-xf5h4
+  pod     : mcp-gateway-event-consumer-7d7b79fd6-gh9g7
   image   : localhost:5001/onyx/mcp-gateway-event-consumer:r45c-base
   digest  : localhost:5001/onyx/mcp-gateway-event-consumer@sha256:fb9831b4fd1e8f1105b510c290b402306f65ca5a8139738bba4b6669712fcee3
   it BOOTED — which is itself the assert_cloud_supported check passing for cloud=aws
@@ -40,69 +40,69 @@ deployment "mcp-gateway-event-consumer" successfully rolled out
 
 === drive ONE object through Kong; the bucket notification fans it to both gen-2 queues
   queues purged immediately before the drive, and only the new pods are running:
-  POST /mcp-scanner (5554-byte real scanner body) -> HTTP 200 at 2026-08-23T16:47:18Z
+  POST /mcp-scanner (5554-byte real scanner body) -> HTTP 200 at 2026-08-23T17:22:50Z
 
-  --- scanner-event-consumer (scanner-event-consumer-7f7ccb8bf9-ttwwm) consume log since the POST
-      [2m2026-08-23T16:47:35.719876Z[0m [[32m[1minfo     [0m] [1mscanner_event_received        [0m [[0m[1m[34mscanner_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name
-      [2m2026-08-23T16:47:35.752102Z[0m [[32m[1minfo     [0m] [1mscanner_event_received        [0m [[0m[1m[34mscanner_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name
-      [2m2026-08-23T16:47:36.105293Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
-      [2m2026-08-23T16:47:36.107177Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
+  --- scanner-event-consumer (scanner-event-consumer-7f7ccb8bf9-c9l5r) consume log since the POST
+      [2m2026-08-23T17:23:08.449761Z[0m [[32m[1minfo     [0m] [1mscanner_event_received        [0m [[0m[1m[34mscanner_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name
+      [2m2026-08-23T17:23:08.483367Z[0m [[32m[1minfo     [0m] [1mscanner_event_received        [0m [[0m[1m[34mscanner_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name
+      [2m2026-08-23T17:23:08.872546Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
+      [2m2026-08-23T17:23:08.874007Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
       restarts=0  ready=true
       errors in log: 0
 
-  --- mcp-gateway-event-consumer (mcp-gateway-event-consumer-7d7b79fd6-xf5h4) consume log since the POST
-      [2m2026-08-23T16:47:35.718646Z[0m [[33m[1mwarning  [0m] [1mskipping record: non-mcp-gateway source[0m [[0m[1m[34mmcp_gateway_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [
-      [2m2026-08-23T16:47:35.734129Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
-      [2m2026-08-23T16:47:35.741478Z[0m [[33m[1mwarning  [0m] [1mskipping record: non-mcp-gateway source[0m [[0m[1m[34mmcp_gateway_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [
-      [2m2026-08-23T16:47:35.752115Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
+  --- mcp-gateway-event-consumer (mcp-gateway-event-consumer-7d7b79fd6-gh9g7) consume log since the POST
+      [2m2026-08-23T17:23:08.443218Z[0m [[33m[1mwarning  [0m] [1mskipping record: non-mcp-gateway source[0m [[0m[1m[34mmcp_gateway_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [
+      [2m2026-08-23T17:23:08.455756Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
+      [2m2026-08-23T17:23:08.475875Z[0m [[33m[1mwarning  [0m] [1mskipping record: non-mcp-gateway source[0m [[0m[1m[34mmcp_gateway_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [
+      [2m2026-08-23T17:23:08.484191Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
       restarts=0  ready=true
       errors in log: 0
 
-### leg=base finished 2026-08-23T16:47:45Z
+### leg=base finished 2026-08-23T17:23:17Z
 
 ################################################################ LEG=head
-### SIBLING CONSUMERS, AWS mode, leg=head image tag=r45c-head   2026-08-23T16:47:45Z
+### SIBLING CONSUMERS, AWS mode, leg=head image tag=r46b-head   2026-08-23T17:23:17Z
 
 === scanner-event-consumer
 deployment "scanner-event-consumer" successfully rolled out
-  pod     : scanner-event-consumer-8cc757dbd-rj52c
-  image   : localhost:5001/onyx/scanner-event-consumer:r45c-head
-  digest  : localhost:5001/onyx/scanner-event-consumer@sha256:d4c6eeecfd784e8fca6bf5e43e614587692c5dc326d00a43488a0fd14663c3e1
+  pod     : scanner-event-consumer-86b55f7668-tm284
+  image   : localhost:5001/onyx/scanner-event-consumer:r46b-head
+  digest  : localhost:5001/onyx/scanner-event-consumer@sha256:c3ba592f5f24889d5f2591d36cbdf59920b5b965b9ea737725fad9e668bb6d5b
   it BOOTED — which is itself the assert_cloud_supported check passing for cloud=aws
   boot lines:
 
 === mcp-gateway-event-consumer
 deployment "mcp-gateway-event-consumer" successfully rolled out
-  pod     : mcp-gateway-event-consumer-5987b85fd9-h24rm
-  image   : localhost:5001/onyx/mcp-gateway-event-consumer:r45c-head
-  digest  : localhost:5001/onyx/mcp-gateway-event-consumer@sha256:175347b46593e21e19843ffc2e52eed32c7e2a3629d6a48cf72289c43c258aca
+  pod     : mcp-gateway-event-consumer-5b99574b45-jxtx4
+  image   : localhost:5001/onyx/mcp-gateway-event-consumer:r46b-head
+  digest  : localhost:5001/onyx/mcp-gateway-event-consumer@sha256:48b6a312f41b96cf135ba19586f379e0e582fc3fab560d2a5503e9f55f0fa1f3
   it BOOTED — which is itself the assert_cloud_supported check passing for cloud=aws
   boot lines:
 
 === drive ONE object through Kong; the bucket notification fans it to both gen-2 queues
   queues purged immediately before the drive, and only the new pods are running:
-  POST /mcp-scanner (5554-byte real scanner body) -> HTTP 200 at 2026-08-23T16:52:03Z
+  POST /mcp-scanner (5554-byte real scanner body) -> HTTP 200 at 2026-08-23T17:27:36Z
 
-  --- scanner-event-consumer (scanner-event-consumer-8cc757dbd-rj52c) consume log since the POST
-      [2m2026-08-23T16:52:21.388141Z[0m [[32m[1minfo     [0m] [1mscanner_event_received        [0m [[0m[1m[34mscanner_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name
-      [2m2026-08-23T16:52:21.420546Z[0m [[32m[1minfo     [0m] [1mscanner_event_received        [0m [[0m[1m[34mscanner_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name
-      [2m2026-08-23T16:52:21.810080Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
-      [2m2026-08-23T16:52:21.812394Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
+  --- scanner-event-consumer (scanner-event-consumer-86b55f7668-tm284) consume log since the POST
+      [2m2026-08-23T17:27:54.048122Z[0m [[32m[1minfo     [0m] [1mscanner_event_received        [0m [[0m[1m[34mscanner_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name
+      [2m2026-08-23T17:27:54.080532Z[0m [[32m[1minfo     [0m] [1mscanner_event_received        [0m [[0m[1m[34mscanner_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name
+      [2m2026-08-23T17:27:54.428744Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
+      [2m2026-08-23T17:27:54.430451Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
       restarts=0  ready=true
       errors in log: 0
 
-  --- mcp-gateway-event-consumer (mcp-gateway-event-consumer-5987b85fd9-h24rm) consume log since the POST
-      [2m2026-08-23T16:52:21.383320Z[0m [[33m[1mwarning  [0m] [1mskipping record: non-mcp-gateway source[0m [[0m[1m[34mmcp_gateway_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [
-      [2m2026-08-23T16:52:21.394366Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
-      [2m2026-08-23T16:52:21.421103Z[0m [[33m[1mwarning  [0m] [1mskipping record: non-mcp-gateway source[0m [[0m[1m[34mmcp_gateway_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [
-      [2m2026-08-23T16:52:21.428206Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
+  --- mcp-gateway-event-consumer (mcp-gateway-event-consumer-5b99574b45-jxtx4) consume log since the POST
+      [2m2026-08-23T17:27:54.045151Z[0m [[33m[1mwarning  [0m] [1mskipping record: non-mcp-gateway source[0m [[0m[1m[34mmcp_gateway_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [
+      [2m2026-08-23T17:27:54.055698Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
+      [2m2026-08-23T17:27:54.071003Z[0m [[33m[1mwarning  [0m] [1mskipping record: non-mcp-gateway source[0m [[0m[1m[34mmcp_gateway_event_consumer_service.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [
+      [2m2026-08-23T17:27:54.078846Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mli
       restarts=0  ready=true
       errors in log: 0
 
-### leg=head finished 2026-08-23T16:52:30Z
+### leg=head finished 2026-08-23T17:28:03Z
 
 === SIDE BY SIDE: the behaviour that matters, both images ===
-                                         MERGE BASE (r45c-base)         HEAD (r45c-head)
+                                         MERGE BASE (r45c-base)         HEAD (r46b-head)
     booted in AWS mode                   yes (SQS connected, pool up)   yes (SQS connected, pool up)
     scanner_event_received               2                              2
     gateway skipped non-gateway source   2                              2
