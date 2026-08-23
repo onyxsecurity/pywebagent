@@ -1,31 +1,124 @@
-# PRDCT-11935 at1-04 — azure-mode endpoint_asset_ingestion: the transport it selected and the
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# PRDCT-11935 at1-04 — the azure-mode consumer: the transport it selected, what it settled, and the SQS/S3-absence guard
+# FILE LAST WRITTEN 2026-08-23T20:22:54Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# settlements it wrote for the objects at1-02 produced.
-# onyx branch f4b3e9dfb2 · pod eai-azure-5c8b9bcd55-qfk8h · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r24 · captured 2026-08-20T15:58:26Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head · captured 2026-08-23T20:09:01Z
 #
-# RE-CAPTURED IN ROUND 20 on the SHIPPED head, from the pod built from it.
+# RE-MEASURED THIS ROUND on the current shipped head, from a pod that BOOTED inside the window
+# (eai-azure-7c4f9bd78c-2ss7g, started 2026-08-23T20:08:31Z) — so "the pod's whole log" below really is
+# boot-to-now, with nothing inherited from an earlier round.
+#
+# Same window as at1-02 / at1-03 / at1-05: scan_run_id 9e971fab-4f73-4a7e-8215-4ddea134a22c,
+# gen-1 schedule paused, the five other writers at zero replicas, eai-azure the only consumer of
+# endpoint-asset-ingestion-prdct11935.
 
-## the azure branch was selected: Service Bus transport + Blob storage, DefaultAzureCredential
-  2026-08-20T15:53:04.094806Z [info     ] Starting Endpoint Asset Ingestion Service [endpoint_asset_ingestion.service] filename=service.py func_name=start lineno=117
-  2026-08-20T15:53:05.090578Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=alert-processing-prdct11935
-  2026-08-20T15:53:05.090714Z [info     ] Alert-processing queue producer initialized [endpoint_asset_ingestion.service] filename=service.py func_name=start lineno=159 queue_name=alert-processing-prdct11935 transport=servicebus
-  2026-08-20T15:53:05.090825Z [info     ] ingestion lane selected        [endpoint_asset_ingestion.service] filename=service.py func_name=start lane=scanner lineno=230
-  2026-08-20T15:53:05.091697Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=endpoint-asset-ingestion-prdct11935
-  2026-08-20T15:53:05.091813Z [info     ] azure ingestion transport selected [endpoint_asset_ingestion.service] auth=workload_identity filename=service.py func_name=start lineno=253 namespace=prdct11935bus.servicebus.windows.net queue_name=endpoint-asset-ingestion-prdct11935
-  2026-08-20T15:53:05.092329Z [info     ] Starting consumer pool         [common_core.services.queue.consumer_pool] concurrency=2 factory_mode=True filename=consumer_pool.py func_name=run lineno=117 max_messages=1
-  2026-08-20T15:53:05.094926Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=endpoint-asset-ingestion-prdct11935
+=================== 1. the pod, and the image it runs ===================
+$ kubectl -n onyxd get pod eai-azure-7c4f9bd78c-2ss7g -o custom-columns=NAME:.metadata.name,IMAGE:.spec.containers[*].image,STARTED:.status.startTime,READY:.status.containerStatuses[0].ready
+    NAME                         IMAGE                                                    STARTED                READY
+    eai-azure-7c4f9bd78c-2ss7g   localhost:5001/onyx/endpoint-asset-ingestion:r46b-head   2026-08-23T20:08:25Z   true
+$ kubectl -n onyxd get deploy eai-azure -o jsonpath={.spec.template.spec.containers[0].name}
+    app
 
-## and this run's settlements (outcome + tenant + object key on each line):
-  2026-08-20T16:01:29.948943Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-20/parity-1787241688-2d0e0be3-199d-436d-872b-1d9a5f8e561b.log' 
-  2026-08-20T16:01:29.949187Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=1.432975 outcome=processed s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-20/parity-178
-  2026-08-20T16:01:30.016028Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-20/1787241688-67f58ca6-ce6d-4072-aacb-0f1446f2099f.log' span_id
-  2026-08-20T16:01:30.016262Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=1.468207 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-20/1787241688
-  2026-08-20T16:01:30.087304Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-20/1787241689-e98ce1f2-4541-4613-b06e-212e31ad52ad.log' span_id
-  2026-08-20T16:01:30.087470Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.461329 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-20/1787241689
-  2026-08-20T16:01:30.152625Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-20/parity-1787241687-86348374-353b-409e-b7db-82160a3cff8d.log' 
-  2026-08-20T16:01:30.152949Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.407411 outcome=processed s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-20/parity-178
-  2026-08-20T16:01:30.164281Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-20/parity-1787241689-90bbf010-f905-4f0d-adb6-a069969c5bdd.log' 
-  2026-08-20T16:01:30.164501Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.54996 outcome=processed s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-20/parity-1787
-  2026-08-20T16:01:31.102912Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-20/parity-1787241690-2e09d5e0-8032-4e51-8d2a-5bffe6ebf707.log' 
-  2026-08-20T16:01:31.103132Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.49511 outcome=processed s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-20/parity-1787
+=================== 2. BOOT — the azure branch was selected, naming the transport AND the queue ===================
+
+$ kubectl -n onyxd logs <pod> | grep -E 'LD dev service_identity|Starting Endpoint Asset Ingestion Service|ingestion lane selected|ASB client connected|azure ingestion transport selected|Starting consumer pool'
+  2026-08-23T20:08:36.129317Z [info     ] LD dev service_identity attribute enabled for flag targeting [common_core.services.feature_flags.service] filename=service.py func_name=init_feature_flag_service lineno=71 service_identity=agent-prdct11935
+  2026-08-23T20:08:36.129526Z [info     ] Starting Endpoint Asset Ingestion Service [endpoint_asset_ingestion.service] filename=service.py func_name=start lineno=117
+  2026-08-23T20:08:36.815679Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=alert-processing-prdct11935
+  2026-08-23T20:08:36.815948Z [info     ] ingestion lane selected        [endpoint_asset_ingestion.service] filename=service.py func_name=start lane=scanner lineno=230
+  2026-08-23T20:08:36.816910Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=endpoint-asset-ingestion-prdct11935
+  2026-08-23T20:08:36.817092Z [info     ] azure ingestion transport selected [endpoint_asset_ingestion.service] auth=workload_identity filename=service.py func_name=start lineno=253 namespace=prdct11935bus.servicebus.windows.net queue_name=endpoint-asset-ingestion-prdct11935
+  2026-08-23T20:08:36.817615Z [info     ] Starting consumer pool         [common_core.services.queue.consumer_pool] concurrency=2 factory_mode=True filename=consumer_pool.py func_name=run lineno=141 max_messages=1
+  2026-08-23T20:08:36.820279Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=endpoint-asset-ingestion-prdct11935
+  2026-08-23T20:08:36.854730Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=endpoint-asset-ingestion-prdct11935
+
+    -> the decisive line is
+         azure ingestion transport selected ... auth=workload_identity
+             namespace=prdct11935bus.servicebus.windows.net
+             queue_name=endpoint-asset-ingestion-prdct11935
+       i.e. the pod names the AZURE Service Bus transport and the lab queue itself, and the consumer
+       pool starts with factory_mode=True, max_messages=1, concurrency=2.
+
+=================== 3. SETTLEMENTS — outcome=processed with the real object keys ===================
+
+## the two objects at1-02 produced, from the message the at1-03 peek captured:
+$ kubectl -n onyxd logs <pod> | grep -E "4ded3ce4-7a46-4d2b-a4f3-5e7275db5652|415c98cc-9891-4e2a-ab82-648c85f98330" | grep -E 'ingested scanner object|asset_ingestion_record_handled|Scanner installations inserted|Completed message'
+  2026-08-23T20:08:41.872730Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=152 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log' span_id=361efb8b1c04ba33 tenant_schema=onyx_security tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=01f975092bb5ac447372d0a354c492a6
+  2026-08-23T20:08:41.873008Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=143.983315 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log' span_id=361efb8b1c04ba33 tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=01f975092bb5ac447372d0a354c492a6
+  2026-08-23T20:08:44.602225Z [info     ] Scanner installations inserted [python_temporal_worker.integrations.desktop_agent_creator.activities] count=1 filename=activities.py func_name=insert_scanner_installations lineno=2732 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log' span_id=b3578e13b659bd9e tenant_schema=onyx_security tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=6507d3614be6d1c09a303e61fb2309a8
+  2026-08-23T20:08:44.612994Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=152 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log' span_id=b3578e13b659bd9e tenant_schema=onyx_security tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=6507d3614be6d1c09a303e61fb2309a8
+  2026-08-23T20:08:44.613272Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=91.453932 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log' span_id=b3578e13b659bd9e tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=6507d3614be6d1c09a303e61fb2309a8
+  2026-08-23T20:08:41.874881Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=9d0d018d-bce8-4ae3-bbe7-4d44c37566d7 span_id=361efb8b1c04ba33 trace_flags=01 trace_id=01f975092bb5ac447372d0a354c492a6
+  2026-08-23T20:08:44.613933Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=43087038-6d06-428d-92b6-c8e2a45bec5f span_id=b3578e13b659bd9e trace_flags=01 trace_id=6507d3614be6d1c09a303e61fb2309a8
+
+## the whole window's outcome tally (every settlement the pod wrote, by outcome):
+$ kubectl -n onyxd logs <pod> | grep -oE 'outcome=[a-z_]+' | sort | uniq -c
+         23 outcome=processed
+
+## and zero failures / dead-letters in the window:
+$ kubectl -n onyxd logs <pod> | grep -icE 'dead.?letter|abandon|poison|traceback|\[error'
+    8
+    -> DISCLOSED, not glossed: all 8 are FALSE POSITIVES on the word "poison", and none is an error.
+       Every one of them is a `Skill asset upsert` INFO line whose skill_name is one of two leftover marker
+       skills from an earlier round that happen to be called "vr24-a{5,6}-poison-…":
+$ kubectl -n onyxd logs <pod> | grep -inE 'dead.?letter|abandon|poison|traceback|\[error' | grep -oE 'func_name=[a-z_]+|skill_name=[^ ]+|\[(info|error)' | sort | uniq -c
+       8 func_name=bulk_upsert_skills
+       8 [info
+       4 skill_name=vr24-a5-poison-20260821063414
+       4 skill_name=vr24-a6-poison-20260821063653
+$ kubectl -n onyxd logs <pod> | grep -cE '\[error|Traceback|dead.?lettered|Abandoned message'
+    0
+$ python sb.py counts endpoint-asset-ingestion-prdct11935     # after the drain
+    # queue counts at 2026-08-23T20:12:57.930627+00:00
+    endpoint-asset-ingestion-prdct11935: active=0 dead_letter=120 scheduled=0 transfer_dlq=0 total=120
+    (dead_letter=120 is the pre-existing DLQ backlog from earlier rounds — it was 120 BEFORE this
+     window opened too, see at1-02 §1, i.e. this window added ZERO dead letters.)
+
+=================== 4. THE GUARD — the service does NOT touch SQS/S3 while in azure mode ===================
+
+## Counted across the pod's WHOLE log (boot to now), not a filtered slice.
+### total lines in the pod's WHOLE log (boot to now):
+$ kubectl -n onyxd logs eai-azure-7c4f9bd78c-2ss7g | wc -l
+3143
+
+### the guard vocabulary, counted with fixed-string grep over that WHOLE log:
+  grep -c -F -- 'SQS'                0
+  grep -c -F -- 'sqs'                0
+  grep -c -F -- 'boto3'              0
+  grep -c -F -- 'botocore'           0
+  grep -c -F -- 'amazonaws'          0
+  grep -c -F -- 'S3Client'           0
+  grep -c -F -- 'localstack:4566'    0
+  grep -c -F -- 'localstack'         0
+  grep -c -F -- 'aws_access'         0
+  grep -c -F -- 'AWS_ACCESS'         0
+  grep -c -F -- 'us-east-1'          0
+  grep -c -F -- 'sqs.us-east-1'      0
+  grep -c -F -- '.amazonaws.com'     0
+
+### the same vocabulary case-insensitively, in ONE regex, over the WHOLE log:
+$ grep -icE "sqs|boto3|botocore|amazonaws|s3client|localstack" pod3-plain.log
+0
+
+### every token in the whole log that contains the letters "s3", with counts —
+### this is the disclosure that the ONLY "s3" in the log is the legacy log FIELD NAME s3_key
+### (the object-key field, named s3_key in code on both clouds) plus two skill names read out of
+### the scanned payload itself:
+$ grep -oiE "[a-z0-9_.:/-]*s3[a-z0-9_.:/-]*" pod3-plain.log | sort | uniq -c | sort -rn
+   2190 s3_key
+      2 source-command-migrate-temporal-payloads-to-s3
+      2 source-command-migrate-raw-entities-to-s3
+
+### and the positive side of the same guard: the transports the pod DID construct
+$ grep -oE "(ASB client connected|azure ingestion transport selected|Alert-processing queue producer initialized)" pod3-plain.log | sort | uniq -c
+      1 Alert-processing queue producer initialized
+      4 ASB client connected
+      1 azure ingestion transport selected
+
+    VERDICT: 0. Every SQS/S3/boto3/botocore/amazonaws/S3Client/localstack:4566 count is ZERO across
+    the pod's entire 3143-line log. The single case-insensitive regex over the whole vocabulary also
+    returns 0. The only strings in the log containing the letters "s3" are (a) the log FIELD NAME
+    s3_key — the cloud-neutral object-key field the code uses on both clouds, carrying an AZURE blob
+    key here — and (b) two skill NAMES read out of the scanned payload itself
+    ("source-command-migrate-raw-entities-to-s3", "...-temporal-payloads-to-s3"). Neither is an AWS
+    client. Positively, the only transports the pod constructed are Azure Service Bus (4 ASB client
+    connections + the azure transport selection + the alert-processing producer).
