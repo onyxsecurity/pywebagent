@@ -1,0 +1,77 @@
+# PRDCT-11935 at10-24 — onyx#12382, fetched live, because the PR body said something false about it
+# FILE LAST WRITTEN 2026-08-23T19:50:03Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# captured 2026-08-23T19:50:02Z · onyx head 2b60fdc4df25188104e737e6311087681355eff8
+#
+# The round-39 gate found three false statements in this PR's side-PR section: 'opened 2026-08-19,
+# untouched since', 'Size | 1 commit, 5 files, +74/-0', and — in bold — 'I did not close it and I did
+# not push to it'. The last one is the one that matters. Six commits had been pushed to that branch
+# that morning under this box's git identity. This file is the live fetch the corrected section is
+# written from, so the correction is checkable and not just another sentence.
+
+=== 1. THE PR, live ===
+$ gh pr view 12382 --repo onyxsecurity/onyx --json ...
+    number      : 12382
+    state       : OPEN
+    author      : maybo65
+    branch      : feat/dev-service-identity-autoinject
+    head        : b2c431e44c0f5488a21d028f94c5896c9985a802
+    created     : 2026-08-19T17:15:36Z
+    updated     : 2026-08-23T11:07:01Z
+    review      : CHANGES_REQUESTED
+    commits     : 7
+    files       : 9
+    +/-         : +238/-0
+
+=== 2. EVERY COMMIT, with its author and date — the heart of the correction ===
+$ gh api repos/onyxsecurity/onyx/pulls/12382/commits
+    2a53965d4a  2026-08-19T17:15:05Z  May Bohadana <may@onyx.security>
+                  PRDCT-11935 | dev: auto-inject per-caller service_identity so parallel agents stop colliding on LD flags
+    42c8ad61d3  2026-08-23T10:40:31Z  default <iddo.g@onyx.security>
+                  Merge remote-tracking branch 'origin/main' into fix/si-env
+    8e34c3e173  2026-08-23T10:44:34Z  default <iddo.g@onyx.security>
+                  Stamp the identity under the name each runtime actually binds
+    62044a38e6  2026-08-23T10:45:01Z  default <iddo.g@onyx.security>
+                  Merge remote-tracking branch 'origin/main' into fix/si-env
+    5345e62891  2026-08-23T10:51:56Z  default <iddo.g@onyx.security>
+                  Cover the ai-guard render path, and say only what the derivation guarantees
+    b2d2e2921e  2026-08-23T10:54:57Z  default <iddo.g@onyx.security>
+                  Strip each identity value before the fallback, and drop the ticket id from fixtures
+    b2c431e44c  2026-08-23T10:55:43Z  default <iddo.g@onyx.security>
+                  Merge remote-tracking branch 'origin/main' into fix/si-env
+
+    Six of the seven were authored by 'default <iddo.g@onyx.security>' on 2026-08-23 between
+    10:40:31Z and 10:55:43Z. That is this box's git identity — the same one that authored every
+    commit on factory-eval-v32/PRDCT-11935:
+$ git -C /home/coder/onyx log -1 --format='%an <%ae>' HEAD
+    default <iddo.g@onyx.security>
+
+=== 3. CURRENCY vs main ===
+$ gh api repos/onyxsecurity/onyx/compare/main...b2c431e44c0f5488a21d028f94c5896c9985a802
+    ahead_by=7  behind_by=26  status=diverged
+
+=== 4. THE FILE SET ===
+$ gh api repos/onyxsecurity/onyx/pulls/12382/files
+    m  +34/-0  .claude/skills/tilt-dev/SKILL.md
+    a  +29/-0  backend/internal/flags/service_identity_test.go
+    a  +40/-0  backend/service/proxy/service_identity_env_test.go
+    m  +19/-0  infra/coder/templates/coder-factory-env/main.tf
+    m  +19/-0  infra/coder/templates/coder-full-env/main.tf
+    m  +19/-0  infra/coder/templates/gsd-full-env/main.tf
+    m  +19/-0  infra/coder/templates/main-factory-env/main.tf
+    m  +22/-0  tilt/ai_guard.star
+    m  +37/-0  tilt/helm.star
+
+=== 5. REVIEW STATE ===
+    reviewDecision : CHANGES_REQUESTED
+    threads        : 10
+    unresolved     : 1
+
+=== 6. WHAT THIS RUN DID, stated plainly ===
+    Round 44 of this run was DIRECTED to fix the acknowledged High defect on that PR (the Go/Python
+    env-name split) and the uncovered ai-guard render path, bring the branch current, and re-request
+    review. It did. The work is defensible; the false sentence is not. The sentence was written in an
+    earlier round, the pushes happened in a later one, and nobody went back to correct it — so a
+    document asking reviewers for trust carried a claim its own author had already falsified.
+    It is corrected in the PR body, disclosed to the ticket owner on PRDCT-11935, and disclosed on
+    #12382 itself so its author reads it there and not only here.
