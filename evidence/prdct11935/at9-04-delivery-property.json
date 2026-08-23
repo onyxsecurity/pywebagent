@@ -1,54 +1,207 @@
 # PRDCT-11935 at9-04 — the Event Grid subscription's delivery property: subject -> Service Bus Label
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T19:48:47Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# captured 2026-08-18T19:36:14Z · onyx branch 153d29c86a
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T19:04:50Z
 #
 # WHY IT MATTERS: every byoc-events subscription rule filters on sys.Label. Without this delivery
 # property the Label is empty, no rule matches, and every scanner object is silently never routed —
-# a renders-green dead path. So it is asserted on a REAL delivery, not read off the TF.
+# a renders-green dead path. So it is asserted on the LIVE subscription and on REAL delivered
+# messages, not read off the TF.
+#
+# This round is READ-ONLY against Azure. Every `az` call below is a GET; the message reads are
+# azure-servicebus peek_messages, which does not lock, complete, abandon or delete anything.
 
-## 1. The authored TF that creates it (infrastructure @ factory-eval-v32/PRDCT-11935,
-##    modules/azure/blob_events_to_servicebus/main.tf):
-      delivery_property {
-        header_name  = "Label"
-        type         = "Dynamic"
-        source_field = "subject"
-      }
+=========================================================================================================
+## 1. THE AUTHORED TF THAT CREATES IT
+=========================================================================================================
+# infrastructure @ factory-eval-v32/PRDCT-11935 da993d1ae2eb25c13626e02b7ce8f1d1269cdc7f
+# $ sed -n '/Map Event Grid event subject/,/^  }$/p' modules/azure/blob_events_to_servicebus/main.tf
+  # Map Event Grid event subject to Service Bus message Label (sys.Label).
+  # Required for Service Bus SQL subscription filters using sys.Label to evaluate routing keys.
+  delivery_property {
+    header_name  = "Label"
+    type         = "Dynamic"
+    source_field = "subject"
+  }
 
-## 2. The live lab subscription built to that same shape (note destination.deliveryAttributeMappings):
+=========================================================================================================
+## 2. THE LIVE SUBSCRIPTION — deliveryAttributeMappings and its destination
+=========================================================================================================
+$ az eventgrid system-topic event-subscription list -g prdct11935-rg --system-topic-name prdct11935-blob-events -o json
+[
+  {
+    "deadLetterDestination": null,
+    "deadLetterWithResourceIdentity": null,
+    "deliveryWithResourceIdentity": null,
+    "destination": {
+      "deliveryAttributeMappings": [
+        {
+          "name": "Label",
+          "sourceField": "subject",
+          "type": "Dynamic"
+        }
+      ],
+      "endpointType": "ServiceBusTopic",
+      "resourceId": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/topics/byoc-events"
+    },
+    "eventDeliverySchema": "EventGridSchema",
+    "expirationTimeUtc": null,
+    "filter": {
+      "advancedFilters": null,
+      "enableAdvancedFilteringOnArrays": null,
+      "includedEventTypes": [
+        "Microsoft.Storage.BlobCreated"
+      ],
+      "isSubjectCaseSensitive": null,
+      "subjectBeginsWith": "",
+      "subjectEndsWith": ""
+    },
+    "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.EventGrid/systemTopics/prdct11935-blob-events/eventSubscriptions/to-byoc-events",
+    "labels": null,
+    "name": "to-byoc-events",
+    "provisioningState": "Succeeded",
+    "resourceGroup": "prdct11935-rg",
+    "retryPolicy": {
+      "eventTimeToLiveInMinutes": 1440,
+      "maxDeliveryAttempts": 30
+    },
+    "systemData": null,
+    "topic": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.EventGrid/systemTopics/prdct11935-blob-events",
+    "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions"
+  }
+]
+
+  EXPECTED deliveryAttributeMappings: {"name":"Label","sourceField":"subject","type":"Dynamic"}
+  MEASURED deliveryAttributeMappings: {"name":"Label","sourceField":"subject","type":"Dynamic"}
+  -> MATCH.
+
+  forwardTo / destination:
+    endpointType = "ServiceBusTopic"
+    resourceId   = .../namespaces/prdct11935bus/topics/byoc-events
+  -> the subscription delivers into the byoc-events TOPIC (not straight to a queue), which is the
+     shape the module authors: the topic's SQL-filter subscriptions do the per-lane fan-out.
+     ("forwardTo" is a Service Bus subscription property, not an Event Grid one; the Event Grid
+      equivalent is destination.resourceId, printed above. The Service Bus `forwardTo` for the
+      scanner lane is in at9-02 §2 / at9-03 §2: "endpoint-asset-ingestion-prdct11935".)
+
+  advancedFilters is null — the live subscription publishes ALL BlobCreated events onto the topic.
+  That matches the module default: subject_contains is empty unless a caller narrows it
+  (cell-azure-instance/event_grid.tf:37 `subject_contains = var.ingestion_event_grid_subject_contains`).
+
+=========================================================================================================
+## 3. THE SYSTEM TOPIC ITSELF — and the identity drift, re-measured
+=========================================================================================================
+$ az eventgrid system-topic list -g prdct11935-rg -o json
+[
+  {
+    "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.EventGrid/systemTopics/prdct11935-blob-events",
+    "identity": null,
+    "location": "eastus2",
+    "metricResourceId": "dae6e914-f4dc-48cf-b2b0-059f95161338",
+    "name": "prdct11935-blob-events",
+    "provisioningState": "Succeeded",
+    "resourceGroup": "prdct11935-rg",
+    "source": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st",
+    "systemData": null,
+    "tags": null,
+    "topicType": "Microsoft.Storage.StorageAccounts",
+    "type": "Microsoft.EventGrid/systemTopics"
+  },
+  {
+    "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.EventGrid/systemTopics/d19-blob-events",
+    "identity": {
+      "principalId": "371cddd4-7bbb-4a6c-8087-e33f714f6a55",
+      "tenantId": "533678d2-fb6f-4d33-a389-e4693a8ff450",
+      "type": "SystemAssigned",
+      "userAssignedIdentities": null
+    },
+    "location": "eastus2",
+    "metricResourceId": "c1abe359-a28a-4999-b2b7-e0085d2a80e4",
+    "name": "d19-blob-events",
+    "provisioningState": "Succeeded",
+    "resourceGroup": "prdct11935-rg",
+    "source": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/d19prdct11935st",
+    "systemData": null,
+    "tags": null,
+    "topicType": "Microsoft.Storage.StorageAccounts",
+    "type": "Microsoft.EventGrid/systemTopics"
+  }
+]
+
+  DRIFT D4 — STILL PRESENT. The authored module always attaches a system-assigned identity:
+        resource "azurerm_eventgrid_system_topic" "this" {
+          ...
+          identity {
+            type = "SystemAssigned"
+          }
+        }
+  and the lab's own topic `prdct11935-blob-events` reports  "identity": null.
+  (The second topic in the same RG, `d19-blob-events`, DOES carry a SystemAssigned identity — it was
+   built by a later round's harness that included one. That is what the terraform shape looks like
+   live, and it is shown here so the drift is a comparison rather than an assertion.)
+  Consequence in this lab: delivery to byoc-events is authorised by the namespace/SAS path rather than
+  by the topic's own managed identity holding Service Bus Data Sender. The routing semantics under
+  test — subject -> Label -> SQL filter — are unaffected, which §2 and §5 measure directly.
+
+=========================================================================================================
+## 4. THE DESTINATION QUEUE'S DELIVERY SEMANTICS, LIVE
+=========================================================================================================
+$ az servicebus queue show -g prdct11935-rg --namespace-name prdct11935bus -n endpoint-asset-ingestion-prdct11935 -o json
 {
- "destination": {
-  "deliveryAttributeMappings": [
-   {
-    "name": "Label",
-    "sourceField": "subject",
-    "type": "Dynamic"
-   }
-  ],
-  "endpointType": "ServiceBusTopic",
-  "resourceId": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/topics/byoc-events"
- },
- "eventDeliverySchema": "EventGridSchema",
- "filter": {
-  "advancedFilters": null,
-  "enableAdvancedFilteringOnArrays": null,
-  "includedEventTypes": [
-   "Microsoft.Storage.BlobCreated"
-  ],
-  "isSubjectCaseSensitive": null,
-  "subjectBeginsWith": "",
-  "subjectEndsWith": ""
- },
- "name": "to-byoc-events"
+  "accessedAt": "2026-08-23T18:58:47.7995565Z",
+  "autoDeleteOnIdle": "P10675199DT2H48M5.4775807S",
+  "countDetails": {
+    "activeMessageCount": 0,
+    "deadLetterMessageCount": 119,
+    "scheduledMessageCount": 0,
+    "transferDeadLetterMessageCount": 0,
+    "transferMessageCount": 0
+  },
+  "createdAt": "2026-08-18T16:19:42.2896757Z",
+  "deadLetteringOnMessageExpiration": true,
+  "defaultMessageTimeToLive": "P14D",
+  "duplicateDetectionHistoryTimeWindow": "PT10M",
+  "enableBatchedOperations": true,
+  "enableExpress": false,
+  "enablePartitioning": false,
+  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/endpoint-asset-ingestion-prdct11935",
+  "location": "eastus2",
+  "lockDuration": "PT5M",
+  "maxDeliveryCount": 5,
+  "maxMessageSizeInKilobytes": 256,
+  "maxSizeInMegabytes": 1024,
+  "messageCount": 119,
+  "name": "endpoint-asset-ingestion-prdct11935",
+  "requiresDuplicateDetection": false,
+  "requiresSession": false,
+  "resourceGroup": "prdct11935-rg",
+  "sizeInBytes": 227812,
+  "status": "Active",
+  "type": "Microsoft.ServiceBus/namespaces/queues",
+  "updatedAt": "2026-08-22T06:40:09.143374Z"
 }
 
-## 3. A REAL delivery off that wiring, as received on the Service Bus queue — the Label carries the
-##    blob subject verbatim, which is what "sys.Label LIKE '%source=mcp-scanner/%'" matched:
+  THE FOUR VALUES THE ROUND ASKED FOR, against the authored terraform
+  (modules/onyx/cell-azure-instance/service_bus.tf:285-296):
+      property                              authored     live     verdict
+      lock_duration                         "PT5M"       PT5M     MATCH
+      max_delivery_count                    5            5        MATCH  (was 10-vs-3 drift last round; now aligned)
+      dead_lettering_on_message_expiration  true         true     MATCH  (was false-vs-true drift last round; now aligned)
+      default_message_ttl                   "P14D"       P14D     MATCH
+      live $DeadLetterQueue message count   —            119      (countDetails.deadLetterMessageCount)
+
+  The subscription-level counterparts of the last two DO still drift — see at9-03 §D2/§D3.
+
+=========================================================================================================
+## 5. A REAL DELIVERY OFF THAT WIRING — the Label carries the blob subject verbatim
+=========================================================================================================
+# $ /tmp/at9venv/bin/python /tmp/at9_scan.py    (peek_messages; non-destructive)
 {
- "message_id": "f752afad-bba6-4d5d-8f95-1202c09d162f",
- "Label (sys.Label)": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071305-604bff7b-9e5b-4708-877f-a1423f2aa5c2.log",
- "body.subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/1787071305-604bff7b-9e5b-4708-877f-a1423f2aa5c2.log",
+ "message_id": "d2eb7c7e-8595-4af1-8da8-3aa18affd8cf",
+ "Label (sys.Label)": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-20/vr21n1787258058-POS.log",
+ "body.subject": "/blobServices/default/containers/ingestion/blobs/tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-20/vr21n1787258058-POS.log",
  "body.eventType": "Microsoft.Storage.BlobCreated",
+ "delivery_count": 0,
  "aeg_properties": {
   "aeg-subscription-name": "TO-BYOC-EVENTS",
   "aeg-delivery-count": "0",
@@ -57,9 +210,38 @@
   "aeg-event-type": "Notification"
  }
 }
+  Label == body.subject, character for character. `aeg-subscription-name: TO-BYOC-EVENTS` is Event
+  Grid's own stamp identifying the subscription in §2 as the deliverer.
 
-## 4. The same mechanism on the two negative probes, routed by the sibling rules by their own source=
-##    (read with the harness SAS reader, not the consumer identity — its Data Receiver role is scoped
-##    to the scanner queue alone, which is why it cannot read these):
- "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=extension/date=2026-08-18/1787081196-at9-negative.log",
- "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=sensor-events/date=2026-08-18/1787081196-at9-negative.log",
+## the same mechanism on the two sibling lanes, routed by their own source= segment
+##   (from the at9-03 cross-tab; 14/14 and 13/13 respectively)
+   ingestion-prdct11935      14 message(s), 14 with a Label segment source=extension
+   sensor-events-prdct11935  13 message(s), 13 with a Label segment source=sensor-events
+
+## and the delivery property proving itself on the dead-letter path — a message that exhausted the
+## queue's max_delivery_count, showing the live value being ENFORCED rather than merely configured:
+{
+ "message_id": "8e73d875180b41a3b6b46b8c0f2caba5",
+ "Label (sys.Label)": null,
+ "body.subject": "/blobServices/default/containers/ingestion",
+ "body.eventType": "Microsoft.Storage.BlobCreated",
+ "delivery_count": 5,
+ "dead_letter_reason": "MaxDeliveryCountExceeded",
+ "dead_letter_error_description": "Message could not be consumed after 5 delivery attempts.",
+ "application_properties": {
+  "DeadLetterReason": "MaxDeliveryCountExceeded",
+  "DeadLetterErrorDescription": "Message could not be consumed after 5 delivery attempts."
+ }
+}
+  "after 5 delivery attempts" — the broker's own words, confirming maxDeliveryCount=5 is live and
+  enforced, not just a control-plane field.
+
+=========================================================================================================
+## VERDICT
+=========================================================================================================
+  DELIVERY PROPERTY: PASS. deliveryAttributeMappings == {"name":"Label","sourceField":"subject",
+  "type":"Dynamic"}, destination == ServiceBusTopic byoc-events, and a real delivered message shows
+  Label == subject verbatim.
+  QUEUE SEMANTICS: lockDuration PT5M / maxDeliveryCount 5 / dlqOnExpiry true all MATCH the authored TF;
+  live $DeadLetterQueue depth 119.
+  DRIFT D4 (system topic identity: null) still present, measured above.
