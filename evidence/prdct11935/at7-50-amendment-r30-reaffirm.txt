@@ -1,0 +1,57 @@
+# PRDCT-11935 at7-50 — amendment_r30's posture re-affirm, RE-MEASURED on the shipped head
+# FILE LAST WRITTEN 2026-08-23T19:34:28Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T19:34:28Z
+#
+# WHY THIS FILE EXISTS. The round-39 gate reported that amendment_r30's 'measured re-affirm
+# (updated_at advanced past the removal)' DID NOT REPRODUCE, citing issue_instances 4815/4816
+# frozen at 2026-08-23 18:01:18.894813 across a second scan, and routed it for re-adjudication.
+# It reproduces. The rows the gate measured are a DIFFERENT class from the ones the amendment is
+# about, and that is the whole explanation.
+
+=== 1. THE TWO ROW SETS ARE NOT THE SAME THING ===
+    id | issue | asset_type | asset
+    1637 | skill-hardcoded-secrets | AssetTypeSkill | vr27u-posture-20260821132553
+    1638 | skill-insecure-credential-handling | AssetTypeSkill | vr27u-posture-20260821132553
+    1639 | skill-dangerous-capability | AssetTypeSkill | vr27u-posture-20260821132553
+    4815 | mcp-server-not-monitored | AssetTypeMCP | R39E AT7 SIBLING MCP r39e-20260823175937
+    4816 | mcp-server-not-monitored | AssetTypeMCP | R39E AT7 SUBJECT MCP r39e-20260823175937
+    (5 rows)
+
+    1637/1638/1639 are the amendment's own subject: skill-* posture issues on the SKILL asset
+    vr27u-posture-20260821132553, whose source file was deleted from the box — the 'deleted source
+    re-affirmed Open' behaviour amendment_r30 adjudicates, and the same rows evidence/
+    r30-genone-reaffirm.txt measured in round 30.
+    4815/4816 are mcp-server-not-monitored issues on MCP SERVER assets the round-39 gate created
+    for its own at7 run. Different issue definition, different asset class, different producer.
+    Measuring those and concluding the amendment does not reproduce is a category error, not a
+    behaviour change.
+
+=== 2. THE PREMISE STILL HOLDS: the source really is gone from the box ===
+    $ ls -d ~/.claude/skills/vr27u-posture-20260821132553
+      ls: cannot access '/home/coder/.claude/skills/vr27u-posture-20260821132553': No such file or directory
+
+=== 3. BEFORE — the three rows, snapshotted before the scan ===
+    1637 | skill-hardcoded-secrets | IssueInstanceResolveStateOpen | 2026-08-23 18:41:57.755583+00 | NULL
+    1638 | skill-insecure-credential-handling | IssueInstanceResolveStateOpen | 2026-08-23 18:41:57.755583+00 | NULL
+    1639 | skill-dangerous-capability | IssueInstanceResolveStateOpen | 2026-08-23 18:41:57.755583+00 | NULL
+
+=== 4. ONE REAL SCAN through the real front door, gen-1 running (its normal state) ===
+    2026-08-23T19:31:29.268159781Z	INFO	Scan run completed	{"payloads_sent": 6, "users": 1, "agents_detected_total": 4, "mcp_servers_total": 10, "projects_total": 2, "skills_total": 261, "duration_ms": 84090, "scan_run_id": "96f5352d-1289-43b9-9165-be6f0f6797c7"}
+    gen-1 workers at scan time: temporal-general-worker=1/1 temporal-scanner-worker=1/1 
+
+=== 5. AFTER ===
+    1637 | skill-hardcoded-secrets | IssueInstanceResolveStateOpen | 2026-08-23 19:32:35.193981+00 | NULL
+    1638 | skill-insecure-credential-handling | IssueInstanceResolveStateOpen | 2026-08-23 19:32:35.193981+00 | NULL
+    1639 | skill-dangerous-capability | IssueInstanceResolveStateOpen | 2026-08-23 19:32:35.193981+00 | NULL
+
+=== 6. THE VERDICT ===
+    updated_at advanced 2026-08-23 18:41:57.755583 -> 2026-08-23 19:32:35.193981 on all three rows.
+    resolve_state is still IssueInstanceResolveStateOpen and closed_at is still NULL — which is
+    the point of the amendment: the pipeline does not merely freeze these rows, it ACTIVELY
+    RE-AFFIRMS them Open on every scan of the owning agent, even though the skill file that
+    produced them no longer exists. amendment_r30's measured premise reproduces on the shipped
+    head. No re-adjudication is required, and none is requested.
+
+    The user-visible defect that premise describes is unchanged and remains ticketed on its own
+    (PRDCT-12071 / 86bbj56qh), out of this transport-enablement ticket's scope.
