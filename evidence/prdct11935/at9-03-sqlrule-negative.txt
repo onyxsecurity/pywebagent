@@ -1,40 +1,150 @@
 # PRDCT-11935 at9-03 — the SQL rule NEGATIVES: non-collision with the sibling subscriptions, both directions
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-23T19:46:06Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# branch  · captured 2026-08-18T19:27:45Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T19:04:50Z
 #
-# The production byoc-events topic carries THREE existing subscriptions besides the new scanner one
-# (only-extension, only-extension-stats, only-sensor-events). A filter that matched everything would pass
-# the positive test and still be wrong, so the lab replica now carries the production rules verbatim:
-only-mcp-scanner   sys.Label LIKE '%source=mcp-scanner/%'
-to-ingestion       sys.Label LIKE '%source=extension/%'
-to-sensor-events   sys.Label LIKE '%source=sensor-events/%'
+# SCOPE OF THIS RE-RUN. Read-only against Azure. The previous at9-03 wrote two probe blobs (under
+# source=extension/ and source=sensor-events/) to raise fresh Event Grid deliveries. Writing a blob is
+# a create, so those probes are NOT re-driven here. Instead the same two directions are re-measured off
+# the broker's own resident traffic with non-destructive peeks, plus the live rule set that decides the
+# routing. Nothing is substituted or carried over from the earlier capture.
 
-# The two negative probes are REAL Event Grid deliveries, not hand-crafted messages: a blob was written
-# under each non-scanner source= prefix (source=extension/ and source=sensor-events/) in the same
-# container, so Event Grid raised BlobCreated, copied subject -> Label, and the topic's own rules decided
-# the routing. Probe id 1787081196.
+=========================================================================================================
+## 1. THE FULL RULE SET ON byoc-events, LIVE
+=========================================================================================================
+$ for s in only-mcp-scanner to-ingestion to-sensor-events to-scanner-events to-mcp-gateway-events; do
+    az servicebus topic subscription rule list -g prdct11935-rg --namespace-name prdct11935bus \
+      --topic-name byoc-events --subscription-name "$s" \
+      --query "[].{subscription:'$s', rule:name, sql:sqlFilter.sqlExpression, filterType:filterType}" -o json
+  done
 
+[
+  { "filterType": "SqlFilter", "rule": "mcp-scanner-rule",   "sql": "sys.Label LIKE '%source=mcp-scanner/%'",   "subscription": "only-mcp-scanner" }
+]
+[
+  { "filterType": "SqlFilter", "rule": "only-extension",     "sql": "sys.Label LIKE '%source=extension/%'",     "subscription": "to-ingestion" }
+]
+[
+  { "filterType": "SqlFilter", "rule": "only-sensor-events", "sql": "sys.Label LIKE '%source=sensor-events/%'", "subscription": "to-sensor-events" }
+]
+[
+  { "filterType": "SqlFilter", "rule": "mcp-scanner-rule",   "sql": "sys.Label LIKE '%source=mcp-scanner/%'",   "subscription": "to-scanner-events" }
+]
+[
+  { "filterType": "SqlFilter", "rule": "mcp-scanner-rule",   "sql": "sys.Label LIKE '%source=mcp-scanner/%'",   "subscription": "to-mcp-gateway-events" }
+]
+
+  NEW OBSERVATION THIS ROUND, RECORDED RATHER THAN GLOSSED: two of the lab's subscriptions —
+  `to-scanner-events` and `to-mcp-gateway-events` — carry the SAME `source=mcp-scanner` filter as the
+  scanner lane, so in the lab an mcp-scanner blob now fans out to THREE queues. Neither of those two
+  subscriptions exists in the authored terraform:
+      $ grep -rn "to-scanner-events\|to-mcp-gateway-events" --include=*.tf /home/coder/infrastructure
+      (no output)
+  They are residue from later verifier rounds. They do NOT weaken the disjointness the ticket needs —
+  the three AUTHORED filters (mcp-scanner / extension / sensor-events) key on different `source=`
+  segments and a blob path carries exactly one — but a reader looking at the live namespace would see
+  duplicate scanner consumers, so it is stated here.
+
+=========================================================================================================
+## 2. WHERE EVERY SUBSCRIPTION FORWARDS
+=========================================================================================================
+$ az servicebus topic subscription list -g prdct11935-rg --namespace-name prdct11935bus --topic-name byoc-events \
+    --query "[].{name:name, forwardTo:forwardTo, maxDeliveryCount:maxDeliveryCount, dlqOnExpiry:deadLetteringOnMessageExpiration, ttl:defaultMessageTimeToLive, lockDuration:lockDuration}" -o json
+[
+  { "dlqOnExpiry": false, "forwardTo": "endpoint-asset-ingestion-prdct11935", "lockDuration": "PT1M", "maxDeliveryCount": 10, "name": "only-mcp-scanner",      "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": "ingestion-prdct11935",                "lockDuration": "PT1M", "maxDeliveryCount": 3,  "name": "to-ingestion",           "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": "mcp-gateway-events-prdct11935",       "lockDuration": "PT1M", "maxDeliveryCount": 10, "name": "to-mcp-gateway-events",  "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": "scanner-events-prdct11935",           "lockDuration": "PT1M", "maxDeliveryCount": 10, "name": "to-scanner-events",      "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": "sensor-events-prdct11935",            "lockDuration": "PT1M", "maxDeliveryCount": 3,  "name": "to-sensor-events",       "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": "vr28-at2-eai",                        "lockDuration": "PT1M", "maxDeliveryCount": 5,  "name": "vr28-at2",               "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": "vr28-flagoff-q",                      "lockDuration": "PT1M", "maxDeliveryCount": 10, "name": "vr28-flagoff",           "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": "vr28sub-g2r-mcpgw",                   "lockDuration": "PT1M", "maxDeliveryCount": 10, "name": "vr28sub-g2r-mcpgw",      "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": "vr28sub-g2r-scanner",                 "lockDuration": "PT1M", "maxDeliveryCount": 10, "name": "vr28sub-g2r-scanner",    "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": "vr28-tap",                            "lockDuration": "PT1M", "maxDeliveryCount": 10, "name": "vr28-tap",               "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": null,                                  "lockDuration": "PT1M", "maxDeliveryCount": 10, "name": "vr28v-tap-all",          "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": null,                                  "lockDuration": "PT1M", "maxDeliveryCount": 10, "name": "vr28v-tap-scanner",      "ttl": "P10675199DT2H48M5.4775807S" },
+  { "dlqOnExpiry": false, "forwardTo": "vr39a-flagoff-q",                     "lockDuration": "PT1M", "maxDeliveryCount": 5,  "name": "vr39a-flagoff",          "ttl": "P10675199DT2H48M5.4775807S" }
+]
+  (the 8 `vr*` rows are verifier residue from earlier rounds, not authored terraform.)
+
+=========================================================================================================
 ## DIRECTION 1 — a non-scanner Label is NOT routed to the scanner queue
-## Queue depths after both probes (the scanner queue took neither; its 1 dead-letter is the at3 poison):
-# queue counts at 2026-08-18T19:27:48.080206+00:00
-endpoint-asset-ingestion-prdct11935: active=0 dead_letter=1 scheduled=0 transfer_dlq=0 total=1
-ingestion-prdct11935: active=1 dead_letter=0 scheduled=0 transfer_dlq=0 total=1
-sensor-events-prdct11935: active=1 dead_letter=0 scheduled=0 transfer_dlq=0 total=1
+=========================================================================================================
+# $ /tmp/at9venv/bin/python /tmp/at9_xtab.py   (peek_messages — non-destructive)
+# cross-tab captured 2026-08-23T19:01:40.189492+00:00
 
-## Each probe landed on exactly its own lane's queue — peeked, showing the Label that routed it:
-# peeked 1 message(s) on ingestion-prdct11935 at 2026-08-18T19:27:50.135625+00:00
- "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=extension/date=2026-08-18/1787081196-at9-negative.log",
-# peeked 1 message(s) on sensor-events-prdct11935 at 2026-08-18T19:27:51.834651+00:00
- "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=sensor-events/date=2026-08-18/1787081196-at9-negative.log",
+## endpoint-asset-ingestion-prdct11935: 0 message(s) peeked
+   Labels carrying source=extension/      : 0
+   Labels carrying source=sensor-events/  : 0
+   Labels carrying source=mcp-scanner/    : 0
 
-## and the scanner-lane consumer never saw either probe (its live log mentions neither probe id, and it
-## recorded no wrong_source settlement — the broker filtered them out before delivery, which is the point):
-log lines mentioning probe 1787081196: 0
-wrong_source settlements on the scanner lane: 0
+## endpoint-asset-ingestion-prdct11935/$DeadLetterQueue: 119 message(s) peeked
+      23  source-segment=(no source= segment in Label)       aeg-subscription-name=(none — not Event-Grid-delivered; injected directly onto the queue by a harness)
+       3  source-segment=source=mcp-scanner                  aeg-subscription-name=(none — not Event-Grid-delivered; injected directly onto the queue by a harness)
+      93  source-segment=source=mcp-scanner                  aeg-subscription-name=TO-BYOC-EVENTS
+   Labels carrying source=extension/      : 0
+   Labels carrying source=sensor-events/  : 0
+   Labels carrying source=mcp-scanner/    : 96
 
-## DIRECTION 2 — the mcp-scanner Label is NOT consumed by the sensor-events subscription
-## (the sensor-events queue's depth is unchanged by every mcp-scanner delivery this run has produced:
-##  it holds exactly its own probe, 1 message, while the scanner lane has handled 12 records)
-# peeked 1 message(s) on sensor-events-prdct11935 at 2026-08-18T19:27:53.721574+00:00
- "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=sensor-events/date=2026-08-18/1787081196-at9-negative.log",
+  DIRECTION 1 RESULT: across every message the scanner lane holds — 119 on the dead-letter sub-queue,
+  0 active — the count of Labels carrying `source=extension/` is 0 and the count carrying
+  `source=sensor-events/` is 0. The broker never routed a sibling lane's blob here.
+
+=========================================================================================================
+## DIRECTION 2 — the mcp-scanner Label is NOT consumed by the sibling subscriptions
+=========================================================================================================
+## ingestion-prdct11935: 14 message(s) peeked
+      14  source=extension
+   Labels carrying source=mcp-scanner/    : 0
+
+## sensor-events-prdct11935: 13 message(s) peeked
+      13  source=sensor-events
+   Labels carrying source=mcp-scanner/    : 0
+
+  DIRECTION 2 RESULT: the extension lane's queue holds 14 messages and 14/14 carry `source=extension`;
+  the sensor lane's queue holds 13 and 13/13 carry `source=sensor-events`. Neither holds a single
+  mcp-scanner Label. The two authored sibling rules did not pick up the scanner lane's traffic.
+
+=========================================================================================================
+## THE DRIFT LEDGER — the three deviations the previous round recorded, EACH RE-MEASURED
+=========================================================================================================
+## D1 — subscription/rule NAMING.  STILL PRESENT.
+     authored (service_bus.tf:332-348)   subscription "to-endpoint-asset-ingestion", rule "only-mcp-scanner"
+     live                                subscription "only-mcp-scanner",            rule "mcp-scanner-rule"
+     measured above in §1/§2. Filter text and forward target are identical; only the two names differ.
+
+## D2 — maxDeliveryCount 10-vs-3.  STILL PRESENT ON THE SUBSCRIPTION; NOT PRESENT ON THE QUEUE.
+     This is where the previous round's single number was too coarse. There are TWO
+     maxDeliveryCounts on this lane and they now behave differently:
+       SUBSCRIPTION only-mcp-scanner : authored 3   (service_bus.tf:336 `max_delivery_count = 3`)
+                                       live     10  (§2 above)                      -> DRIFT, still 10-vs-3
+       QUEUE endpoint-asset-ingestion: authored 5   (service_bus.tf:293 `max_delivery_count = 5`)
+                                       live     5   (at9-04 §4)                     -> NO DRIFT, now matches
+     The queue value was the one that mattered and it is now aligned; the subscription value is a
+     forwarding hop and still differs.
+
+## D3 — deadLetteringOnMessageExpiration false-vs-true.  STILL PRESENT ON THE SUBSCRIPTION;
+##      NOT PRESENT ON THE QUEUE.
+       SUBSCRIPTION only-mcp-scanner : authored true  (service_bus.tf:338)
+                                       live     false (§2 above, "dlqOnExpiry": false) -> DRIFT, still holds
+       QUEUE endpoint-asset-ingestion: authored true  (service_bus.tf:294)
+                                       live     true  (at9-04 §4)                      -> NO DRIFT, now matches
+     Same split as D2: the queue is aligned, the subscription is not. Both drifting subscription
+     properties are consistent with the lab subscription having been hand-created with `az` defaults
+     (Azure's own defaults are maxDeliveryCount 10 and dlqOnExpiry false) rather than applied from
+     the terraform.
+
+## D4 — the Event Grid system topic's `identity: null`.  STILL PRESENT.  Measured in at9-04 §3.
+
+## D5 — NEW THIS ROUND: duplicate scanner subscriptions `to-scanner-events` and
+##      `to-mcp-gateway-events` on the same topic carrying the identical mcp-scanner filter.
+##      Lab residue, absent from the authored terraform (grep in §1 returns nothing).
+
+=========================================================================================================
+## VERDICT
+=========================================================================================================
+  NEGATIVE (both directions): PASS on the current head.
+    · 0 non-scanner Labels on the scanner lane, out of 119 resident messages
+    · 0 mcp-scanner Labels on the two authored sibling lanes, out of 27 resident messages
+  NOT RE-DRIVEN THIS ROUND (stated, not substituted): fresh source=extension/ and source=sensor-events/
+  probe blobs. Writing a blob is a create, and this round is read-only.
