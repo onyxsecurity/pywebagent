@@ -1,0 +1,96 @@
+# PRDCT-11935 at10-07 — the round-46 body statements, the named pacing tracker, and the ADR number
+# FILE LAST WRITTEN 2026-08-23T19:04:01Z
+# captured 2026-08-23T19:04:01Z · onyx head 2b60fdc4df25188104e737e6311087681355eff8
+#
+# Four things, each measured rather than asserted: (1) the two round-46 statements quoted out of the
+# LIVE body bytes, (2) a live fetch of the pacing tracker the body now names, (3) the live
+# origin/main ADR listing at audit time, (4) the pre-merge re-check instruction the body carries.
+
+=== 1. THE TWO ROUND-46 STATEMENTS, grepped from the live body ===
+  [PRESENT] (a) the abandon/pool work dropped as superseded by main
+        the sibling consumers' dead-Azure-branch deletion plus `assert_cloud_supported`, the helm ASB stanzas,
+        `azure-storage-blob`, the ADR (now 0069), the monitoring doc, and their tests.
+        
+        **The queue-layer abandon/pool work was DROPPED from this PR as superseded by `main`** (owner ruling #2,
+        round 46). `main` landed its own `abandon_message` while this branch was open — the same hazard, solved the
+        same way — and the owner ruled: drop yours, do not merge the two designs. So `client.py`, `sqs.py` and
+        `consumer_pool.py` are **byte-identical to `origin/main` and out of this diff entirely**, and `asb.py`
+        keeps only `_system_properties`, which `main` does not have.
+        
+        *The trap in that merge is real and was checked, not assumed:* `asb.py` and `client.py` merge **cleanly**
+        and each ends up with **two** `abandon_message` definitions; Python takes the last, so `main`'s `-> None`
+        silently wins and any caller reading a bool gets `None` — always falsy — with the tests still green. Both
+
+  [PRESENT] (b) retry pacing deferred, and its tracker NAMED
+        [`at11-09`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-09-r46-queue-supersession.txt).
+        
+        **Three things this PR therefore no longer ships, all tracked as follow-ups.** *Retry pacing on Service
+        Bus* — deferred, not dropped, and tracked on **[PRDCT-12070](https://app.clickup.com/t/86bbj2pqn)**
+        (*"Durable retry for the Azure scanner-ingestion lane: a dependency outage permanently dead-letters real
+        objects (max_delivery 5 × 5s backoff exhausts the budget in ~25s)"*), which already carried exactly this
+        scope from a live outage observed on the lab lane. Without pacing a dependency outage cycles receive →
+        fail → abandon at full speed and burns the queue's `max_delivery_count` on work that was never bad; the
+        ticket now also records what this PR removed, so whoever picks it up has the shape and not just the intent
+        ([`at10-07`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-07-r46-body-and-adr.txt)
+
+=== 2. THE NAMED PACING TRACKER, fetched live ===
+    PRDCT-12070  https://app.clickup.com/t/86bbj2pqn   status=eng: code review  updated=2026-08-23T18:50:43Z
+    title: Durable retry for the Azure scanner-ingestion lane: a dependency outage permanently dead-letters real objects (max_delivery 5 × 5s backoff exhausts the budget in ~25s)
+
+    --- the backoff-on-immediate-redelivery scope, quoted from the live description ---
+      max_delivery_count = 5 on the Service Bus queue — infrastructure/modules/onyx/cell-azure-instance/service_bus.tf:199 (live queue confirms maxDeliveryCount: 5, lockDuration: PT5M).
+      The consumer pool waits error_backoff_seconds (default 5) between attempts — backend_python/src/endpoint_asset_ingestion/config.py:80 and backend_python/src/common_core/services/queue/consumer_pool.py:160-162,1
+      5 deliveries × ~5s ≈ 25 seconds. Any dependency outage longer than about half a minute exhausts the whole budget and parks the object permanently.
+      An exponential/jittered backoff rather than a flat 5s, so the same 5 deliveries span minutes rather than seconds;
+      and/or a larger max_delivery_count paired with a longer lock_duration;
+
+    --- the round-46 comment this run posted, which records what onyx#12329 removed ---
+      comment id 90140245894581  by Coder Agent  2026-08-23T18:50:43Z
+        ROUND-46 UPDATE from PRDCT-11935 / onyx#12329 — this ticket is now the named home for the retry pacing that PR removed.
+        While onyx#12329 was open, main landed its own `abandon_message` on the shared queue client (`common_core/services/queue/{client,sqs,asb,consumer_pool}.py`). The ticket o
+        So the shipped state on main today is exactly the shape this ticket describes: a Service Bus abandon re-offers the message AT ONCE and the attempt counts against max_deli
+        What was removed, for whoever picks this up: each queue client declared whether its abandon re-offers immediately (SQS False — the visibility timeout already paces it; AS
+        …
+        contains 'redelivers_immediately': True
+        contains '_pace_immediate_redelivery': True
+        contains 'DEFERRED, NOT DROPPED': True
+
+=== 3. THE ADR NUMBER, live against origin/main at audit time ===
+    $ git ls-tree -r --name-only origin/main docs/decisions | sed 's|.*/||;s/-.*//' | grep -E '^00' | sort -u | tail -8
+      0064
+      0065
+      0066
+      0067
+      0068
+      0071
+      0072
+      0073
+    0069 taken on origin/main?  0   (0 = still free for this PR)
+    0067 taken on origin/main?  1   (1 = taken; this is why the record renumbered)
+    this PR's record: docs/decisions/0069-the-declared-cloud-decides-the-ingestion-transport.md
+    index rows, in order:
+       | The MDM device owner outranks every endpoint-reported address | Accepted |
+       | A Mask rule on a hooks-protected coding agent records an Alert | Accepted |
+       | A build publishes into the registry its environment pulls from | Accepted |
+       | Enforcement identifies the requesting user from the device, not from the address the endpoint reports | Accepted |
+       | The declared cloud decides the ingestion transport, and a mismatch refuses to boot | Accepted |
+       | A slug per customer, a proxy endpoint per cell — DNS picks the cell, the header picks the instance | Accepted |
+       | Red-team alerts are ordinary Ignored alerts, keyed on a system `red_team` reason | Accepted |
+    out-of-order pairs across the whole index: 0
+
+=== 4. THE PRE-MERGE RE-CHECK INSTRUCTION the body now carries ===
+  [PRESENT] the instruction
+      > **⚠️ TO WHOEVER MERGES THIS — re-check the ADR number first.** The owner's instruction, adapted to the
+      > number this record ended on: *re-check right before merge that **0069** is still free on `main`; if
+      > another PR has taken it, renumber this one to the next free number and update the file name, the index
+      > row in `docs/decisions/README.md`, and every reference to it.* This is not boilerplate — this branch has
+      > already lost the race three times (0066 → 0067 → 0072 were all taken while it was open), and the check
+      > costs one command:
+      > ```
+      > git ls-tree -r --name-only origin/main docs/decisions | sed 's|.*/||;s/-.*//' | grep -x 0069
+      > ```
+      > Empty output means 0069 is still free. Verified free at the time of writing; a human merges later.
+      regex the round-39 gate ran, 'right before merge': 1 hit(s)
+      regex the round-39 gate ran, 'next free number': 1 hit(s)
+      regex the round-39 gate ran, 'renumber': 1 hit(s)
+      regex the round-39 gate ran, 're-check': 4 hit(s)
