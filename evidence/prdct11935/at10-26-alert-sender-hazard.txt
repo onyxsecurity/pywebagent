@@ -1,0 +1,69 @@
+# PRDCT-11935 at10-26 — the Azure alert-publish sender-concurrency hazard: what the PR body claimed, what ships at head
+# FILE LAST WRITTEN 2026-08-24T00:48:46Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T00:48:45Z
+#
+# The PR body's ticket-reconciliation item 12 said the Azure alert-producer half 'FAILED on every send,
+# and BOTH causes are fixed in this PR': (a) a coroutine-safety bug fixed by serialising sends on the
+# shared ServiceBusSender, and (b) a missing SEND grant. This file re-measures both at head.
+
+=================== 1. (a) IS NOT IN THIS PR AT HEAD ===================
+    $ grep -rn "_send_lock" backend_python/src backend | wc -l   ->  0
+    $ grep -rn "_meter_session_alerts" backend_python/src backend | wc -l   ->  0
+    $ git diff 822abd2356..HEAD | grep -c "_send_lock"                 ->  0
+    $ git diff 822abd2356..HEAD --stat -- .../common_core/services/queue/asb.py
+     .../src/common_core/services/queue/asb.py          | 25 ++++++++++++++++++++++
+     1 file changed, 25 insertions(+)
+    the 25 insertions are _system_properties() and its two call sites — nothing else. The sender is
+    shared and unserialised at head, exactly as on origin/main:
+            async def send_message(self, body: str, *, dedup_id: str | None = None, group_id: str | None = None) -> None:
+                """Send a message to the configured queue."""
+                msg = ServiceBusMessage(body=body)
+                if dedup_id is not None:
+                    msg.message_id = dedup_id
+                if group_id is not None:
+                    msg.session_id = group_id
+                await self._sb_sender.send_messages(msg)
+        
+
+    The two tests the body cites do not exist:
+      test_asb_sender_concurrency.py               git ls-files: 0   on disk: 0
+      test_session_alert_failure_is_metered.py     git ls-files: 0   on disk: 0
+
+=================== 2. WHY IT IS NOT THERE ===================
+    OWNER RULING #2 (round 46) dropped this PR's queue-layer work as superseded by main:
+      'REMOVE FROM THIS PR ENTIRELY: … the abandon_message method you added to asb.py
+       (KEEP _system_properties — main does not have it)'
+    This run then reduced asb.py to exactly that one addition (commit 35127c77fd, 'Reduce the Service
+    Bus client to the one thing main does not have'), which removed the send serialisation with it.
+    origin/main does NOT carry a sender lock either:
+      $ git show origin/main:.../asb.py | grep -c "Lock()"   ->  0
+
+=================== 3. SO WHAT IS THE RESIDUAL, MEASURED ===================
+    The lane builds ONE ASBQueueClient producer at boot (service.py:156-164) and the sessions step
+    sends one message per (session, policy) from concurrent object tasks — so two objects that both
+    carry sessions can send on the same AMQP link at the same time. That is the hazard the run
+    measured pre-fix (1042 'NoneType object has no attribute create_sender_link' on the pre-fix pod).
+    It is NOT treated in the shipped diff. What it has NOT done, measured now on the live pod:
+      $ kubectl -n onyxd logs deploy/eai-azure --since=24h | grep -ci "create_sender_link|failed to publish one session alert"  ->  0
+      i.e. zero occurrences in 24h of real traffic on this lane.
+
+=================== 4. THE METERING SENTENCE IS ALSO WRONG ===================
+    The body said 'Both lanes now count it (publish_failed)'. At head the SCANNER lane meters only
+    published and skipped_no_queue; publish_failed is emitted on the GATEWAY lane only:
+      ingestion/gateway_writers.py:418:        metrics.session_alerts.add(alerts_published, SessionAlertLabels(tenant_schema=deps.tenant_schema, outco
+      ingestion/gateway_writers.py:420:            metrics.session_alerts.add(alerts_failed, SessionAlertLabels(tenant_schema=deps.tenant_schema, outc
+      ingestion/writers.py:648:        metrics.session_alerts.add(session_result.alerts_published, SessionAlertLabels(tenant_schema=deps.tenant_schema
+      ingestion/writers.py:650:        metrics.session_alerts.inc(SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="skipped_no_queue"))
+
+=================== 5. (b) IS TRUE, AND HAS SINCE MERGED ===================
+    The queue-scoped 'Azure Service Bus Data Sender' grant rides onyxsecurity/infrastructure#1575,
+    which MERGED into main at 2026-08-23T12:18:07Z (head da993d1ae2eb). See at9-05 for the live role
+    read, which also corrects a second body claim about LISTEN on that queue.
+
+=================== DISPOSITION ===================
+    Not re-added in this PR. The owner's round-46 ruling took the queue-layer work out and told this
+    run not to re-merge the two designs; no demand in the frozen plan covers the alert fan-out; and the
+    hazard has not recurred in 24h of live traffic. It is therefore CORRECTED IN THE BODY (the claim is
+    withdrawn, not restated) and TRACKED as a follow-up with this measurement, so a real defect the run
+    found is not lost when its fix was dropped.
