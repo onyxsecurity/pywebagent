@@ -1,31 +1,18 @@
-# PRDCT-11935 at7-03 — DB rows, class DESKTOP AGENT
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T03:39:18Z · tenant onyx_security
-#
-# RE-CAPTURED ON THE HEAD-EXACT IMAGE (gate G7). Round 23's gate found 19 of 21 at7 artifacts still
-# declared 0665ecc545 with image r24/r25 — the commit before the round-24 sender fix, on images built
-# before it. Every row below was re-driven on :prdct11935-r26, which is built from a2486bb33f and proven
-# byte-exact (4741/4741 head .py files, evidence/at6-12-image-provenance.txt).
-# gen-1 was quiesced for the window (schedule PAUSED + zero pods), so each class is attributable to the
-# lane under test — the receipt is evidence/at7-00-isolation.txt.
-#
+# PRDCT-11935 at7-03-db-rows-agent.txt — the desktop-agent class row for the runtime installed this window, pasted from the tenant DB
+# FILE LAST WRITTEN 2026-08-24T01:10:05Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:10:05Z
 
-## THE CLASS COUNT, as the DB reports it (this is the `created_in_window = 0` the PR body cites): the
-## runtimes on this machine were inventoried by earlier windows, so this window RE-OBSERVES them rather
-## than creating them, and that is shown rather than papered over:
-##     AssetTypeDesktopAgent   created_in_window = 0    (re-observed: last_scanned_at advanced below)
-##     AssetTypeMCP            created_in_window = 1
-##     AssetTypeSkill          created_in_window = 1
-##     AssetTypeSubAgent       created_in_window = 1
+SELECT run 2026-08-24 against schema onyx_security (tenant 61750f27-8fbd-42a4-80cf-4191cfb2371a).
 
---- class DESKTOP AGENT (machine tie)
-  id   |         name         |         v          |              serial              |        last_scanned_at        
--------+----------------------+--------------------+----------------------------------+-------------------------------
-    23 | Claude Code (coder)  |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:03.743466+00
- 10656 | Claude (coder)       |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:32:10.983891+00
- 10727 | Codex (coder)        |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:06.260268+00
- 10729 | OpenClaw (coder)     | 2026.5.7 (eeef486) | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:07.042041+00
- 55751 | Hermes Agent (coder) |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:32:14.768672+00
-(5 rows)
+SET
+ id  | asset_id |       name       |         type          |                  unique_identifier                  | status | is_deleted |       last_scanned_at        |          created_at           |          updated_at           
+-----+----------+------------------+-----------------------+-----------------------------------------------------+--------+------------+------------------------------+-------------------------------+-------------------------------
+ 105 |    10729 | OpenClaw (coder) | AssetTypeDesktopAgent | endpoint_openclaw::ec255301bd4407d309fbce94811384b0 |        | f          | 2026-08-24 00:32:03.44933+00 | 2026-08-19 15:20:34.914874+00 | 2026-08-24 00:32:03.418256+00
+(1 row)
 
+
+FIDELITY: the machine-tied value is the installed version string reported by the runtime's own
+binary this window — `openclaw --version` -> OpenClaw 2026.5.7 (eeef486); the asset name the writer
+stored is 'OpenClaw (coder)' and the identity is endpoint_openclaw::ec255301bd4407d309fbce94811384b0.
+This row is the lifecycle-leg UNINSTALL subject; its last_scanned_at at 00:31:26.226423+00 was written
+by the azure-lane ingest of this window's scan-1 object.
