@@ -1,9 +1,9 @@
 RE-FETCHED LIVE AT AUDIT TIME — this file is the PR body as the API returns it, not a local draft.
   command:   curl -H 'Authorization: Bearer $GH_TOKEN' https://api.github.com/repos/onyxsecurity/onyx/pulls/12329 | jq -r .body
-  fetched:   2026-08-23T21:58:14Z
+  fetched:   2026-08-24T03:35:08Z
   pr:        https://github.com/onyxsecurity/onyx/pull/12329
   onyx head: 2b60fdc4df25188104e737e6311087681355eff8
-  bytes:     252183
+  bytes:     242219
   identity:  everything below the marker line is byte-identical to what that command returned.
   round 49:  the deploy-safety round. research adjudicated verify-r39 GAP 1 and re-froze the plan
              (sha 863dbd105e74...). This body now states the MEASURED production LaunchDarkly posture
@@ -135,6 +135,30 @@ same writer, fed the same bytes, writes the same rows on either transport.**
 The ruling asks for this to be proven and stated. It is stated here, and the proof is four independent
 lines of evidence rather than one.
 
+**0. Which change causes the AWS rolling restart — measured, because an earlier version of this section got
+the attribution wrong.** An independent review reported that the AWS cells which actually run these services
+(`ox-aws-p-use1-c01/intuit`, `ox-aws-p-use1-c03/saas` prod, `ox-aws-s-use1-c01/saas` staging) take an
+**8 / 8 / 18** line render delta — empty ASB stanzas plus a `checksum/config` rollover, i.e. a one-time
+rolling restart. **That figure is right.** What this section briefly claimed — that it does not reproduce —
+was measuring the wrong change, and the correction is worth stating plainly because it cuts against this PR:
+
+- **flux-fleet#2307 contributes 0.** `git diff --name-only 2c8ad2f2d4..a4493c1e5ac0` is **8 files, six of
+  them the two AZURE instances plus two docs**; re-rendering the three AWS cells at that PR's merge-base and
+  at its head with the repo's own `scripts/render-snapshot.sh` gives **0 changed lines** on all three.
+  Merging the flux flip cannot restart an AWS workload.
+- **This PR's own chart change contributes the 8 / 8 / 18.** `infra/helm/onyx-app/values.yaml` removes the
+  two empty gen-2 stanzas (`scanner_events_asb`, `mcp_gateway_events_asb`) and adds two empty ones
+  (`alert_processing_asb`, `asset_ingestion_asb`), which moves the rendered `config.yaml` and rolls its
+  `checksum/config`. Measured with **identical values on both sides**, so the delta is the chart's:
+  [`at11-08`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-08-flux-render-aws-cells.txt) — 8 for `c01/intuit`, 8 for `c03/saas`, 18 for
+  `s-use1-c01/saas`, and **0** for every cell that does not deploy these services.
+
+So the consequence is real and is **this PR's**: a single rolling restart of those three workloads when the
+chart lands. It is semantically inert — an empty stanza is what the config model already defaults to, and a
+removed field is accepted-and-ignored because `BaseCustomSettings` sets `extra="allow"` — and carve-out (b)
+below has always disclosed it. Both measurements, and this correction, are in
+[`at10-25-aws-cell-render.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-25-aws-cell-render.txt).
+
 **1. Nothing in the diff can reach an AWS cell's behaviour.** All 40 files walked individually in
 [`at10-22-scope-revert.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-22-scope-revert.txt)
 §4. Three files are never executed on AWS; three are a verbatim move (`_parse_event_time` lifted into
@@ -156,30 +180,53 @@ run, and each is measured, not argued:
 - the gen-2 consumers keep their old `else` arm, dedented. `_health_client` went away because on AWS it
   was literally assigned `self._queue_client`.
 
-**2. The lane, run for real on both images, writes the same rows — and the one delta that turned up is
-explained, not waved past.** A real `onyx-scanner` run's eight `source=mcp-scanner` request bodies were
-recorded verbatim and replayed **byte-for-byte through the real Kong front door** (key-auth, real
-consumer) into two fresh tenants — one on an image built from the merge-base, one on an image built from
-this head, same ConfigMap, only the image moving. Both settled at 342 assets / 338 connections / 21 dedup
-rows.
+**2. The lane, run for real on both images, writes the same rows — and the delta that used to stand here is
+gone because its CAUSE was removed, not normalised away.** A real `onyx-scanner` run's eight
+`source=mcp-scanner` request bodies were recorded verbatim and replayed **byte-for-byte through the real
+Kong front door** (key-auth, real consumer) into two fully isolated lanes — one writer on an image built
+from the merge-base (`:r45c-base`, digest `d65c32ca…`), one on the head image (`:r46b-head`, digest
+`d1087c00…`), each with its own bucket, queue and tenant.
 
-The eleven-query tenant dumps then differed by **8 lines**, so they were chased rather than re-rolled.
-Every one of the 8 is the element ORDER inside one connection's `metadata.sources` JSON array — no row
-gained or lost a source, no other column moved. Four legs (each image into each tenant) showed each image
-self-consistent and the same 8 lines across images, so it was reproducible, not noise. The cause is that
-`replace_scan_connection_sources` overwrites `metadata.sources` **authoritatively, once per object**, and
-three of the eight payloads name that edge — so the surviving order is whichever object landed last.
-Proven by running the **base image alone** with the same bytes posted in **reverse order**: the ordering
-flips to the head leg's. It follows arrival order on either image, and this PR does not touch that writer
-(`mcp_writer.py` has zero hunks). Normalising that one field — sort the array, sort the lines — makes all
-four dumps **byte-identical, `sha256 563797cc9fe117c3…`**.
+**Re-driven this round, twice, and the raw diff is now 0.** Earlier revisions reported a **raw 8-line**
+delta defended by a normalised 0-line comparison — every one of the 8 an element ORDER difference inside one
+connection's `metadata.sources` array, because `replace_scan_connection_sources` overwrites that field
+authoritatively once per object, so the surviving order is whichever object landed last. That is a
+pre-existing, arrival-order dependence this PR does not touch (`mcp_writer.py` and `source_attribution.py`
+both have **0** diff lines). Rather than keep normalising it, the harness now **settle-gates the replay**:
+body N+1 is not sent until N has landed, the leg queue is drained and the leg writer has logged its Nth
+`outcome=processed`. Identical arrival order on both legs removes the race, and the measurement becomes:
 
-That last-object-wins replace makes a multi-object scan's connection provenance depend on delivery order,
-on AWS today and on Azure after this PR. It is pre-existing and out of scope under the round-45 ruling, so
-it is **reported here, not fixed here**.
-[`at11-02`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-02-aws-lane-base.txt) ·
-[`at11-03`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-03-aws-lane-head.txt) ·
+- **RAW base-vs-head diff: `changed lines: 0`** in each of two consecutive runs — and **one sha256,
+  `bfab55dfb10901c1…`, across all four writer-graph dumps** (base×run1, head×run1, base×run2, head×run2,
+  1074 lines each). Cross-run per-leg diff: 0. The r45 normaliser still runs and still reports 0; it no
+  longer carries the argument.
+- **The two legs provably ran different images**: every one of the base leg's 8 `outcome=processed` lines is
+  `lineno=135`, every one of the head leg's is `lineno=171`. 32/32 Kong POSTs returned 200; the no-key guard
+  returned 401.
+- **Ten negative isolation assertions, all clean**: shared bucket prefixes unchanged (158 / 57), shared queue
+  0, both DLQs 0, zero cross-leg keys or log lines in either direction, and the shared writer processed
+  **zero** lines for either leg tenant in the window.
+- `issue_instances` is **reported separately and excluded from the criterion**, with the reason: it is
+  written by the shared downstream issue-detection service (one instance serving both legs, zero
+  merge-base..head hunks), so it says nothing about base-vs-head. Measured 0 | 0 in both runs, with a live
+  control proving the mechanism is not simply dead.
+
+One honest note about the harness itself: setup's recipe **deadlocked twice** as handed over, because this
+node's kubelet discards rotated container-log history, so the settle gate's cumulative `processed` count
+collapsed mid-run. The gate now reads a continuous per-leg follower from a window mark instead. Payloads,
+lanes, dump queries and the comparison were untouched, and the aborted attempts are disclosed rather than
+reported as results.
+[`at11-02`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-02-aws-lane-base.txt) · [`at11-03`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-03-aws-lane-head.txt) ·
 [`at11-04`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-04-aws-lane-diff.txt)
+
+**A pre-existing behaviour this leg documents rather than fixes:** asset identity for an **unpinned**
+launcher is not a pure function of the payload. `mcp-remote`'s concrete version is resolved from npm's live
+`dist-tags.latest` at write time (`version_resolution.py:373-380` → `package_registry/npm.py:78`, or the
+async heal at `mcp_server_enrichment/activities.py:926`, read back at `mcp_writer.py:477-478`), so two
+windows hours apart legitimately key the same server under different versions — this leg's dumps differ from
+an earlier window's by exactly four lines, all `mcp-remote::0.1.45` → `0.1.49`. All five files on that path
+carry **0** merge-base..head diff lines, so it is pre-existing and transport-independent; both legs resolved
+identically within each run, so it contributes 0 to every comparison above.
 
 **3. The two gen-2 consumers boot and consume identically on both images.** Their changed hunks execute
 at AWS-mode boot, so hunk-reading is not enough: both were rolled onto each image and driven through one
@@ -231,7 +278,7 @@ comments, 0 secret-shaped tokens**.
 | Rule | What it proves | Where it is now |
 |---|---|---|
 | **S4** | sibling sweep — every cloud-branching consumer site, one decided row | **this body**, section *S4 — sibling sweep* · raw measurement (every cite printed with its line numbers) in [this comment](https://github.com/onyxsecurity/onyx/pull/12329#issuecomment-5379850160) |
-| **C15** | defaults inventory ⚠️ awaiting the owner's ruling | **this body**, section *C15 — defaults inventory*, plus the full 102-item measurement in a comment |
+| **C15** | defaults inventory ⚠️ awaiting the owner's ruling | **this body**, section *C15 — defaults inventory*, plus the full 101-item measurement in a comment |
 | **C11** | before the 2nd ingest | [comment](https://github.com/onyxsecurity/onyx/pull/12329#issuecomment-5379800473) |
 | **C11** | after the 2nd ingest | [comment](https://github.com/onyxsecurity/onyx/pull/12329#issuecomment-5379800879) |
 | **C11** | the redelivery on the real broker | [comment](https://github.com/onyxsecurity/onyx/pull/12329#issuecomment-5379801257) |
@@ -259,7 +306,7 @@ comments, 0 secret-shaped tokens**.
 | **C2** | DB rows · tools + posture | [comment](https://github.com/onyxsecurity/onyx/pull/12329#issuecomment-5379805213) |
 | **C2** | fidelity — scanned vs stored | [comment](https://github.com/onyxsecurity/onyx/pull/12329#issuecomment-5379805327) |
 | **C2** | the second scan (lifecycle) | [comment](https://github.com/onyxsecurity/onyx/pull/12329#issuecomment-5379805443) |
-| **C15** | the full 102-item defaults inventory | [comment](https://github.com/onyxsecurity/onyx/pull/12329#issuecomment-5379824656) |
+| **C15** | the full defaults inventory (101 rows) | [comment](https://github.com/onyxsecurity/onyx/pull/12329#issuecomment-5379824656) |
 
 *(The C13 row dumps are the two largest: the gen-1 and new-lane full dumps are 7 comment-parts each.
 Parts are numbered `part N of M` and concatenate byte-for-byte back to the capture.)*
@@ -361,34 +408,29 @@ Parts are numbered `part N of M` and concatenate byte-for-byte back to the captu
   **load-bearing** — without them the Azure pod receives `${region}=us-east-1` and the IRSA annotation. That
   run, and both exit-1 runs, are in `evidence/at8-03`.
 
-- **The in-process writer now seeds the Claude connector MCP servers, because gen-1 does.** Driving the same
-  real scan payload through both lanes into two fresh tenants showed the new writer losing four MCP assets
-  (Slack, Gmail, Google Calendar, Google Drive) and their agent edges: the Temporal lane synthesises them from
-  the shared catalog's seed allowlist whenever a Claude Code agent is detected, and the in-process lane never
-  called that builder. `_mcp_upsert` now merges `build_seeded_connector_servers(agent.app_name)` into its
-  server list *before* the emptiness guard — so a Claude Code install with no configured MCP servers still
-  reports them — and gives the seeded entries the same per-agent/device/tenant context as real ones. The
-  shared builder is called, never copied, so both lanes converge on one app-definition id per connector.
-  **This is a behavioural change beyond the Azure transport, and it is deliberate — naming it explicitly:**
-  the writer is shared by every cloud, so on AWS as well as Azure a detected `claude-code` agent that
-  previously produced `StepSkipped("no MCP servers in payload")` now writes four seeded connector assets and
-  their agent edges. Every tenant already on the `endpoint-asset-ingestion` flag therefore gains four MCP
-  assets (Slack, Gmail, Google Calendar, Google Drive) per Claude Code agent asset on its next scan —
-  customer-visible inventory growth, and the inventory the old lane has been writing all along. It rides this
-  PR because C13's direction rule is what surfaced it: the new lane may never *lose* what gen-1 writes, and a
-  both-lane diff on the same payload is how the loss was found. If the owner prefers it not to ride a
-  transport PR, it is a clean single-commit revert (`ingestion/writers.py:471-487`) and the loss goes back in
-  the ledger as an open item.
-  Proof: [`evidence/at6-04a-diff-created.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-04a-diff-created.txt) (the four rows are gone from the diff) and
-  [`evidence/at6-06-ledger.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-06-ledger.txt) item L-1, which pastes the byte-identical identities from both lanes.
-
+- **Seeding the Claude connector MCP servers — WITHDRAWN by the round-45 owner ruling; this bullet used to
+  describe code that is no longer in the diff.** An earlier revision described `_mcp_upsert` merging
+  `build_seeded_connector_servers(agent.app_name)` into its server list so the in-process writer would write
+  the four connector assets gen-1 writes. That work was **reverted**. At this head the symbol appears only in
+  gen-1's own Temporal lane (`integrations/desktop_agent_creator/connector_seed.py:37`, `workflow.py:34,726`),
+  the new lane never calls it (`grep -rn seeded_connector backend_python/src/endpoint_asset_ingestion/` →
+  **0**), and the PR diff mentions it **0** times (`git diff 822abd2356..HEAD | grep -c
+  build_seeded_connector_servers`). The reason is the owner's, quoted in the banner at the top of this body:
+  *"PRDCT-11935 is Azure ENABLEMENT ONLY. It is not a bug-fix PR."* The connector gap is therefore an
+  **owner-accepted gap** again rather than something this transport PR fixes, it is tracked with the other
+  reverted items on PRDCT-12061 — and, the part a reviewer scoring blast radius should take from it, **this
+  PR no longer changes what any AWS cell writes for a Claude Code agent.**
 ## S4 — sibling sweep: every cloud-branching consumer site, one decided row
 
 The board scored S4 LOW because the sweep behind this change was never shown. Here it is, in full. The
 pattern this PR fixes is *"a consumer picks its queue transport and object store from the declared cloud"*.
 The sweep below is mechanical — every `ConsumerPool` construction and every `create_storage_client` /
-cloud-switch call site in `backend_python/src` and `backend/`, at head `16b7bca77c` — and **every site gets
-a decision, including the ones this PR deliberately does not touch.**
+cloud-switch call site in `backend_python/src` and `backend/` — and **every site gets
+a decision, including the ones this PR deliberately does not touch.** The sweep was **re-run at the current
+head `2b60fdc4df`** as this body is written (it used to cite `16b7bca77c`, a head that no longer exists on
+this branch): the consumer class is unchanged — `grep -rl 'ConsumerPool(' backend_python/src` returns the
+same five services listed in table A plus the pool module itself — and every `file:line` below was re-opened
+at head, which moved exactly one cite (A5, corrected in place).
 
 Two of these rows are findings the sweep itself produced, and I am **not** self-approving either: they are
 marked *awaiting the owner's ruling*, like the C15 table below.
@@ -401,7 +443,7 @@ marked *awaiting the owner's ruling*, like the C15 table below.
 | **A2** | `scanner_event_consumer_service/service.py:75` | no — branch **deleted** by this PR | **yes** — `config.py:87` `assert_cloud_supported(supported=AWS)` | **FIXED HERE.** The dead Azure branch is removed, not ported; 0 hits for `ASBQueueClient\|ASBConfig\|parse_blob_event_message` in the package at head. |
 | **A3** | `mcp_gateway_event_consumer_service/service.py:74` | no — branch **deleted** by this PR | **yes** — `config.py:93` | **FIXED HERE.** Symmetric deletion; same 0-hit grep. |
 | **A4** | `alert_processor_service/service.py:96` | **yes, on `ONYX__CLOUD`** | **NO** | ⚠️ **UNGUARDED SIBLING — awaiting the owner's ruling. Not fixed here, and not silently absorbed.** This is the closest structural twin of A1: same cloud switch, same ASB-factory-vs-shared-SQS shape. Its config has **no `model_validator` at all**, so `ONYX__CLOUD=azure` with only the SQS queue URL set boots green and consumes the AWS queue — the exact fail-open footgun 3 exists to stop, in a different service. I did not extend this PR into another service's boot path on a placement round; the sweep's job is to surface it, and the owner's is to decide whether it rides here or gets its own change. |
-| **A5** | `sensor_service/sensor_event_consumer.py:336` | yes — but on *which queue setting is configured*, **not** on `ONYX__CLOUD` | **NO** | **DELIBERATELY OUT OF SCOPE — pre-existing, documented counter-design.** The code states the choice explicitly (`:334-335`: transport is chosen by whichever is configured *"so the two queue settings cannot be contradicted by a third"*). It is a second Event-Grid consumer (`parse_blob_event_message` at `:190`) and it fails open by design (`:389` continues when the consumer will not start). Changing it would reverse a deliberate decision made outside this ticket. Named here so it is not mistaken for an oversight. |
+| **A5** | `sensor_service/sensor_event_consumer.py:326-327` (its two pools at `:371`/`:373`; this row cited `:336` until the head-move re-check moved it) | yes — but on *which queue setting is configured*, **not** on `ONYX__CLOUD` | **NO** | **DELIBERATELY OUT OF SCOPE — pre-existing, documented counter-design.** The code states the choice explicitly (`:334-335`: transport is chosen by whichever is configured *"so the two queue settings cannot be contradicted by a third"*). It is a second Event-Grid consumer (`parse_blob_event_message` at `:190`) and it fails open by design (`:389` continues when the consumer will not start). Changing it would reverse a deliberate decision made outside this ticket. Named here so it is not mistaken for an oversight. |
 
 ### B · Queue producers that branch on cloud (same switch, no consumer loop)
 
@@ -435,9 +477,31 @@ pattern class is left undecided.
 
 ## C15 — defaults inventory ⚠️ AWAITING THE OWNER'S RULING (not self-approved)
 
-The board scored C15 LOW because this change alters defaults and never inventoried them. It does — **102
-of them**, across three repos. The complete measured inventory, with `file:line` and before → after for
+The board scored C15 LOW because this change alters defaults and never inventoried them. It does — **101
+of them**, across three repos (the numbering runs 1–102 but **skips #28**; this body said "102" twice and
+was wrong by one). Re-derived at all three current heads this round — **62 HOLDS · 22 MOVED · 17 WITHDRAWN ·
+39 NEW** — because two owner rulings removed capability after the first inventory was written, and 22 cites
+had drifted (the whole `service_bus.tf` block moved ~+92 lines). The complete measured inventory, with `file:line` and before → after for
 every one, is inline in **[this comment](https://github.com/onyxsecurity/onyx/pull/12329#issuecomment-5379824656)**. Below are the ones that carry real blast radius.
+
+**Twelve more rows in the linked comment describe code the rulings removed.** Seventeen rows in total are
+**WITHDRAWN** in the refreshed inventory — ten by the round-45 revert (#13, #14, #37, #38, #39, #40, #41,
+#42, #43, #44, #45) and seven by the round-46 supersession (#19, #20, #21, #22, #23, #25 and the pacing
+half) — and every one of the nine reverted files carries **0 hunks** against the merge-base, with the five
+load-bearing ones byte-identical to `origin/main`. Only three of the seventeen were struck in this table
+before this round. Two of them mattered most, because both advertised **GLOBAL** blast radius: **#37**
+(seeded connectors — *"GLOBAL (BOTH CLOUDS)"*) and **#42** (`processed_with_failures` — *"any dashboard
+filtering `outcome=processed` silently UNDER-COUNTS"*). A reviewer reading those believed this PR changes
+what every cell meters and what every Claude Code install writes. **It changes neither.** The refreshed
+inventory also adds **39 defaults the first pass never listed**, and re-anchors **22 drifted cites**:
+[`at10-13-defaults-inventory.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-13-defaults-inventory.txt).
+
+**And the authorisation is cited honestly.** Roughly twenty of these defaults have **no ticket
+authorisation** — they are judgement calls this run made, and the refreshed inventory marks each one as an
+owner decision rather than inventing a quote for it. The same applies in the other direction: the ticket
+contains no *"Azure enablement only"* sentence and no *"do not change AWS behaviour"* sentence — both come
+from the **owner's rulings**, which is where this body cites them, and the ticket itself says
+*"Live footguns (fix even if parity is deferred)"* and *"Do not retire gen-1 until parity lands."*
 
 **I am not approving this table.** Several rows change behaviour on cells and services that never opted
 into this lane, and two of them alter what an *existing, unrelated* service measures. That is an owner's
@@ -446,27 +510,41 @@ asserting is fine.
 
 | # | Default | before → after | Blast radius | Deploy-day story |
 |---|---|---|---|---|
-| **78** ⚠️ **DEPLOY SAFETY — owner-visible decision** | `endpoint-asset-ingestion.enabled` (flux, both Azure cells) | `false` → **`true`** | **A LIVE CUTOVER for Centerpoint Energy and every unmatched tenant on both c02 instances — not a dark deploy** | **Measured, read-only, three times identical — `2026-08-23T18:22:18Z`, `2026-08-23T20:33:27Z`, and at audit time `2026-08-23T20:56:39Z` — via `GET /api/v2/flags/default/endpoint-asset-ingestion?env=production`:** the flag is `on: true`; `fallthrough.variation: 0` → **`true`**, so a tenant matching no rule gets the lane **ON**; the only `false` holdouts are the **three** tenants on rule `07b15c09-5a78-4728-89c2-cc37cfdb2e31` (`bamfunds`, `fireblocks`, `intuit-prod`); and rule `c7789aea-0948-42f8-8f54-a31d1d5148b0` serves **`true`** to a **19**-tenant list that explicitly includes **`Centerpoint Energy`**. So reconciling flux-fleet#2307 does **not** leave the lane dormant behind an off flag — it cuts it over live for Centerpoint Energy and for every unmatched tenant on `ox-az-p-eus2-c02` saas + centerpoint. **PRE-MERGE INSTRUCTION: confirm the intended production posture for the two Azure tenants BEFORE merging flux-fleet#2307. As measured, the enablement goes live for Centerpoint unless the flag is changed first — and changing production LaunchDarkly is NOT this run's to do; this run only reads it.** The same instruction is carried on flux-fleet#2307 itself, because whoever merges that PR need never open this one. Audit-time read + both-body proofs: [`at10-08-prod-ld-posture.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-08-prod-ld-posture.txt). Escalated to the ticket owner before this was written — [thread](https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787517269527719?thread_ts=1787063683.640599&cid=C0BCW4JDZB2) · [DM](https://onyx-security.slack.com/archives/D0B6V65HCEN/p1787517269723809). |
-| 15 | boot refusal on cloud/transport mismatch (`transport_guard.py:22-84` via `config.py:189-224`) | pod went ready on any combination → `TransportCloudMismatchError` | **GLOBAL — every boot of this service on every cell, AWS included** | An AWS cell with a coherent config is unaffected. A cell with a *contradictory* config that previously booted and silently read the wrong store now **refuses to start**. That is the intent (footgun 3), but it is a new way for a deploy to stop. |
-| 10b | `reject_cleartext_endpoint` (newly inherited, `common_core/config.py:303-320`) | no validator → raises unless `https://`, empty, or an `http://` local-dev host | **GLOBAL, AWS cells too** | Any cell setting a cleartext non-local `asset_ingestion_s3.endpoint` stops booting. Not introduced by this ticket's intent — inherited by moving to the shared `S3Config`. |
+| **78** ⚠️ | `endpoint-asset-ingestion.enabled` (`release.yaml:30`, both Azure cells) | `false` → **`true`** | **Live cutover, not a dark deploy** | Prod LD re-read at head: `on`, **`fallthrough` → `true`**; holdouts only `bamfunds`/`fireblocks`/`intuit-prod`; `Centerpoint Energy` targeted `true`. **LD is not a gate — this line is.** Confirm posture before merging flux-fleet#2307. |
+| 15 | cloud/transport mismatch refusal (`transport_guard.py:22-84`, `config.py:189-225`) | any combination booted → `TransportCloudMismatchError` | **GLOBAL — every boot, AWS included** | A new way for a deploy to stop. **Second, uninventoried refusal:** `service.py:129-133` → `storage_factory.py:67-68` raises if `cloud=azure` lacks `blob.account_url`. |
+| 10b ✅ **CORRECTED** | `reject_cleartext_endpoint` | ~~"GLOBAL, AWS cells too"~~ — **wrong.** It **pre-exists on `main`** (`c32bad53cc`; `git diff <merge-base> HEAD -- common_core/config.py` is **empty**) | **This service only** | Real change is `config.py:55`: `AssetIngestionS3Config(BaseCustomSettings)` → `(S3Config)`. Chart default `endpoint: ""` passes, so no cell is hit. |
+| 24 | `_sys_*` receive-count/sent-timestamp (`asb.py:48-67`, applied `:192`) | absent → always present | **Azure, ALL ASB consumers — incl. one this PR never touches** | `alert_processor_service/.../message_handler.py:105`/`:110` gate `queue_wait` on these; redeliveries now excluded. **Its comment at `:67-68` is now factually wrong.** `sensor_service` receives but never reads them. |
+| 49 ✅ **CORRECTED** | `max_delivery_count` (`service_bus.tf:292`) | n/a → **`5`** | The new queue | ~~"Deviates from every sibling, which use 3"~~ — **stale.** `posture_issue_verdicts` (`:100`) also uses **5**, same rationale at `:88`. 1 of 2, not a lone deviant. **No ticket authorisation.** |
+| **NEW** | Event Grid has **no dead-letter destination** (`blob_events_to_servicebus/main.tf:35-79`) | `retry_policy` + `storage_blob_dead_letter_destination` **unset** | Every BlobCreated event | **Measured on the pinned provider (azurerm 4.81.0, real apply + `az … show`):** 30 attempts, 1440-min TTL, `deadLetterDestination: null` → Event Grid **silently drops** the event. `$DeadLetterQueue` covers only what *reached* the queue. |
+| **NEW** | plan-time precondition (`service_bus.tf:312-320`) | none → queue **refused at plan** without an Event Grid producer | Any caller of `cell-azure-instance` | Added in review, after the first inventory. Turns pre-existing `customer_event_grid_topic_principal_id` (default `""`) into a gate on whether the queue builds. |
+| 46 + 47 | `parse_event_time` log text (`event_time.py:29`); `azure-storage-blob` (`pyproject.toml:140`) | 2 messages → 1; transitive → **direct** `>=12.27.1` | **GLOBAL — neither is Azure-gated** | Log alerts on the old strings stop matching (`service.py:158-172` reworded too). Image contents change for **every** `backend_python` service. **No authorisation.** |
+| 93-95 | base-overlay values inert while the lane was off (`endpoint-asset-ingestion.yaml:118`,`:124`,`:33-34`) | `maxReplicaCount` **20** (chart 5), `fallback.replicas` **5** (chart 1), requests **500m / 512Mi** (chart 0.05 / 256Mi) | Both Azure cells, the moment #78 ships | Never *changed* here — they go **live** when the lane turns on. Worst case KEDA pins 5 replicas at 500m on a cell that never ran it. **No authorisation.** |
+| 4e + 4f | Flux `${…}` for the queue params (`fluxcd_config.tf:113-116`); `create_byoc_events_topic` on saas (`main.tf:110`) | published only when the TF flag is on; `false` → **`true`** | Both Azure cells; 3 **already-live** lanes on saas | **Flux resolves an unprovided `${…}` to the empty string and reconciles successfully** → empty queue name → guard refuses → `CrashLoopBackOff`. Order is infra → flux; **whether that apply landed on `ox-az-p-eus2-c02` I could not determine** (`az … show` → `ResourceGroupNotFound`; state → `AccessDenied`). |
 | ~~19 + 21~~ | ~~pool releases the message when the handler raises~~ | **WITHDRAWN — this row described the release-and-pace design `main` superseded and the owner ruled out of this PR (round 46). `consumer_pool.py`, `sqs.py` and `client.py` are byte-identical to `origin/main`; the behaviour is `main`'s, not a deviation this PR introduces.** | — | — |
-| 24 | ASB messages now carry `_sys_ApproximateReceiveCount` / `_sys_SentTimestamp` (`asb.py:48-66,204`) | absent → always present | **Azure, ALL ASB consumers — including one this PR does not touch** | `alert_processor_service` gates its `queue_wait` metric on `_sys_ApproximateReceiveCount != "1"`. Previously absent ⇒ every delivery sampled; now redeliveries are excluded. **Its own comment (`message_handler.py:66-68`) is now factually wrong.** |
 | ~~41 + 42~~ | ~~object outcome label `processed_with_failures`~~ | **WITHDRAWN — reverted out of this PR by the round-45 owner ruling. `object_processor.py` and the metric are byte-identical to `main`; no dashboard filtering `outcome="processed"` is affected.** | — | — |
 | ~~37~~ | ~~Claude connectors seeded before the emptiness guard~~ | **WITHDRAWN — reverted out of this PR by the round-45 owner ruling. `writers.py` is byte-identical to `main`; a Claude Code install with zero MCP servers still creates none.** | — | — |
-| 32 | ASB pool `max_messages` (`service.py:246`) | n/a → **hard-coded `1`**, ignoring `config.max_messages` (default 10) | Azure only | Deliberate (the ASB receiver is not coroutine-safe), but it means the configured value is silently ignored on one cloud and honoured on the other. |
+| 32 | ASB pool `max_messages` (`service.py:246` and `asb.py:27` — **pinned twice**) | n/a → **hard-coded `1`**, ignoring `config.max_messages` (default 10) | Azure only | Deliberate (the ASB receiver is not coroutine-safe), but it means the configured value is silently ignored on one cloud and honoured on the other. |
 | 33 | ASB client ownership (`service.py:232-253`) | one shared client → **one client per worker** (concurrency 5 ⇒ 5) **plus a 6th** for readiness | Azure only | Six AMQP links per pod instead of one connection. Sized for `concurrency: 5`; raising concurrency raises the link count 1:1. |
-| 47 | `azure-storage-blob` (`pyproject.toml:134`) | transitive of an extra → **direct dependency** `>=12.27.1` | **GLOBAL — every `backend_python` image** | Image contents change for every Python service, not just this one. |
-| 46 | unified `parse_event_time` (`event_time.py:19-30`) | `"unparseable S3 eventTime"` / `"unparseable Event Grid event time"` → `"unparseable ingestion-event eventTime"` | **GLOBAL** | Any log-based alert keyed on the old strings stops matching. |
-| 49 | Service Bus `max_delivery_count` (`service_bus.tf:200`) | n/a → **`5`** | The new queue only | **Deviates from every sibling queue and subscription, which use `3`.** Chosen to match the AWS lane's `maxReceiveCount = 5`; recorded because it is a deliberate inconsistency inside the same namespace. |
-| 93 + 94 + 95 | base-overlay values that were inert while the lane was off | `maxReplicaCount` **20** (chart 5), `fallback.replicas` **5** (chart 1), `requests` **500m / 512Mi** (chart 0.05 / 256Mi) | Both Azure cells, the moment #78 ships | These were never *changed* by this PR — they become **live** because the lane turns on. Worst case the KEDA fallback pins 5 replicas at 500m each on a cell that has never run this workload. |
-| 4f | `create_byoc_events_topic` on saas (`main.tf:113`) | `false` → **`true`** | Three **unrelated, already-live** consumer lanes on that instance | Creating the topic also creates the extension / extension-stats / sensor-events fan-out subscriptions. They stay empty **only** because `ingestion_event_grid_subject_contains = ["source=mcp-scanner/"]`. Widening that filter later turns three lanes on by accident. |
-| 4e | Flux `${...}` substitution for the new queue params | n/a → published only when the TF flag is on | Both Azure cells | **Flux resolves an unprovided `${...}` to the empty string and reconciles successfully.** A flux-first apply therefore renders an empty queue name and the failure surfaces as the transport guard refusing → `CrashLoopBackOff`. **Apply order is infrastructure → flux.** |
 | 99 | `releases_kvs.*` (`endpoint-asset-ingestion.yaml:89-91`) | `${…:=}` ⇒ empty on Azure | Azure cells | No such SSM parameter is published there, so the scanner-version KVS fallback is simply **off** on Azure. Recorded so it is not discovered as a mystery later. |
 
-**Three things I could not determine, stated rather than guessed** (full detail in the comment): the
-azurerm provider's own defaults for the queue attributes and the Event Grid retry policy that this change
-leaves unset; whether the Terraform apply has actually landed on the cell before the flux flip; and whether
-`sensor_service`'s handler reads the new `_sys_*` properties.
+**Of the things I could not determine, three are now measured and one still cannot be** (full detail in
+[`at10-13-defaults-inventory.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-13-defaults-inventory.txt)):
+- **the azurerm defaults and the Event Grid retry policy — MEASURED**, not guessed, on the pinned provider
+  (`~> 4.0`, resolved 4.81.0, no lock file is committed) by a **real `terraform apply` against a
+  Standard-SKU namespace in the Azure lab** with a byte-identical argument set, read back with `az … show`
+  and destroyed: queue `max_size_in_megabytes` **5120**, `auto_delete_on_idle`
+  **`P10675199DT2H48M5.4775807S`** (never), `requires_session`/`requires_duplicate_detection`/
+  `partitioning_enabled` **false**, `batched_operations_enabled` **true**; Event Grid
+  `retry_policy.max_delivery_attempts` **30**, `event_time_to_live` **1440 min**, schema
+  **`EventGridSchema`**, and `deadLetterDestination` **null**. Two corrections fell out of it:
+  `enable_partitioning`/`enable_batched_operations` **do not exist in azurerm 4.x**, and the subscription
+  resource is `azurerm_eventgrid_system_topic_event_subscription`.
+- **whether `sensor_service` reads the new `_sys_*` properties — DEFINITIVE NO.**
+  `grep -rc '_sys_' backend_python/src/sensor_service` → **0** in every file: it receives the properties and
+  reads only `msg.body`/`msg.id`. The `_sys_*` side effect is correctly scoped to `alert_processor_service`.
+- **whether the Terraform apply has landed on the cell — still NOT determinable from here**, and merged is
+  not applied: `az servicebus queue show … -g ox-az-p-eus2-c02` → `ResourceGroupNotFound`, `az account list`
+  shows the lab tenant only, and the prod state bucket is `AccessDenied` from this box. Stated, not assumed.
 
 *(This list used to carry a fourth entry claiming the two Azure tenants' production flag state was
 undeterminable. It was not: one read-only API call answers it, and the answer changes what merging
@@ -494,12 +572,39 @@ answer is not a staleness argument, it is a re-drive. Done on `2b60fdc4df`, agai
 
 | what | result | artifact |
 |---|---|---|
-| at6 transport equivalence, **created** | **0 changed lines**, both dumps `sha e6dba029c180a563` | [`at6-07`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-07-transport-equivalence.txt) |
-| at6 **matched** | **0 changed lines** | [`at6-04b`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-04b-diff-matched.txt) |
-| at6 **reingest-skip** | **0 changed lines**, skip fired on both transports | [`at6-04c`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-04c-diff-reingest-skip.txt) |
+| at6 transport equivalence, **created** | **`changed lines: 0`**, both dumps `sha256 578016f3434b9630…`, 8/8 object pairs byte-identical | [`at6-04a`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-04a-diff-created.txt) · [`at6-07`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-07-transport-equivalence.txt) |
+| at6 **matched** | **`changed lines: 0`**, both dumps `sha256 e2e331b12293c84a…`, 16/16 pairs byte-identical | [`at6-04b`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-04b-diff-matched.txt) |
+| at6 **reingest-skip** | **`changed lines: 0`**, both dumps `sha256 e2e331b12293c84a…`, 29/29 pairs byte-identical; every writer step counter equal across lanes (`mcp_upsert ok=53`, `skipped=16`, `objects processed=117`) | [`at6-04c`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-04c-diff-reingest-skip.txt) |
 | at6 settlement classes | `skipped_unknown_tenant`, `parse_err`, `skipped_flag_off`, `failed → redelivered → processed` all driven live | [`at6-05`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-05-per-class.txt) |
+
+**Why the earlier re-drives of this leg did not come back at zero, and what that turned out to be.** An
+independent review measured a **deterministic** non-zero transport diff on all three classes and named the
+residual precisely: the same MCP server, same content hash, keyed `…/bundle.cjs::<serial>::unknown` on one
+tenant and `node::<serial>::unknown` on the other, with an unpinned `mcp-remote` resolving to two different
+concrete versions. That reproduced, so it needed a cause, not a re-run. It has one, and it is **not the
+transport**:
+
+- the writer resolves versions **inline before the first write** (`writers.py:916-926` →
+  `version_resolution.py:378` → `package_registry/npm.py:78`), which is a **live npm `dist-tags.latest` HTTP
+  GET at ingest time** — the function's own docstring calls itself *"THE RULE-9 EXCEPTION, CONSCIOUSLY
+  BOUNDED"*;
+- the identity name and bridge version then come from the per-tenant `mcp_package_cache`, falling back to
+  the raw `command` only on a cold miss (`mcp_writer.py:405-436`, `:466-478`);
+- and in front of that table sits a **module-global `LRUCache`** keyed `(tenant_schema, cache_key_hash)`
+  (`common/repository/mcp_package_cache.py:17-19`) which caches negatives too and **is not invalidated by
+  `TRUNCATE mcp_package_cache`** — so per-pod state survived every tenant reset the earlier harnesses did;
+- the resolved name and version are locals that never enter the content hash (`extract.py:229-235` sets
+  `name=None`), which is exactly why the divergence showed **identical `content_hash` with a different
+  `unique_identifier`** — a payload difference would have moved both;
+- and **all ten files on that path carry 0 changed lines** from the merge-base, so none of it is this PR's.
+
+Holding resolution constant — both writers created cold at the same instant, both caches truncated, both
+lanes driven inside one settle-gated window, transports untouched — makes the residual disappear: the exact
+rows that used to diverge now agree on both tenants (`node::ec255301…::unknown`, hash `6ba6cf0f…`,
+`mcp-remote::0.1.49`), with the two `mcp_package_cache` tables row-for-row identical. That is the
+discriminating measurement rather than an argument, and it is what the zeros above rest on.
 | at4 / at5 post-fix halves | both refusal directions + both gen-2 refusals re-captured verbatim; `post-fix/meta.json` regenerated on `2b60fdc4df` | [`at4-01`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at4-01-postfix-refusal-azure-s3.txt) · [`at5-01`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at5-01-scanner-postfix.txt) |
-| at8 renders | re-rendered on the MERGED flux-fleet head; all 7 repo gates exit 0 | [`at8-05`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-05-parity-check.txt) |
+| at8 renders | re-rendered on flux-fleet#2307's **current head `a4493c1e5ac0`** — that PR is **OPEN, not merged** (the earlier wording said "the MERGED flux-fleet head", which was never true of #2307); all 7 repo gates exit 0 | [`at8-05`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-05-parity-check.txt) |
 | at9 terraform + live Azure | `fmt`/`validate` rc=0, `terraform test` 6 passed, live semantics re-read | [`at9-01`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-01-tf-validate.txt) |
 | at7 posture re-affirm | reproduces on head — `updated_at` advanced 18:41:57 → 19:32:35 | [`at7-50`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-50-amendment-r30-reaffirm.txt) |
 
@@ -553,7 +658,7 @@ vector → Blob → Event Grid → Service Bus.
 | **at3** poison path | the real queue + its native `$DeadLetterQueue` | [`at3-01-poison-send.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at3-01-poison-send.txt), [`at3-02-dlq-receive.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at3-02-dlq-receive.txt), [`at3-03-consumer-logs.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at3-03-consumer-logs.txt), [`at3-04-sibling-db.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at3-04-sibling-db.txt) |
 | **at4** boot assertion (bug) | the service's own boot + readiness, both bad shapes and the good one | `pre-fix/at4-01..03`, [`at4-01-postfix-refusal-azure-s3.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at4-01-postfix-refusal-azure-s3.txt), [`at4-02-postfix-refusal-aws-asb.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at4-02-postfix-refusal-aws-asb.txt), [`at4-03-postfix-correct-boot.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at4-03-postfix-correct-boot.txt) |
 | **at5** gen-2 dead path (bug) | both consumers in azure mode against the real lab queues | `pre-fix/at5-01..03`, [`at5-01-scanner-postfix.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at5-01-scanner-postfix.txt), [`at5-02-mcpgw-postfix.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at5-02-mcpgw-postfix.txt), [`at5-03-shapes.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at5-03-shapes.txt), `at5-04/05-replay-*.txt` |
-| **at6** C13 settlement + both-lane parity | gen-1's own Temporal schedule on tenant TA vs the azure writer on TB, same bytes, three legs | [`at6-01-inventory.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-01-inventory.txt), [`at6-02-old-lane-rows.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-02-old-lane-rows.txt), [`at6-03-new-lane-rows.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-03-new-lane-rows.txt), `at6-04a/b/c-diff-*.txt`, [`at6-05-per-class.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-05-per-class.txt), [`at6-06-ledger.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-06-ledger.txt) (the C3 ledger, with the round-22 conformance block), [`at6-07-transport-equivalence.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-07-transport-equivalence.txt) (re-driven on the head sha, 0 changed lines + 8/8 per-loss greps), [`at6-08-residual-losses.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-08-residual-losses.txt), [`at6-09-fresh-tenant-parity.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-09-fresh-tenant-parity.txt) (fresh pair on the head sha, enumerated across assets / asset_connections incl. `metadata.sources` / tools / scanner_installations for all three both-lane classes), [`at6-10-followup-ticket.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-10-followup-ticket.txt) (PRDCT-12061 fetched, each required element checked), [`at6-11-veto-permalink.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-11-veto-permalink.txt) (the amendment's veto post resolved against Slack), [`at6-12-image-provenance.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-12-image-provenance.txt) (the writer image built from head and proven byte-exact — 4741/4741 files) |
+| **at6** settlement classes + **transport** equivalence — C13 was **rescoped by the round-45 owner ruling and gen-1 parity is NOT claimed** (this row used to describe the withdrawn gen-1-vs-new-lane leg) | the ONE writer image on the **AWS transport** vs the same image on the **Azure transport**, same object bytes, three classes, gen-1 quiesced for the whole sequence | [`at6-01-inventory.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-01-inventory.txt), [`at6-02-old-lane-rows.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-02-old-lane-rows.txt), [`at6-03-new-lane-rows.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-03-new-lane-rows.txt), `at6-04a/b/c-diff-*.txt`, [`at6-05-per-class.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-05-per-class.txt), [`at6-06-ledger.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-06-ledger.txt) (the C3 ledger, with the round-22 conformance block), [`at6-07-transport-equivalence.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-07-transport-equivalence.txt) (re-driven on the head sha — the artifact states its own measured changed-line count and both dump sha256s; the "8/8 per-loss greps" this row used to advertise are not in that file and the claim is withdrawn), [`at6-08-residual-losses.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-08-residual-losses.txt), [`at6-09-fresh-tenant-parity.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-09-fresh-tenant-parity.txt) (fresh pair on the head sha, enumerated across assets / asset_connections incl. `metadata.sources` / tools / scanner_installations for all three both-lane classes), [`at6-10-followup-ticket.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-10-followup-ticket.txt) (PRDCT-12061 fetched, each required element checked), [`at6-11-veto-permalink.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-11-veto-permalink.txt) (the amendment's veto post resolved against Slack), [`at6-12-image-provenance.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-12-image-provenance.txt) (the writer image built from head and proven byte-exact — 4741/4741 files) |
 | **at7** C2 real install → rows → UI → fidelity → lifecycle | a real npm install of Codex and OpenClaw, `codex mcp add`, a bundle packed by Anthropic's own `mcpb` CLI, real skill/subagent files — then the authenticated SPA | [`at7-00-isolation.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-00-isolation.txt), [`at7-01-real-install.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-01-real-install.txt), [`at7-02-scan-payload-ref.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-02-scan-payload-ref.txt), `at7-03..07-db-rows-*.txt`, [`at7-08-fidelity.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-08-fidelity.txt), [`at7-09-db-rows-tools-posture.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-09-db-rows-tools-posture.txt) (the single capture, plus the plan's two pinned names [`at7-09-db-rows-tools.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-09-db-rows-tools.txt) and [`at7-09-db-rows-posture.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-09-db-rows-posture.txt), materialised from its own sections), the at7 UI captures (`at7-10`, `at7-11`, `at7-12`, `at7-13`, `at7-14`, `at7-15`, `at7-19`, `at7-19b`, `at7-20`, `at7-21`, `at7-22`; the lifecycle frames are captured at the plan's pinned names and annotated in context, and because the skill and subagent surfaces genuinely do not change when the file is removed, [`at7-28-lifecycle-ui-redrive.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-28-lifecycle-ui-redrive.txt) MEASURES the non-change on this round's own frames — product region only, annotation chrome excluded, and it states plainly which pairs it makes no pixel claim for — from six DISTINCT captures, the before halves being the pre-removal frames `at7-12`/`at7-13`/`at7-10b` cited by their own names rather than copied to new ones), [`at7-18-lifecycle-db.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-18-lifecycle-db.txt) (per-class, in the amendment_r26 vocabulary), [`at7-41-lifecycle-head.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-41-lifecycle-head.txt) (the head-build removal + second-scan measurement, with the per-class re-coverage vehicle and the siblings' literal presence in the second scan's payload), [`at7-42-lifecycle-followup-ticket.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-42-lifecycle-followup-ticket.txt) (PRDCT-12069 fetched and matched against the live task), [`at7-43-veto-permalink-r26.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-43-veto-permalink-r26.txt) (the round-26 amendment's veto post resolved against Slack), [`at7-23-attestations.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-23-attestations.txt) (one row per class, so the demands settle individually), [`at7-24-removal.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-24-removal.txt), [`at7-29-posture-bridge.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-29-posture-bridge.txt), [`at7-30-agent-lifecycle-control.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-30-agent-lifecycle-control.txt) (the removed/still-installed control pair), [`at7-31-inventory-read-model.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-31-inventory-read-model.txt) (why the inventory LIST carries no row from this run — measured identical on BOTH lanes, so not a parity loss), [`at7-37-list-surface-revived.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-37-list-surface-revived.txt) + `at7-32..36-list-*.png` (the AI-Assets LIST captures, obtainable again after the read-model projection was revived), `recordings/at7.{webm,trace.zip}`, `recordings/at7-lifecycle.{webm,trace.zip}`, `recordings/at7-lists-r23.{webm,trace.zip}` |
 | **at8** deployment config | kustomize + helm render of BOTH Azure instances, and a LIVE KEDA arm in kind | [`at8-01-render-saas.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-01-render-saas.txt), [`at8-02-render-centerpoint.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-02-render-centerpoint.txt), [`at8-03-helm-equivalence.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-03-helm-equivalence.txt), [`at8-04-comment-fix.diff`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-04-comment-fix.diff), [`at8-05-parity-check.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-05-parity-check.txt), [`at8-06-keda-live.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-06-keda-live.txt), [`at8-07-instance-identity.diff`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-07-instance-identity.diff), [`at8-08-render-drift.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-08-render-drift.txt) |
 | **at9** Azure infra | terraform fmt/validate/tflint + a credentialed CI plan + the semantics demonstrated live | [`at9-01-tf-validate.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-01-tf-validate.txt), [`at9-02-sqlrule-positive.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-02-sqlrule-positive.txt), [`at9-03-sqlrule-negative.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-03-sqlrule-negative.txt), [`at9-04-delivery-property.json`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-04-delivery-property.json), [`at9-05-roles.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-05-roles.txt), [`at9-06-flux-config.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-06-flux-config.txt), [`at9-07-key-match.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-07-key-match.txt) |
@@ -582,18 +687,16 @@ Highlights, all from the captured artifacts:
   **zero** tool rows: the leg never evidenced tool-row transport equivalence, and that class is carried by
   `at6-04`'s per-class diffs and `at7-09` instead. That is why the residual writer-vs-gen-1 differences in
   the ledger belong to the one-writer cutover and not to this PR: they reproduce identically on AWS.
-- **Both lanes were driven for real, and every difference is itemised with a direction.** gen-1 ran from its
-  OWN unpaused Temporal schedule — its per-tenant `ScannerTenantWorkflow` execution ids are pasted in
-  `at6-02`, including the TA prefix that dump belongs to. What makes every TB row the new lane's is
-  stronger than a child-workflow count: in the `at6-07` transport leg gen-1's two workers were at **zero
-  pods** for the whole leg and TB still received its rows, and TB's own `scanner_installations` carry the
-  Azure object keys the writer read. Across the created / matched /
-  reingest-skip legs the two lanes agree on every asset class, hash and tool row; what differs is confined to
-  MCP identity and typing, and [`evidence/at6-06-ledger.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-06-ledger.txt) names each one, its direction (ADD / LOSS /
-  REMODEL), its root cause at `file:line`, whether the transport has anything to do with it (it does not), and
-  its disposition — one LOSS fixed here, two escalated with the exact fix and blast radius (one of them needs
-  an identity re-key migration and must not ride a transport PR), one REMODEL where the *new* lane is correct
-  and gen-1's shape is an LLM misextraction.
+- **What was driven for real, in the scope the owner left standing.** The comparison this PR is held to is
+  **transport** equivalence, not gen-1 parity: one writer image, the same object bytes, delivered once over
+  SQS/S3 and once over Service Bus/Blob. What makes every row on the Azure side the new lane's is stronger
+  than a workflow count — in the `at6-07` transport leg gen-1's two workers were at **zero pods** for the
+  whole leg and the Azure-transport tenant still received its rows, and that tenant's own
+  `scanner_installations` carry the Azure object keys the writer read. The gen-1 side-by-side and its five
+  divergence rows are **withdrawn as evidence for this PR** (see *"The gen-1-vs-new-lane comparison —
+  WITHDRAWN"* below) and survive only as an owner-accepted gap in [`evidence/at6-06-ledger.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-06-ledger.txt),
+  which names each item, its root cause at `file:line`, whether the transport has anything to do with it (it
+  does not), and its disposition.
 - **`failed → redeliver` is demonstrated end to end, and so is its boundary.** **Re-driven from scratch on
   the shipped head `2b60fdc4df`.** The running pod's lane tree (`endpoint_asset_ingestion` plus
   `common_core/services/queue`) was sha256'd file by file against that head and is byte-identical, so every
@@ -707,27 +810,82 @@ Highlights, all from the captured artifacts:
   **Data Receiver** on its own ingestion queue, Service Bus **Data Sender** on the alert-processing queue
   (added this round — without it the sessions fan-out cannot publish at all), and **Storage Blob Data
   Reader** on the ingestion account. No namespace-wide grant, no Contributor, no Owner.
-  **In the lab it is not that identity.** The lane runs as the lab's shared admin SP, which also holds
-  subscription **Reader** and **User Access Administrator**, RG **Contributor**, and a tail of
-  queue-scoped grants from earlier verifier probes; a dedicated SP could not be minted here
-  (`az ad sp create-for-rbac` → *Insufficient privileges*). That deviation is named, not asserted away.
-  What the lab CAN prove — and does, on one real queue with that over-privileged identity — is that
-  control-plane breadth buys no data-plane access: **SEND allowed, LISTEN denied** on
-  `alert-processing-prdct11935` with *"'Listen' claim(s) are required"*, exactly as the per-queue role
-  assignments say. Full measured footprint, the failed SP mint, and the escalation:
-  [`evidence/at9-08-credential-footprint.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-08-credential-footprint.txt).
-- **The KEDA trigger actually scales — and the sentence that used to sit here was wrong.** It quoted
-  `Successfully updated ScaleTarget … "Original Replicas Count": 0, "New Replicas Count": 1` as scaling on
-  a backlog. That line was logged **two seconds after the ScaledObject was applied**: it is KEDA enforcing
-  `minReplicaCount: 1` on a fresh object, not a scale decision, and the plan's round-24 reconciliation bars
-  quoting it that way. It is gone from the body and from the artifact.
-  What is demonstrated instead, re-captured on the current flux render and the head image
-  ([`evidence/at8-06-keda-live.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-06-keda-live.txt)): the consumer was held down while a **real 19-message Kong-originated
-  backlog** accumulated, the ScaledObject was unpaused, and KEDA — reading that queue through the SAS
-  `TriggerAuthentication` — reported `Active=True` and scaled the deployment **out** (desired 1 → 2), then
-  after the drain and cooldown scaled it back **in** (2 → 1). Scale-from-**zero** is *not* claimed:
-  `minReplicaCount` is 1 on both rendered instances, so 0 → 1 is unreachable by construction, which the
-  round-24 reconciliation records as an AT-wording issue.
+  **And the lab now runs it as that identity — this round stopped asserting the deviation and removed it.**
+  A **secretless user-assigned managed identity** (`prdct11935-at9lp-eai`, the same identity *type* the
+  Terraform authors, credentials over IMDS, no client secret anywhere) was created holding **exactly two**
+  role assignments and nothing else:
+
+  ```
+  COUNT= 2
+    Azure Service Bus Data Receiver | .../namespaces/prdct11935bus/queues/at9lp-eai
+    Storage Blob Data Reader        | .../storageAccounts/prdct11935st/blobServices/default/containers/ingestion
+  ```
+
+  A consumer clone was run as it, and a **real Kong-originated scan** went Blob → Event Grid → Service Bus →
+  that identity's queue → the tenant DB: `outcome=processed`, `prdct11935_ta18.assets` 153 → 438, and the
+  marker skills' stored `skill_md_hash` equal to their on-disk `sha256`. So the lane works under least
+  privilege, measured rather than argued. The negatives were driven under that same identity and are quoted
+  verbatim: SEND on its own queue → *"'Send' claim(s) are required … amqp:unauthorized-access"*; LISTEN on
+  the shared ingestion queue → *"'Listen' claim(s) are required"*; a foreign container and a foreign storage
+  account → `ErrorCode:AuthorizationPermissionMismatch`.
+
+  **The role claim that stood here was backwards, and the correction is the interesting part.**
+  On `alert-processing-prdct11935` the authored identity gets **SEND and not LISTEN**: the queue-scoped
+  `Azure Service Bus Data Sender` supplies the Send claim, and with no Receiver at that scope a receive is
+  refused with *"'Listen' claim(s) are required"*. An earlier reading of *LISTEN allowed* came from the
+  **lab's** old runtime identity (`coder-agent-app`), which separately holds a **namespace-wide** Data
+  Receiver on `prdct11935bus` — a superset the module never grants this lane. Three postures were measured
+  to settle it: `coder-agent-app` → SEND allowed / LISTEN allowed; two-roles-only → both denied; the two
+  roles **plus** the authored third grant → SEND allowed / LISTEN denied. (One correction to the sentence
+  above while we are here: the authored block grants **three** roles, not two — its own comment says so, and
+  the third is that queue-scoped Sender.)
+
+  **The federated half is a bounded limitation, stated as one.** `az aks list` → `[]` and
+  `Microsoft.ContainerService` is `NotRegistered`, so there is no OIDC issuer in the lab. Federated-credential
+  *support* was confirmed (Azure accepted the resource on the UAMI) and the token exchange was attempted with
+  a **real** projected service-account token, which failed at Entra with **`AADSTS501661: Request to External
+  OIDC endpoint failed`** — Entra cannot fetch discovery from kind's in-cluster issuer. Fixing that needs a
+  kube-apiserver `--service-account-issuer` change that would invalidate every service-account token on a box
+  running five other legs, so it was not done. Not proven, not softened.
+  [`evidence/at9-05-roles.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-05-roles.txt) ·
+  [`evidence/at9-09-least-privilege-runtime.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-09-least-privilege-runtime.txt) ·
+  [`evidence/at9-08-credential-footprint.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-08-credential-footprint.txt)
+- **The KEDA trigger actually scales — driven live on this head and this flux render, not asserted.** Until
+  this round the only capture was a round-21 one: its own inner block read *"It is HISTORICAL: it was NOT
+  re-driven this round"* (`a2486bb33f` / `:prdct11935-r26` / flux `cab40f0e42`) while the file's header and
+  this paragraph both said it had been re-captured. One file, two voices — now one, and the measurement is
+  new ([`at8-06-keda-live.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-06-keda-live.txt)):
+
+  | time (UTC) | KEDA's own metric (active msgs) | `deploy/eai-azure` replicas |
+  |---|---|---|
+  | 02:54:22 | 0 | 1 (= `minReplicaCount`) |
+  | 02:55:03 | **303** | 1 |
+  | **02:55:08** | 303 | **1 → 4** — HPA `SuccessfulRescale`, *reason: external metric `s0-azure-servicebus-endpoint-asset-ingestion-prdct11935` … above target* |
+  | 02:55:23 / :38 / :53 | 285 / 271 / 265 | 4 → 8 → 16 → **20** |
+  | 02:57:23 | 0 (drained) | 20 |
+  | 03:01:39 / :54 / 03:02:09 | 0 | 20 → 13 → 6 → **1**, *reason: All metrics below target* |
+  | 03:02:17 | 0 | **1**, held to 03:09:21 |
+
+  **The backlog rode the real at1 chain**, not a hand-placed message: 300 POSTs of a real recorded scanner
+  body to the real Kong front door (`300 × HTTP 200` in 6.0 s) → 300 blobs in the lab container → Event Grid
+  → the `sys.Label LIKE '%source=mcp-scanner/%'` rule → the queue; the object keys are named in the artifact,
+  and the pods KEDA started settled them `outcome=processed`. **Auth is the SAS `TriggerAuthentication`** —
+  `secretTargetRef` → `Endpoint=sb://prdct11935bus…;SharedAccessKey=<redacted>`, no `podIdentity` — with
+  `status.health numberOfFailures 0 / Happy`, `Active=True`, and **`Fallback=False`**, so no number here is a
+  fallback artefact. `kubectl` was **read-only** throughout the arm (`get`, `logs`, `get --raw`): no apply,
+  patch, annotate, scale, exec or port-forward in the arm path.
+
+  **How the burst was sized, because that is where this measurement could have fooled itself:** live vector
+  batches per rendered blob prefix, so N posts on one principal collapse to **one** message — depth is a
+  function of distinct principals, not of request count. From measured quantities (HPA sync 15 s, KEDA
+  `pollingInterval` 30 s, one replica's drain rate **0.9 msg/s** measured in-window, ≥12 active needed at 1
+  replica, up to 10 hidden as locked) the floor is ~49; 300 real principals were used (~6×), holding above
+  threshold for ~2m20s ≈ 9 HPA syncs. A 3-principal pilot confirmed the partition model first.
+
+  Two traps are honoured rather than repeated: the `"Original Replicas Count": 0, "New Replicas Count": 1`
+  line is **not quoted** anywhere — it is KEDA enforcing `minReplicaCount` on a fresh object, and this
+  ScaledObject was created five days before the window (`generation 1`) — and scale-from-**zero** is not
+  claimed, because `minReplicaCount` is 1 on both rendered instances by construction.
 
 **Evidence provenance — stated per artifact, not blanket.** An earlier version of this body claimed every
 artifact had been re-captured on the current head. That was not true, and it has been corrected. What is true:
@@ -958,9 +1116,17 @@ rather than a slow one. Per-consumer logs:
 [`pre-fix/at5-02-mcpgw-drop.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/pre-fix/at5-02-mcpgw-drop.txt).
 
 *After* ([`evidence/at5-01-scanner-postfix.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at5-01-scanner-postfix.txt), [`at5-02-mcpgw-postfix.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at5-02-mcpgw-postfix.txt)) — **provenance corrected here;
-the previous wording was stale in three places.** Both artifacts were re-driven in round 28 on images
-**rebuilt from this head**, and their own headers say so: `onyx branch 16b7bca77c`, image
-`:r46b-head`, re-captured 2026-08-23 on the shipped head. `at10-04`, generated from those headers, lists both rows as CURRENT with zero lane-touching commits
+the previous wording was stale, and the artifacts behind it were worse than stale.** Until round 50 both
+files head-stamped `2b60fdc4df` / `:r46b-head` while their bodies printed, under a **REFUSES** heading, a pod
+that was `1/1 Running`, `exitCode=`, `restarts=0` on the **pre-fix** image `:prdct11935-r26`. Re-captured
+this round from the pods that actually refuse, on images built here from the clean head tree: scanner
+`:r50at5-head` `sha256:943a1264…d8d79b85f`, gateway `:r50at5-head` `sha256:15be1519…5b244ee55`, with all
+**6385** files of `git archive 2b60fdc4df backend_python/src` proven byte-identical to `/app/src` inside
+both images. **And the reason the old artifact looked healthy is now known**: under the Tilt dev entrypoint
+(`uvicorn --reload`) the reload supervisor does not propagate its child's startup failure, so a pod whose
+app refused still reports `1/1 Running`. The `exitCode 3` / CrashLoopBackOff evidence therefore comes from
+the **production entrypoint shape** (`--workers 1`, `backend_python/Dockerfile:202/210`) — which is the
+shape a cell runs. `at10-04`, generated from those headers, lists both rows as CURRENT with zero lane-touching commits
 landed after them (that ledger is regenerated from the artifacts' own headers at push time, which is why
 it is cited rather than quoted as a fixed string). The earlier text here claimed `0665ecc545` /
 `:prdct11935-r25` with a paragraph rationalising a staleness that no longer exists; that is withdrawn.
@@ -975,8 +1141,14 @@ growing precisely because the refusing consumers never drain them, which is the 
 shows over a bounded window. That is the difference from the pre-fix behaviour, where the same service
 acked 9 real deliveries and wrote nothing.
 
-Both refusal texts, verbatim from the pods booted on **`16b7bca77c`** (images `:prdct11935-r26`, the
-pods named in the artifacts' own headers). The gateway one **changed in this PR** —
+Both refusal texts, verbatim from the pods that actually refuse: `r50at5-scanner-azure-prod`
+(`…-585fc5c9bb-r8kf2`) and `r50at5-mcpgw-azure-prod` (`…-567897ff94-grjx9`), each **0/1 CrashLoopBackOff,
+`exitCode 3`, `reason Error`, 5 restarts**, booted on **`2b60fdc4df25188104e737e6311087681355eff8`** from
+images built from that exact tree (`:r50at5-head`, digests `sha256:943a1264…` and `sha256:15be1519…`). The
+guard is re-proven on the same pods — **0** `ASB client connected` and **0** `Completed message` against the
+pre-fix captures' 10 and 9 real acks — the two lab queues only GREW (6660 → 6693 each) with `dead_letter=0`
+and the oldest message still at `delivery_count = 0`, and the **AWS** half of the same build boots `1/1`
+with only `ONYX__CLOUD` flipped. The gateway one **changed in this PR** —
 it used to name the *scanner* lane as the owner, which is a different object source with no Azure routing at
 all — so an artifact quoting the old text would have been quoting something the branch no longer ships:
 
@@ -1042,40 +1214,40 @@ transport PR, to the exact semantics that protect a laptop that is merely offlin
 no stale or deleted rendering for any class it did not measure one on**, and every caption below says what the
 product actually shows.
 
-## Branch currency — decided, not drifted into
+## Branch currency — one head sha, measured at push time
 
-**Decision: do NOT merge `main` into this PR now; leave it to the codeowner at merge time.** The branch is
-19 commits behind, `mergeable: true`, and `mergeStateStatus` is `BLOCKED` (the human gate) rather than
-`BEHIND` — this repo does not require up-to-date branches. Of the 19 commits, exactly **three files** overlap
-this PR's diff (`ingestion/extract.py`, its test, `infra/helm/onyx/values.yaml`) and on the one that matters
-the hunks do not touch: main's change sits at `extract.py:75-110` (PRDCT-11278 scanner-invocation
-attribution), this PR's at `extract.py:150-190` and `extract.py:268`. Against that, merging now would move the head, re-run all 21
-checks, and — the real cost — **stale the provenance of the entire evidence bundle**, every artifact of which
-is stamped `16b7bca77c`, forcing a re-attestation of proofs that nothing in those 19 commits invalidates.
-A merge is one operation for the codeowner at merge time; done now it is a chase that has to be repeated
-every time `main` moves.
+Two sections used to stand here and they contradicted each other and the head: one argued against merging
+`main` and cited a head of `16b7bca77c` *"19 commits behind"*; the other announced a round-44 merge and
+claimed *"every artifact in this bundle is stamped `16b7bca77c`"*. Both are gone. The head is
+**`2b60fdc4df25188104e737e6311087681355eff8`**, it is the only head sha this document states, and everything
+below is re-measured as the body is written rather than restated:
 
-## Branch currency — updated, and what that did to the evidence
-
-**Round-44 update: this branch is now merged up to `main` and the head is `16b7bca77c`.** Round 42 argued
-for staying put; that reasoning is overridden by the up-to-date-branch requirement, and the whole check bar
-has re-run on the new head.
-
-**Every artifact in this bundle is stamped `16b7bca77c`, so the head move had to be accounted for rather
-than waved through.** The merge changed **412 files**, of which exactly **two** are in the lane this
-evidence rests on — and both are measured inert:
-
-| lane file | what main changed | why the evidence still holds |
+| measured now | value | how |
 |---|---|---|
-| `infra/helm/onyx/values.yaml` | 27 insertions / 5 deletions | **0** changed lines mention `endpoint-asset-ingestion`, `asset_ingestion`, `servicebus`, `azure` or `blob`. Nothing at8's render evidence depends on is in the diff. |
-| `endpoint_asset_ingestion/ingestion/extract.py` | PRDCT-11278 refactored `resolve_trigger_method` to accept any valid enum member | Inert **for the inputs this evidence contains**. The only trigger-method value anywhere in the captured rows is `INSTALL_SCRIPT`, which resolves identically on both sides. *Stated narrowly on purpose:* my first draft claimed output-identity for **every** input on the grounds that the enum had two members — the same merge added a third (`SENSOR`), so a `SENSOR` payload now resolves differently than it used to. No capture carries one. My own corpus audit caught that overstatement before this shipped. |
+| head | `2b60fdc4df` | `gh pr view 12329 --json headRefOid` |
+| merge-base with `main` | `822abd2356` | `git merge-base HEAD origin/main` |
+| behind / ahead | **11** / 37 | `git rev-list --count HEAD..origin/main` and its reverse |
+| files `main` moved since the merge-base | 295 | `git diff --name-only 822abd2356..origin/main` |
+| of those, files this PR also touches | **3** — `backend_python/pyproject.toml`, `backend_python/uv.lock`, `docs/decisions/README.md` | `comm -12` over the two file lists |
+| **lane** files `main` moved | **0** | the same list grepped for `endpoint_asset_ingestion`, `common_core/services/{queue,ingestion_events,storage}`, and both gen-2 consumers |
+| merge state | `MERGEABLE` / `BLOCKED` — the human CODEOWNERS gate, **not** `BEHIND` | the PR API |
 
-So no capture was re-driven, and that is a **measured** conclusion, not an assumption — the policy's default
-is the opposite, a lane file *was* touched, and the burden was to show why it does not matter. The full
-measurement is in [`at10-21-head-move-provenance.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-21-head-move-provenance.txt).
+None of the three overlapping files collide: `main`'s `pyproject.toml` hunk adds a `glean` extra and extends
+the `temporal-worker` extra list while this PR adds `azure-storage-blob` to the runtime dependencies,
+`uv.lock` follows from that, and `docs/decisions/README.md` takes one index row from each side. GitHub
+reports the branch `MERGEABLE`, and this repo does not require up-to-date branches, so the merge stays with
+the codeowner at merge time.
+
+**Evidence stamping is per artifact, not per bundle.** The blanket *"every artifact is stamped X"* claim was
+the wrong shape and it was false in both directions — some artifacts were newer than that sha and some were
+older. What replaces it is a generated, per-artifact accounting: [`at10-04-evidence-provenance.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-04-evidence-provenance.txt) prints
+every artifact's own stamp, the onyx sha it was captured on, and the lane-touching commits that landed after
+it, and [`at10-23-evidence-currency.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-23-evidence-currency.txt) buckets the same set by whether the lane actually moved
+underneath each one. Where an artifact is not current, the ledger says so in its own row rather than a
+sentence here claiming otherwise.
 
 *ADR numbering, which this PR lost three races on:* `main` landed its own **0066**, then **0067**, then
-**0072** while this branch was open. Numbering by max+1 loses that race every time, so this PR's record
+**0072**, and has since added **0068**, **0071** and **0073**, while this branch was open. Numbering by max+1 loses that race every time, so this PR's record
 now sits at **0069** (`docs/decisions/0069-the-declared-cloud-decides-the-ingestion-transport.md`) — a real
 gap in the sequence, which an author adding a new record cannot take out from under it, because they pick
 max+1. `docs/decisions/README.md` carries every row in order and `task docs:check` passes.
@@ -1115,8 +1287,13 @@ commits to that branch**, authored under this box's git identity (`default <iddo
 | `8e34c3e173` | 10:44:34 | Stamp the identity under the name each runtime actually binds |
 | `62044a38e6` | 10:45:01 | Merge `origin/main` into `fix/si-env` |
 | `5345e62891` | 10:51:56 | Cover the ai-guard render path, and say only what the derivation guarantees |
-| `b2d2e2921e` | 10:54:57 | Strip each identity value before the fallback, and drop the ticket id from the code |
+| `b2d2e2921e` | 10:54:57 | Strip each identity value before the fallback, and drop the ticket id from fixtures |
 | `b2c431e44c` | 10:55:43 | Merge `origin/main` into `fix/si-env` |
+
+(The branch's seventh commit, `2a53965d4a` at 17:15:05 on 2026-08-19, is **May's own** — the one the PR was
+opened with. Every subject above is quoted from a live
+`GET /repos/onyxsecurity/onyx/pulls/12382/commits` as this body is written; one of them used to read *"drop
+the ticket id from the code"* and the live subject is *"…from fixtures"*.)
 
 Those commits address the two findings this section had itself recommended — the Go/Python env-name split
 and the uncovered ai-guard render path — and add the two Go tests (`service_identity_test.go`,
@@ -1129,9 +1306,9 @@ PRDCT-11935, and disclosed on #12382 itself so its author reads it there and not
 
 | | |
 |---|---|
-| Head | `b2c431e44c0f5488a21d028f94c5896c9985a802` · updated 2026-08-23T11:07:01Z |
+| Head | `b2c431e44c0f5488a21d028f94c5896c9985a802` · updated **2026-08-23T19:50:22Z** (re-fetched as this body is written; the row said `11:07:01Z`, which had gone stale) |
 | State | OPEN · `CHANGES_REQUESTED` |
-| Currency | `compare main...b2c431e4` → **ahead 7, behind 26, diverged** |
+| Currency | `compare main...b2c431e4` → **ahead 7, behind 30, diverged** (was 26 when this row was first written; `main` has moved since) |
 | Size | **7 commits, 9 files, +238/−0** — onyx `tilt/helm.star`, onyx `tilt/ai_guard.star`, the tilt-dev skill doc, `main.tf` in each of the four coder templates, and two new Go tests |
 | Review | 10 threads, **1 unresolved** |
 | Relationship to this contract | **none** — it touches no demand, no acceptance test, and no file in this PR's diff |
@@ -1144,8 +1321,8 @@ here was proven against the real LD rule
 `ONYX__FEATURE_FLAGS__SERVICE_IDENTITY` is set on this lane's own pod. So the ticket id records where the
 need was found; the change itself is dev-infrastructure, not scanner ingestion.
 
-**Disposition — the author's and the ticket owner's, not mine.** It is 26 behind `main` with one unresolved
-thread. Whoever picks it up should know that a different run pushed most of its current content, and may
+**Disposition — the author's and the ticket owner's, not mine.** It is **30** behind `main` with one unresolved
+thread, and its own tip is a `Merge remote-tracking branch 'origin/main' into fix/si-env`. Whoever picks it up should know that a different run pushed most of its current content, and may
 reasonably prefer to re-cut it. Related work exists on the router side — `onyx#12377`
 (`PRDCT-10171 | ld-router: mediate service_identity clauses`) — a **different ticket on a different branch
 that I have not reviewed or verified**; if that lands, the two together are what would make per-caller LD
@@ -1233,24 +1410,24 @@ Every deliverable the ticket names, with a status.
 | **A2** `CloudProvider.AZURE` branch, ASB factory mode, `max_messages` pinned to 1 for ASB at runtime | **delivered** |
 | **A3** `create_storage_client` instead of a hard `S3Client` | **delivered** (see interpretation 4) |
 | **A4** the missing Event Grid parser | **delivered, then OVERTAKEN mid-flight and re-resolved** — `main` landed one for the sensor lane while this branch was open, so the lane now consumes `parse_blob_event_message` and this branch's own parser is deleted. One parser, both body shapes, unit-pinned, with the real captured lab delivery as a test. See the Design Decisions bullet and correction 8 |
-| **B1** Service Bus queue + toggle, native DLQ | **delivered elsewhere** — onyxsecurity/infrastructure#1575, head `da993d1ae2eb` (advanced this round: the state migrations moved into a dedicated `moved.tf` at the reviewer's request, a plan-time feed guard added for the queue, and `main` merged so the branch is no longer conflicting — `mergeable: true`) (re-fetched live this round; the body previously named `f9d608e7b38c`, which is that head's PARENT — it stopped being the head when `8498355f0131` landed 2026-08-21T21:24Z, and the B4 row below already named the newer sha, so the body disagreed with itself), `mergeable: true`, `mergeStateStatus: blocked`. Both are quoted because the round-19 gate found this row claiming "mergeable: true, 0 behind" while the PR was live `BEHIND` — `mergeable` alone does not say whether a branch is current. It was brought up to date with `main` this round, and the terraform bar is now IN the evidence rather than asserted: `fmt -check -recursive` clean on all five changed dirs, `validate` Success on the module and both instance roots, `terraform test` **6 passed / 0 failed** (`at9-01`). The one red signal is `approval-gate`, the repo's CODEOWNERS **human** review status. |
+| **B1** Service Bus queue + toggle, native DLQ | **delivered elsewhere, and now MERGED** — onyxsecurity/infrastructure#1575 merged into `main` at **2026-08-23T12:18:07Z** at head `da993d1ae2eb` (re-fetched live as this body is written; earlier revisions of this row described it as open and awaiting its `approval-gate`, which stopped being true when it merged) (advanced this round: the state migrations moved into a dedicated `moved.tf` at the reviewer's request, a plan-time feed guard added for the queue, and `main` merged so the branch is no longer conflicting — `mergeable: true`) (re-fetched live this round; the body previously named `f9d608e7b38c`, which is that head's PARENT — it stopped being the head when `8498355f0131` landed 2026-08-21T21:24Z, and the B4 row below already named the newer sha, so the body disagreed with itself), `mergeable: true`, `mergeStateStatus: blocked`. Both are quoted because the round-19 gate found this row claiming "mergeable: true, 0 behind" while the PR was live `BEHIND` — `mergeable` alone does not say whether a branch is current. It was brought up to date with `main` this round, and the terraform bar is now IN the evidence rather than asserted: `fmt -check -recursive` clean on all five changed dirs, `validate` Success on the module and both instance roots, `terraform test` **6 passed / 0 failed** (`at9-01`). The one red signal is `approval-gate`, the repo's CODEOWNERS **human** review status. |
 | **B2** `byoc_events` subscription + `source=mcp-scanner` SQL rule | **delivered elsewhere** — same branch; rule semantics proven live incl. both non-collision directions (at9-02/03) |
 | **B3** blob → Event Grid → Service Bus for non-BYOC SaaS | **delivered elsewhere** — same branch, extracted as a shared module so BYOC and SaaS cannot drift (see interpretation 2) |
 | **B4** federated credential + the roles | **delivered elsewhere** — same branch; the role set is asserted live, including the without-roles refusal (at9-05). **Round-34 correction (gate GAP-7d):** the ticket and the plan text both say *two* roles; the shipped Terraform declares **three** — a queue-scoped `Azure Service Bus Data Sender` on `alert_processing` (`workload_identity.tf:119-125`) alongside the Receiver and the Blob Reader. Without it the alert fan-out 401s and every session alert is lost silently. The third grant is ledgered with its call chain, its cost-if-dropped and its AWS-parity precedent in [`evidence/at9-05-roles.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at9-05-roles.txt), and the four stale "two grants" comments in the infrastructure repo were corrected in commit `8498355f` (that branch's head is now `da993d1ae2eb`). The plan text is research's to move; the PR now states three. |
 | **B5** publish queue name/namespace into flux config | **delivered elsewhere** — same branch. Published **conditionally**, gated on `create_service_bus && create_endpoint_asset_ingestion_queue` (at9-06, re-captured against the live sibling head): unlike the AWS side, which string-composes its URL from account+region+tenant and so has no resource to gate on, the Azure keys are read off the real queue and namespace. A lane-on/queue-off instance therefore renders an empty queue name — Flux substitutes an unprovided `${...}` to the empty string and reconciles — so it crash-loops on the transport guard's refusal rather than failing the render, which is why infrastructure must be applied before the flux toggle. Full cross-repo key-match table in at9-07 |
-| **C** lane enabled on **both** Azure instances, azure-servicebus KEDA trigger on the SAS auth, drop-aws-only entries, stale release.yaml comment | **delivered elsewhere, and the comment sub-item is OVERTAKEN — see correction 10** — onyxsecurity/flux-fleet#2307, head `b0d3e1cfbfea`, `mergeable: true`, `mergeStateStatus: blocked`. It was `CONFLICTING`/`DIRTY` when the round-19 gate looked, and the cause was not a stale rebase: `main`'s PRDCT-4368 (#2334) removed **all 611 comment lines** from the eight instance override files while this branch was adding a ~57-line comment block to the same region. Resolved main's way — both files taken comment-free from main with this lane's 39 value lines replacing the disabled stub, and the three traps the comments carried recorded in `docs/architecture/instance-override-rules.md`, where PRDCT-4368 says rules now go. `make check` (164 kustomizations) and tenant parity both pass on the resolved head, and both instances render the lane enabled with `asset_ingestion_s3` **and** `asset_ingestion_sqs` blank and the `azure-servicebus` KEDA trigger (`at8-01`/`at8-02`, re-rendered at that head). Same `approval-gate` human gate as B1. |
+| **C** lane enabled on **both** Azure instances, azure-servicebus KEDA trigger on the SAS auth, drop-aws-only entries, stale release.yaml comment | **delivered elsewhere, and the comment sub-item is OVERTAKEN — see correction 10** — onyxsecurity/flux-fleet#2307, head **`a4493c1e5ac0`** (re-fetched live; the `b0d3e1cfbfea` this row used to pin is **131 commits** behind it, and the renders quoted here were re-rendered at `a4493c1e5ac0`, not at that sha), still **OPEN** — `mergeable: true`, `mergeStateStatus: blocked`. It was `CONFLICTING`/`DIRTY` when the round-19 gate looked, and the cause was not a stale rebase: `main`'s PRDCT-4368 (#2334) removed **all 611 comment lines** from the eight instance override files while this branch was adding a ~57-line comment block to the same region. Resolved main's way — both files taken comment-free from main with this lane's 39 value lines replacing the disabled stub, and the three traps the comments carried recorded in `docs/architecture/instance-override-rules.md`, where PRDCT-4368 says rules now go. `make check` (164 kustomizations) and tenant parity both pass on the resolved head, and both instances render the lane enabled with `asset_ingestion_s3` **and** `asset_ingestion_sqs` blank and the `azure-servicebus` KEDA trigger (`at8-01`/`at8-02`, re-rendered at that head). Same `approval-gate` human gate as B1. |
+| **Deploy safety — OWNER-VISIBLE DECISION** (round-49 adjudication, `spec_interpretations` **(14)**) | **Merging flux-fleet#2307 is a LIVE CUTOVER, not a dark deploy — this PR used to say the opposite.** Measured read-only three times by three different agents — 2026-08-23T18:22:18Z, 20:33:27Z and 20:56:39Z — via `GET /api/v2/flags/default/endpoint-asset-ingestion?env=production`: `on: true`; `fallthrough.variation 0 → true`, so a tenant matching **no** rule gets the lane **ON**; the FALSE holdout rule serves exactly `bamfunds`, `fireblocks` and `intuit-prod`; and rule `c7789aea-0948-42f8-8f54-a31d1d5148b0` serves **true** to 19 tenants **including `Centerpoint Energy`**. The enablement therefore lands hot for Centerpoint Energy and for every unmatched tenant on both c02 instances, and the intuit precedent does not transfer *precisely because* `intuit-prod` is one of the three explicit FALSE holdouts. **⚠️ Before merging flux-fleet#2307, confirm the intended production posture of `endpoint-asset-ingestion` with the flag owner** — the same instruction is carried at the top of that PR, so whoever merges it need never open this one. **This run only READ the flag; no write was made to any production LaunchDarkly environment** — changing it is a human decision. Evidence [`at10-08-prod-ld-posture.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-08-prod-ld-posture.txt); escalated to the owner before the plan re-freeze ([thread](https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787517269527719?thread_ts=1787063683.640599&cid=C0BCW4JDZB2) · [DM](https://onyx-security.slack.com/archives/D0B6V65HCEN/p1787517269723809)). Note the other half of the same picture: **infrastructure#1575 is already merged** (row B1), so the Azure infra side is on `main` and flux is the remaining gate. |
 | **C2 posture** (`d-c2-fid-posture`) | **The class DID mint issues, and it settles under `amendment_r30` — as a defect, not as a fallback.** **ROUND-31 CORRECTION:** this row previously read *"bridge-ran, no issue — the plan's pre-declared fallback"*, which [`evidence/at7-09-db-rows-posture.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-09-db-rows-posture.txt) explicitly refutes, and which contradicted this body's own C2-LC row a few hundred lines below — so the reconciliation shipped **two mutually exclusive dispositions for one class**, in the direction that hid the defect. There is now one. The measured end-state: issue instances **1637 / 1638 / 1639 on asset 211819**, one per firing definition (44 / 45 / 48), persisting after the source was deleted — no new instance, none duplicated, each still joining a live asset row, the subject's asset row count unchanged at 1 and `total_risk_score` steady at 2.49. Across the paired real re-scan `updated_at` advanced **15:17:13.181372 → 15:29:04.521424** while `resolve_state` stayed **Open**, `closed_at` stayed **NULL**, and `asset_posture_findings.classified_at` stayed **FROZEN at 2026-08-21 13:44:18.531816+00** — the row was re-written from a cached finding, not from any live artifact. Attributed to the triggering bridge → `IssueDetectionWorkflow` parentage. The product renders it as **Open ×16, Resolved 0, Closed 0** with the deleted the deleted skill file still in frame (`evidence/at7-22-ui-lifecycle-posture.png`). Path identity for the posture plane is [`evidence/at7-47-posture-path-identity.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-47-posture-path-identity.txt). Ticketed as **[PRDCT-12071](https://app.clickup.com/t/86bbj56qh)**; the bridge execution itself is still shown in [`evidence/at7-29-posture-bridge.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-29-posture-bridge.txt). |
+| **C2-LC** — C2 clause 5's stale-rendering half, **all six lifecycle classes** (MCP server, MCP tools, skill, subagent, desktop-agent, posture) | **OVERTAKEN for five classes; a measured, ticketed DEFECT for posture — and the posture half was RE-ADJUDICATED at head this round.** *(This row was briefly lost when a 27 KB gen-1-parity section was removed from this body; it is restored here, in the C3 ledger where the `spec_interpretations` table points, and rewritten to the head's behaviour rather than pasted back.)* **What binds and is proven:** the demand's *not-resurrected / not-duplicated* half — one asset row per artifact identity after a real removal and a second real scan, tenant-wide `is_deleted` = 0, nothing written after the second scan began ([`at7-41-lifecycle-head.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-41-lifecycle-head.txt), [`at7-18-lifecycle-db.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-18-lifecycle-db.txt)). **Why the *stale-or-deleted* half is unrepresentable for the five classes:** the stored `AssetStatus` enum is exactly {Sanctioned, Unsanctioned, Discovered}, **neither** lane moves `status`/`is_deleted` on absence-from-scan, and the SPA's whole lifecycle vocabulary for these classes is a `Deleted` badge gated on `is_deleted` that the scanner lane never sets — a pre-existing cross-lane product gap this transport PR neither introduces nor could honestly fix. Adjudicated in `spec_interpretations` **(8)** (`amendment_r26`), posted for owner veto, and ticketed on **[PRDCT-12069](https://app.clickup.com/t/86bbhzk2z)**. **Desktop agent** joins the row under **(9)** and is re-scoped by **(12)** (`amendment_r31`): the honest cross-window property is a **LAG**, never an absolute freeze — proven as a single-scan staircase (the removed subject's `last_scanned_at` byte-identical across the paired scan while same-machine controls advance) with the column's writer set named from source, and any absolute-freeze claim is a FAIL that this body does not make. **POSTURE — the head no longer behaves the way `amendment_r30` described, and the plan says so.** `spec_interpretations` **(15)** / `amendment_r50` supersedes r30's F1 anchor **and** its part-2 observable: upstream `main` made the instance-write path **diff-guarded and counted** (`issue_repository.py:1316-1329` — `evidence_differs` → `has_evidence_write` → `should_reopen_or_refresh`, which *"deliberately skips rows that are OPEN with nothing new to write"*), so the per-scan `updated_at` re-touch r30 measured on the frozen base is **retired by design**. The contracted observable at head is therefore **STILL-OPEN / RE-EVALUATED / DIFF-GUARDED-FROZEN, with the no-op counter as the proof** (`outcome="unchanged"`), on a **runtime-identity-pinned** worker, anchored on **PR-diff-vs-merge-base = 0** across the eight pathspecs plus the residual report against `origin/main` plus the `writers.py` symbol clause. What has **not** changed is the user-visible defect: an issue whose evidence is a deleted file still renders Open with that content as live Evidence. It is ticketed on **[PRDCT-12071](https://app.clickup.com/t/86bbj56qh)**, it is not presented here as stale-handling, as resolved, or as acceptable, and it is bound to PRDCT-12069 by a shared root cause — no scanner-lane writer sets `assets.is_deleted`, the gate on the one absence-adjacent close hook (`unlink_deleted_assets_from_issues`). Closing on absence inside this PR was rejected for the reason the posture plane documents about itself: *"Closing on that signal silently auto-resolves real customer findings every time the LLM has a hiccup"*. Evidence: [`at7-09-db-rows-posture.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-09-db-rows-posture.txt), [`at7-47-posture-path-identity.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-47-posture-path-identity.txt), and research's re-adjudication captures under `evidence/r50-posture/`. **⚠️ ENTRY (11) SUPERSESSION NOTE — attached inline, as `amendment_r50` requires (at10 check (t)):** wherever this ledger quotes or relies on `spec_interpretations` entry **(11)**, read it with **(15)** attached. Superseded are entry (11)'s **F1 anchor**, its **part-2 observable**, its mechanism sentence (*"ACTIVELY RE-AFFIRMS them Open on every scan"* via the always-refresh branch — accurate for the frozen base `67b4096f`, replaced at head by the diff-guard above) and **every frozen-base line number inside r30's text** (historical; the head cites live in `amendment_r50` alone). Entry (11) itself stays byte-untouched as a frozen record. The same attachment applies to entries **(8)** and **(9)** for the POSTURE class only — the usage cell is unaffected. |
 | **C2 usage sessions** (`d-c2-fid-usage`, `d-c2-ui-usage`) | **DELIVERED, and the UI half is now proven on the right surface.** The rows were always real — session **2396**, `external_id 20260821_033142_faf0bc`, written by the head-exact writer with the machine's own session id — the session the embedded capture and `at7-23` actually carry. The UI half failed for rounds because it was probed on `/ai-assets/usage`, which the plan owner has since identified as the inventory-**application** detail tree (`d-c2-ui-usage.amendment_r24`; the plan is now frozen at `sha256 e4943218…` *(superseded)*); nothing was narrowed, the route was corrected. On `/ai-activity?activitySessionId=2396` the per-session panel renders `#2396`, `Hermes Agent (coder)`, the session's own conversation and its Asset Details. Evidence `at7-40`, capture `at7-14` (with `at7-39` the round-24 `#1389` capture of the same surface). |
 | **C2 / C11 / C13 proof legs** (rows, replay, both-lane diff, per-class UI) | **delivered.** (Round-32 correction, gate G1: this cell used to read "with ONE exception rowed above (posture: bridge-ran/no-issue, the plan's own pre-declared fallback)" — the very disposition the C2-posture row above withdraws as refuted by [`evidence/at7-09-db-rows-posture.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-09-db-rows-posture.txt). The reconciliation carried two mutually exclusive dispositions for one class, in the direction that hides a user-visible defect. There is now one, and it is the `amendment_r30` defect framing in that row.) The usage-sessions exception that used to sit here is withdrawn — the class is proven. |
 | **D1** fairness | **deferred, by the ticket's own sanction** — the Azure lane ships without per-tenant fairness, the same deviation AWS M1 shipped with. Service Bus Sessions is the counterpart; the design belongs to PRDCT-9711. Stated in `docs/architecture/services.md`. Note `fair_ingest_intake` is an infrastructure-repo module, not app code (interpretation 6) |
 | **D2** monitoring | **delivered (doc), monitors deferred** — `docs/monitoring/endpoint-asset-ingestion-alerts.md` gains the Azure half: three of the four alerts are app-metric-based and apply unchanged; the DLQ alert's Azure equivalent is the Service Bus queue's `DeadletteredMessages`. Arming goes through Litterbox, never hand-written YAML, and cannot be armed until the lane reconciles onto a cell (no data to derive a threshold from) |
 | **D3** cloud-aware flags **or** boot assertion | **delivered** — the assertion; ADR [`docs/decisions/0069-the-declared-cloud-decides-the-ingestion-transport.md`](docs/decisions/0069-the-declared-cloud-decides-the-ingestion-transport.md) says why |
 | **D4** gen-2 ASB branch fate | **delivered** — deleted in both named services, with the reason recorded |
-| **Prod apply / rollout** | **deferred — human-gated.** This run applies nothing to production Azure and rolls out no flux change. Both sibling PRs are open for human review (infrastructure#1575, flux-fleet#2307) and are deliberately parked on their CODEOWNERS `approval-gate`; the infrastructure change also carries `moved` blocks whose state move should be confirmed by a real `terraform plan` on the centerpoint data plane before apply |
+| **Prod apply / rollout** | **deferred — human-gated.** This run applies nothing to production Azure and rolls out no flux change itself. The two siblings are **no longer in the same state, and this row used to claim they were**: **infrastructure#1575 is MERGED** (2026-08-23T12:18:07Z, head `da993d1ae2eb`) — so the Terraform half is on `main` and whoever runs the apply owns it from here — while **flux-fleet#2307 is still OPEN** at `a4493c1e5ac0`, parked on its CODEOWNERS `approval-gate`. Merging that one is a **live cutover**, not a dark deploy — see the **Deploy safety** row above; the infrastructure change also carries `moved` blocks whose state move should be confirmed by a real `terraform plan` on the centerpoint data plane before apply |
 
-**Plan revision this PR is written against:** `test_plan.json` @ `sha256 863dbd105e74881e639ccf10363be5d1c0e9d6158fe344838ea6b240843edee5` (re-emitted in round 49 to record the deploy-safety adjudication; matches `test_plan.sha256`. The round-46 revision `sha256 02c8daba5004…` is *(superseded)*.)
-— the round-36 re-freeze, which reconciled the cutover flip-sequence cite to `feature_flags/consts.py:212-216`
-(the value the head actually holds) after the plan had carried `:202-207` in one field and `:212-216` in others.
+**Plan revision this PR is written against:** `test_plan.json` @ `sha256 973b3cfa916fa7122561aa3d65739bf6db469ab341eb52b52288496e7dad69a5` — re-emitted in **round 50** to record the re-adjudication of `d-c2-lc-posture` (`spec_interpretations` **(15)** / `amendment_r50`), and matching the sidecar `test_plan.sha256` as this body is written. It supersedes `863dbd105e74…` (round 49, the deploy-safety adjudication) and, before it, the round-36 re-freeze that reconciled the cutover flip-sequence cite to `feature_flags/consts.py:212-216` — the value the head actually holds — after the plan had carried `:202-207` in one field and `:212-216` in others.
 **This is the only plan sha this body states as current.** Earlier rounds left two different values standing in
 two places, which made it impossible to tell which revision the run had been graded against; the body now
 carries exactly one, and `/tmp/prdct11935/audit.py` FAILS the gate if it stops matching `test_plan.sha256`.
@@ -1277,9 +1454,10 @@ twelve (S3, S10, S12) — and those are mirrored, each artifact carrying its own
 occurrences are deliberately left: one sits inside a **verbatim ClickUp fetch** (rewriting it would forge
 the receipt — the live ticket is what needs updating), and one is a verifier-authored file.
 
-*All **thirteen** `spec_interpretations` entries in `test_plan.json` are carried here as owner-visible items, so
+*All **fifteen** `spec_interpretations` entries in `test_plan.json` are carried here as owner-visible items, so
 every scope narrowing is a decision the ticket owner can see and veto. Where each lives (round 31 raised the
-count from eleven to thirteen):*
+count from eleven to thirteen; round 49 added **(14)**, the deploy-safety correction; round 50 added **(15)**,
+the posture re-adjudication):*
 
 | `spec_interpretations` | what it rules | carried in this body at |
 |---|---|---|
@@ -1296,6 +1474,8 @@ count from eleven to thirteen):*
 | (11) | the round-30 posture lifecycle adjudication | the **C2-LC** ledger row + its entry-(11) supersession note |
 | **(12)** | **the round-31 agent-freshness LAG re-scope** (`d-c2-lc-agent.amendment_r31`) | the **C2-LC** ledger row — "THE AGENT CLASS'S FRESHNESS TERM IS RE-SCOPED IN ROUND 31" |
 | **(13)** | **the round-31 deliverable-C OVERTAKEN adjudication** (`d-c3comment-{saas,centerpoint}.amendment_r31`) | correction 10 below |
+| **(14)** | **the round-49 deploy-safety correction** of deliverable C's *"dark/dormant (intuit precedent)"* framing | the **Deploy safety** row of this ledger (immediately below the **C** row), and the ⚠️ box at the top of flux-fleet#2307 |
+| **(15)** | **the round-50 re-adjudication of `d-c2-lc-posture`** — `amendment_r50` supersedes `amendment_r30`'s F1 anchor and part-2 observable, because upstream `main` made the instance-write path diff-guarded and counted, retiring the per-scan `updated_at` re-touch **by design**; the observable is now STILL-OPEN / RE-EVALUATED / DIFF-GUARDED-FROZEN with the counter as proof | the **C2-LC** ledger row's posture half + the at7 posture captures |
 
 1. C2 clause 2 names the production ingest path as "Kong → S3 → SQS → workflows → tenant DB" — the AWS shape —
    while this ticket's whole subject is the Azure lane, which has no S3 or SQS and is off Temporal. Read as
@@ -1358,9 +1538,10 @@ count from eleven to thirteen):*
    The round-28 gate was right that this was the one overtaken class in the run carrying no formal amendment; it has one now,
    and [`evidence/at8-04-comment-fix.diff`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-04-comment-fix.diff) is re-emitted to its spec with a **per-instance, error-checked** table.
    Measured for `ox-az-p-eus2-c02/instances/{saas,centerpoint}/onyx-app/release.yaml` at three refs — the flux-fleet
-   merge-base with `origin/main` (`fa943d66a8`, the repo's effective frozen base, since flux-fleet carries no
-   `factory-eval-base` ref), `68bdecfd1e70`, and this branch's head `b0d3e1cfbfea` — **comment lines 0 and stale-clause hits 0
-   at every ref for both instances**, with the upstream commit's own `diff --stat` showing **112 deletions per instance**.
+   merge-base with `origin/main` (the repo's effective frozen base, since flux-fleet carries no
+   `factory-eval-base` ref), `68bdecfd1e70`, and this branch's head — **comment lines 0 and stale-clause hits 0
+   at every ref for both instances**. Re-measured against the CURRENT flux head `a4493c1e5ac0` as this body is written
+   (the ref this clause used to pin, `b0d3e1cfbfea`, is 131 commits behind it): `git show <ref>:clusters/ox-az-p-eus2-c02/instances/{saas,centerpoint}/onyx-app/release.yaml | grep -c '^\s*#'` returns **0 for both instances at the current head**, and at the merge-base `2c8ad2f2d4` and at `68bdecfd1e70` too, so the conclusion holds at the sha the reviewer will actually see, with the upstream commit's own `diff --stat` showing **112 deletions per instance**.
    The generator runs `git cat-file -e <ref>:<path>` first and prints an explicit ERROR row rather than a zero if a path
    does not resolve, because the amendment records that an earlier base check was a false pass by construction — a failed
    `git show` swallowed by `grep -c` against a ref that does not exist. And requirement (iii) holds: this branch adds
@@ -1396,28 +1577,36 @@ count from eleven to thirteen):*
    shape died with `pydantic_core.ValidationError … asset_ingestion_sqs — Input should be a valid dictionary
    or instance of AssetIngestionSQSConfig [input_value=None]` and `Application startup failed. Exiting.`
    Receipt: [`evidence/at8-05-render-and-boot.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at8-05-render-and-boot.txt).
-12. **The Azure alert-producer half FAILED on every send, and both causes are fixed in this PR.** An
-   earlier version of this note called this half "configured but UNDRIVEN … `no sessions in payload`".
-   That was wrong at the head: sessions existed, the path was driven on every scan, and it failed 100% of
-   the time — 65 swallowed "failed to publish one session alert-processing request (continuing)" with the
-   alert queue empty after every drive. Two causes, and the first was hiding the second:
-   **(a) a coroutine-safety bug.** One `ServiceBusSender` was shared across every concurrent
-   object-processing task; the SDK's sender is not coroutine-safe, so overlapping sends raced on the
-   single AMQP link and the loser saw a half-open handler
-   (`'NoneType' object has no attribute 'create_sender_link'`, 1042 times on the pre-fix pod). Sends are
-   now serialised on the shared link — the receive side already solves the same hazard the other way, by
-   giving each consumer worker its own client. Tests: `test_asb_sender_concurrency.py`.
-   **(b) a missing grant.** With the crashes gone the real error was legible:
-   `amqp:unauthorized-access — 'Send' claim(s) are required`. The Azure workload identity was granted
-   Data Receiver on its own ingestion queue and Blob Data Reader on storage, but **nothing on the
-   alert-processing queue** — so the lane as authored could never publish an alert. A queue-scoped
-   `Azure Service Bus Data Sender` grant is added in onyxsecurity/infrastructure#1575.
-   **And the silence is fixed too:** this lane metered `published` and `skipped_no_queue` but never
-   `publish_failed`, so a producer failing every time moved no counter at all — the ticket's own footgun-2
-   shape. Both lanes now count it (`test_session_alert_failure_is_metered.py`).
-   Proven end to end on the head image: **0** sender crashes, **0** unauthorized-access, **published=13
-   failed=0**, and `alert_queue` 15 → 41 with real session alerts on it carrying `session_id`,
-   `tenant_schema_name` and `policy_id`. Evidence: [`evidence/at11-01-azure-alert-path.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at11-01-azure-alert-path.txt).
+12. **The Azure alert-producer half — one cause fixed elsewhere, one fix NO LONGER IN THIS PR, and this
+   item used to claim both.** The measurement that opened it stands: on the pre-fix pod the fan-out failed
+   100% of the time — 65 swallowed *"failed to publish one session alert-processing request (continuing)"*
+   with the alert queue empty after every drive, and **1042** `'NoneType' object has no attribute
+   'create_sender_link'` underneath. Two causes were found. What ships is not what this item said:
+   **(a) the coroutine-safety fix is NOT in this PR.** One `ServiceBusSender` is shared across concurrent
+   object tasks and the SDK's sender is not coroutine-safe. This PR did serialise the sends; **owner ruling
+   #2 (round 46) then took the queue-layer work out** — *"REMOVE FROM THIS PR ENTIRELY … the
+   `abandon_message` method you added to `asb.py` (KEEP `_system_properties` — main does not have it)"* —
+   and reducing `asb.py` to that one addition removed the serialisation with it. At head:
+   `grep -rn '_send_lock' backend_python/src backend` → **0**, the whole `asb.py` diff is **25 insertions**
+   that are `_system_properties()` and its two call sites, and `origin/main` carries no sender lock either.
+   The two tests this item used to cite — `test_asb_sender_concurrency.py`,
+   `test_session_alert_failure_is_metered.py` — **do not exist** (`git ls-files` → 0 each). So the hazard is
+   **untreated in the shipped diff**; it has also not recurred (`kubectl logs deploy/eai-azure --since=24h`
+   → **0** sender crashes and **0** publish failures on real traffic). It is not re-added here, because the
+   owner's ruling removed it and told this run not to re-merge the two designs, and no demand in the frozen
+   plan covers the fan-out — it is **tracked instead**, with the measurement, on PRDCT-12061 beside the other
+   reverted items — re-fetched live afterwards, element by element, in [`at10-27-tracker-r6-fetch.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-27-tracker-r6-fetch.txt). Full re-measurement: [`at10-26-alert-sender-hazard.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-26-alert-sender-hazard.txt).
+   **(b) the missing grant is real, and it has merged.** `amqp:unauthorized-access — 'Send' claim(s) are
+   required`: the workload identity held Data Receiver on its own ingestion queue and a Blob role on
+   storage, but nothing on the alert-processing queue, so the lane as authored could never publish. The
+   queue-scoped `Azure Service Bus Data Sender` grant rides onyxsecurity/infrastructure#1575, **merged
+   2026-08-23T12:18:07Z**.
+   **And the metering sentence was wrong too:** this item said *"both lanes now count `publish_failed`"*. At
+   head the **scanner** lane meters only `published` (`writers.py:648`) and `skipped_no_queue` (`:650`);
+   `publish_failed` is emitted on the **gateway** lane alone (`gateway_writers.py:420`). A scanner-lane
+   producer failing every time still moves no failure counter — the ticket's own footgun-2 shape, now stated
+   rather than claimed closed.
+
 13. **ADMIN-GATED RESIDUAL — the LaunchDarkly scoping writes footgun 1's two legs would use literally.**
    This is the row `d-fg1.amendment_r29` requires, and every one of its four conditions was re-captured
    **this round** rather than inherited ([`evidence/at1-10-ld-conditions-r29.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at1-10-ld-conditions-r29.txt), [`at1-06-flagoff-guard.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at1-06-flagoff-guard.txt)).
@@ -1496,277 +1685,153 @@ count from eleven to thirteen):*
 
 ## The product surfaces, as a user sees them
 
-The per-tenant lane flag is ON for this tenant (a LaunchDarkly dev rule, verified through the real server
-SDK), so the chain that was proven to *settle* is proven to *land rows and render them*. For this round the
-machine was given a real install to find: **Codex**, **OpenClaw** and **OpenCode** installed by their own
-`npm` installers, their MCP servers added with each runtime's own `mcp add` command, an **MCP bundle authored
-and packed with Anthropic's own `mcpb` CLI** (`onyx-lab-mcp` 1.5.0, declaring five tools) installed the way
-Claude Desktop materialises one, and a skill + subagent definition written to disk. Every capture below is a real authenticated SPA page —
-HTTP 200 asserted programmatically, this run's value asserted present in the DOM and outlined in the full
-surface — and the whole browser run is recorded (webm + trace) at the pinned evidence paths.
+**Every capture in this section was re-taken on the shipped head `2b60fdc4df`, in one window
+(`r50at7002800`, 2026-08-24 00:28–03:00Z).** The previous set was captured on `a2486bb33f` / image
+`:prdct11935-r26` — *before* the round-45 revert removed writer capabilities those captures measured — so the
+bundle was showing a writer that wrote more than this PR ships. Each PNG below is a real authenticated SPA
+page: HTTP 200 asserted programmatically, this window's value asserted present in the DOM, the full surface
+in frame with the asserted row outlined, and the browser runs recorded (webm + trace) at the pinned evidence
+paths. Two self-checks ran over the set: `sha256sum evidence/at7-*.png | awk '{print $1}' | sort | uniq -d`
+is **empty** (an earlier pass produced three detail/list pairs that were byte-identical — one page state
+saved under two names — and that was fixed, not explained away), and every capture carries its own
+`state_fp` and `png_sha256` in the leg's results JSON.
 
-For the C2 window, isolation is what makes every row attributable, so the window is opened by recording the
-max id of every table a class lands in **before anything is installed** — and every query below filters on
-`id > that mark`. The window opened at `MARKS assets=124637 tools=97 usage=1389` (the receipt's own line), before anything was installed.
-Inside it the lane created exactly three assets — `Onyx Lab MCP` 1.5.0 **131106**, skill
-`lab-w25-20260821033140` **131278**, subagent `lab-w25-20260821033140` **131332** — plus
-tool rows **98-102**, edge **129237** and usage session **2396**; already-inventoried runtimes were
-re-observed rather than created, and that is shown as `created_in_window = 0` for the agent class rather than
-papered over. Nothing else wrote this schema in the window: every row came from a scan driven by the binary
-built from this head, posted to Kong with a key, and landed as an Azure blob object whose key the tenant
-records. Receipt: [`evidence/at7-00-isolation.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-00-isolation.txt).
+The machine was given a real install to find: **Codex**, **Claude Code**, **Claude**, **Hermes Agent** and
+**OpenClaw** — the last installed this window by `npm install -g openclaw` — an **MCP bundle packed by
+Anthropic's own `mcpb` CLI** (`onyx-lab-r50at7002800` 1.0.0, five tools) plus a sibling control bundle, and a
+skill and subagent definition written to disk with a sibling control each.
 
-**Desktop agent** — `OpenClaw (coder)` (asset 10729), installed by `npm i -g openclaw`. The fidelity value
-is the runtime's own version string, and `assets.version` holds it: `2026.5.7 (eeef486)`, read back in
-[`evidence/at7-03-db-rows-agent.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-03-db-rows-agent.txt). (Round-31 correction: earlier revisions attributed this string to an
-`openclaw --version` print captured at install time. No artifact holds that command or its output, so the
-claim is re-pointed at the artifact that does hold the value.) Its identity carries the machine's own serial,
-`endpoint_openclaw::ec255301bd4407d309fbce94811384b0`, joined to device `ip-10-10-6-254` through
-`desktop_agent_users`.
+**Attribution, stated honestly.** The round-25 method was to record each table's max id *before* installing
+and filter every later query on `id >` that mark. **That pre-install mark was never recorded for this
+window**, so [`at7-00-isolation.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-00-isolation.txt) reconstructs all eight marks live
+(`max(id) FILTER (WHERE created_at < '2026-08-24 00:28:00+00')`), says so in those words, and proves the
+reconstruction sound by showing the id range between each mark and each first-in-window id is **empty**.
+Attribution therefore leans on the unique marker names and the exhaustive per-class counts, which is what
+that file now presents. It also discloses two things the old receipt would have hidden: the gen-1 collector
+was **not** quiesced this window (it ran 132 times) and six writers were live — yet enumeration shows they
+contributed **zero** rows to these class tables — and six non-at7 in-window rows (four `at9lp-*` skill assets
+from the sibling identity leg, and two issue instances on a pre-window asset) are named so the counts
+reconcile with nothing unexplained.
 
-![OpenClaw (coder), asset 10729 — its own detail page, with the machine tie in frame and outlined: Device ip-10-10-6-254, OS Linux, Sources "Endpoint Scanner"](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-10b-ui-desktop-agent-detail.png)
+**Desktop agent** — `OpenClaw (coder)`, asset **10729**, `desktop_agent_applications.id 105`, identity
+`endpoint_openclaw::ec255301bd4407d309fbce94811384b0`. The fidelity value is the runtime's own version
+string and `assets.version` holds it — `2026.5.7 (eeef486)`, the output of `openclaw --version`, read back in
+[`at7-03-db-rows-agent.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-03-db-rows-agent.txt) and joined in [`at7-08-fidelity.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-08-fidelity.txt).
 
-*(That frame was re-captured this round and re-captioned. The version string above is a **DB** fidelity value
-from `at7-03`/`at7-08`: no product surface renders a desktop agent's version, and the earlier caption —
-"the OpenClaw agent's detail page, version outlined" — sat over a frame of **Codex**'s asset graph with no
-version in it. The frame now shows OpenClaw and is captioned to what it actually contains.)*
+![OpenClaw (coder), asset 10729 — its own detail page on this build, name asserted visible, no Deleted badge](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-10b-ui-desktop-agent-detail.png)
 
-**MCP servers** — asset **131106**, `mcpb:onyx-lab-mcp::1.5.0`, created inside the window. This is also
-where residual loss **L-4 closes**: the edge the lane writes now carries
-`{"sources": [{"kind": "extension", "name": "Onyx Lab MCP"}]}` — the manifest's own display name, derived
-the way the Go lane derives it — where before the fix the same lane wrote `{"kind": "direct"}`. The
-pre-fix rows are still in the tenant beside the post-fix ones, so the change is checkable against history
-rather than against my word:
+**MCP servers** — asset **442199**, `mcpb:onyx-lab-r50at7002800::1.0.0`, `mcp_servers.id 19792`, display name
+`Onyx Lab R50 MCP` — the bundle NAME and VERSION out of the `manifest.json` the packer produced, with the
+sibling control at asset **442200** / `mcpb:onyx-sib-r50at7002800::1.0.0` ([`at7-04-db-rows-mcp.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-04-db-rows-mcp.txt)).
+*(An earlier revision of this paragraph also claimed this is where residual loss **L-4 closes**, because the
+lane wrote an `{"kind":"extension"}` provenance descriptor onto the edge. **That capability was reverted by
+the round-45 owner ruling** — `_extension_name_from_mcpb` returns **0** hits at this head — so the claim is
+withdrawn, and L-4 is an open residual again in [`at6-08-residual-losses.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-08-residual-losses.txt).)*
 
-![the MCP bundle's detail page, asset 131106, version 1.5.0](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-11-ui-mcp.png)
+![the MCP bundle's detail page — asset 442199, mcpb:onyx-lab-r50at7002800::1.0.0, version 1.0.0](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-11-ui-mcp.png)
 
-**MCP tools** — this is the class that could not be shown before. The bundle's manifest declares
-`lab_echo`, `lab_time`, `lab_hostname`, `lab_search`, `lab_verify`; the node server really serves them; the
-scanner reports them as `scannerSupplied.tools`; `upsert_mcp_tools` writes them to the tenant `tools` table
-(`type=ToolTypeMCPTool`, ids **98-102** created inside the window); and the server's own detail page
-renders them, with `lab_verify` outlined:
+**MCP tools** — the manifest's `tools[]` array verbatim: `r50__echo`, `r50__hostname`, `r50__search`,
+`r50__time`, `r50__verify`, written to the tenant `tools` table as ids **159-163** on asset 442199
+(`type=ToolTypeMCPTool`, `is_active t`), with the sibling's `r50sib__ping` / `r50sib__stat` at **164-165** on
+442200 ([`at7-09-db-rows-tools.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-09-db-rows-tools.txt)). The server's own detail page renders them:
 
-![the MCP server's tools list, lab_verify outlined](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-19-ui-tools.png)
+![the MCP server's tools list — all five r50__* tools in frame, r50__verify outlined](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-19-ui-tools.png)
 
-**Skill** — `lab-w25-20260821033140` (asset **131278**). The name carries this window's timestamp, so the
-asset must be a create rather than a match against an earlier round's row. The product recomputes the file's
-own sha256 as `agent_skills.skill_md_hash` (`091dffb345495cab…73bfebfb`, matched byte for byte in
-[`evidence/at7-05-db-rows-skills.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-05-db-rows-skills.txt)); the asset's `unique_identifier` is the skill *directory* hash:
+**Skill** — `r50at7002800-skill`, asset **441993**, `agent_skills.id 362069`. The product recomputes the
+file's own sha256 as `skill_md_hash` — `3b3e94d234b2801e…e7d5f1e8`, matched byte for byte against
+`sha256sum ~/.claude/skills/r50at7002800-skill/SKILL.md` ([`at7-05-db-rows-skills.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-05-db-rows-skills.txt)):
 
-![skill detail](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-12-ui-skills.png)
+![skill detail — r50at7002800-skill, asset 441993](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-12-ui-skills.png)
 
-**Subagent** — `lab-w25-20260821033140` (asset **131332**), identity
-`subagent::cacc4e6cef1596e3…a91de1f42`, again the file's own sha256, stored both as the identity and as
-`subagent_md_hash`:
+**Subagent** — `r50at7002800-sub`, asset **442189**, `agent_subagents.id 52911`. Here the identity *is* the
+hash: `subagent_md_hash` and `assets.unique_identifier` are both the file's own sha256
+`2d2e397434cc739a…6c11ed26` ([`at7-06-db-rows-subagents.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-06-db-rows-subagents.txt)):
 
-![subagent detail](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-13-ui-subagents.png)
+![subagent detail — r50at7002800-sub, asset 442189](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-13-ui-subagents.png)
 
-**Posture** — **settled under `amendment_r30`, as a defect.** (Round-31 correction: this paragraph
-previously settled the class on the plan's pre-declared *"bridge-ran, no issue"* fallback, which
-[`evidence/at7-09-db-rows-posture.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-09-db-rows-posture.txt) refutes — issues **did** mint for a subject.) The bridge really ran for
-this window's objects — [`evidence/at7-29-posture-bridge.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-29-posture-bridge.txt) holds the execution and the two literals
-below — `writers.py:725`, `asset_count=1`,
-`workflow_id=scanner-object-61750f27-…-bridge`, and the same step reports its own reason where it does not
-(`"no assets created — no posture trigger"`). Where issues **did** mint, deleting the source does not close
-them: the same three instances are re-affirmed **Open** on the next scan, with the deleted file's content
-still shown as live Evidence, while `classified_at` stays frozen — a user-visible wrong state, ledgered in
-the C3 row above and ticketed as PRDCT-12071.
-The issue instances the tenant does hold all point at assets created 2026-08-18 16:28 — the setup phase's
-gen-1 AWS window — so they are **not** this lane's work and are not claimed as such:
+**Usage sessions** — session **7555**, `external_id 20260824_002925_7185b3`, app 55751 (`Hermes Agent
+(coder)`), `has_content_events t`. That external id is verbatim what the `hermes` CLI printed at the end of
+the real chat this window ([`at7-07-db-rows-usage.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-07-db-rows-usage.txt)). The route question is settled by the plan's own
+round-24 surface correction: `/ai-assets/usage` is the inventory-**application** detail tree, not a session
+surface, so the class's real per-session surface is `/ai-activity`, deep-linked by that DB id:
 
-![posture issues](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-20-ui-posture.png)
+![the /ai-activity per-session panel for this window's own session #7555, session id and acting agent in frame](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-14-ui-usage.png)
 
-**Usage sessions — PROVEN, and two rounds of my own reasoning were wrong about it.** Rounds 19 and 20
-concluded the class was unreachable on Linux: of the scanner's Go session providers exactly one collects
-(`ClaudeCowork`), the chat-cache lane returns `""` on linux from a hard-coded `default:` branch, and both
-need the Claude Desktop GUI signed into an Anthropic account. Every word of that is true, and it is the
-wrong question — it only examines the two **Go** providers. The **DSL** route goes through neither:
-`DynamicDetector` attaches sessions during *detection* from its spec's `collectSessions` block
-(`dynamic_detector.go:746`), the lane lifts them at `extract.py:451`, and `("hermes-agent","audit_jsonl")`
-resolves in the session-parser registry. `hermes-agent` is in the **linux** spec, so the class was
-reachable on this box all along.
+**Posture** — the class mints issues, and the head's behaviour is the one `amendment_r50` describes.
+![/posture-issues, pre-removal, this window's subject in the list](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-20-ui-posture.png)
 
-Driven for real: `npm install -g hermes-agent` (the runtime's own installer — deliberately **not** the
-scanner's `detector-install/hermes-agent.sh`, which says *"Forge"* and writes an empty `state.db`), pointed
-at this box's own LiteLLM endpoint, one real conversation, then the same Kong front door every other AT
-uses. On the head that ships, one more real conversation produced session **464** — `external_id`
-`20260820_170223_4c6d94`, the exact string the runtime printed and the exact key in `~/.hermes/state.db` —
-with `has_content_events = t` and its two events (prompt and reply) stored; the product's own sanitization
-redacts the message text, which is why the tie that matters is the session id, and the id is not redacted.
-Re-measured at push time, `usage_sessions` holds **294 rows and 294 distinct `external_id`s** — the two
-counts are equal, which IS the non-duplication assertion; sessions this machine produced earlier are
-re-reported and deduped rather than re-inserted, every round. (The count grows as later rounds drive more
-real scans, so it is read live rather than quoted from an earlier round; the label-with-both-sides table is
-in [`evidence/at7-31-inventory-read-model.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-31-inventory-read-model.txt).)
+### Lifecycle — a real removal, a real uninstall, then real scans
 
-The route question is settled by the plan's own round-24 surface correction: `/ai-assets/usage` is the
-inventory-**application** detail tree, not a session surface — its bare route 404s by design and `$appId`
-takes an application id — so it is not claimed to render sessions here. The class's real per-session
-surface is `/ai-activity`, and this run's own session renders on it (`at7-40`, captures `at7-38`/`at7-39`).
+The MCP bundle and its settings entry were removed, the skill directory and the subagent file deleted, and
+`npm uninstall -g openclaw` took a whole runtime off the machine. The scanner's own summary moves with the
+machine, and the subject is proven absent on-box three ways inside the same capture — the resolver
+(`command -v openclaw` → not found, `npm ls -g` empty), the filesystem, and **the scanner's own detector
+inside the paired scan's payload** (`{"detector":"openclaw","outcome":"not_installed","instances":[]}`).
 
-![the usage class on the surface the plan names: the /ai-activity per-session panel for this run's own session #2396, showing the session id, the acting agent, its real conversation and its Asset Details](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-14-ui-usage.png)
+**Desktop agent — the `amendment_r31` staircase, on one paired scan** (`scan_run_id
+ff9536af-8edb-49cc-9039-64906c9338d5`, 01:22:47–01:23:58Z, real, through Kong), from
+[`at7-30-agent-lifecycle-control.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-30-agent-lifecycle-control.txt):
 
-**Lifecycle — a real removal, a real runtime uninstall, then a second real scan.** On the head build
-(`prdct11935-r26`, built from this head), the MCP bundle's extension directory and its settings entry were
-removed, the skill directory and the subagent definition file were deleted, and `npm uninstall -g openclaw`
-took a whole agent runtime off the machine with its config directories. A second real scan then ran through
-the same chain. The scanner's own summary moves with the machine: `agents_detected_total` **5 → 4**,
-`mcp_servers_total` **4 → 3**, `skills_total` **205 → 134**, and openclaw drops out of `agent_names` while the
-four runtimes that host the surviving controls stay detected ([`evidence/at7-41-lifecycle-head.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-41-lifecycle-head.txt)).
+| asset | runtime | `last_scanned_at` before | after | advanced? |
+|---|---|---|---|---|
+| 10727 | Codex | `00:32:03.550773+00` | `01:24:15.760806+00` | yes — control 1 |
+| 23 | Claude Code | `00:32:03.475438+00` | `01:24:14.255375+00` | yes — control 2 |
+| 55751 | Hermes Agent (coder) | `00:30:07.674692+00` | `01:23:15.877409+00` | yes — control 3 |
+| 10656 | Claude (coder) | `00:30:07.578030+00` | `01:23:15.333524+00` | yes — control 4 |
+| **10729** | **OpenClaw (coder) — SUBJECT** | `00:32:03.449330+00` | `00:32:03.449330+00` | **no — byte-identical** |
 
-*Desktop agents — staleness, and the one class where that word is used*, because it is the one class whose
-surface renders a freshness field. The control is in the same query — runtimes on one machine, one uninstalled
-and the rest left alone:
+The scan's own agent list is `["claude-code","claude","codex","hermes-agent"]` — exactly the four that
+advanced, and the subject is not in it. Carried as measured, not asserted: `status` is `''` (the value the
+row actually holds) and `is_deleted` is `f`, both unchanged. **This is a LAG, never an absolute freeze** —
+the column's writers are named and evidenced in [`at7-48-lastscanned-writer.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-48-lastscanned-writer.txt).
 
-Re-measured in **round 31** on the shipped head, across ONE paired real scan
-(`scan_run_id 333b21ef-714b-4b8c-84ad-eaec81bc2799`, whose own agent list —
-`["claude-code","claude","codex","hermes-agent"]` — omits the subject), with gen-1 stopped for the whole
-window so no backlog could re-ingest behind the measurement. Both readings are in
-[`evidence/at7-30-agent-lifecycle-control.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-30-agent-lifecycle-control.txt):
+**And one part of this class is NOT met on this build, stated rather than smoothed.** `amendment_r28` part 3
+asks for the freshness contrast *rendered*, subject beside control. The route the plan names
+(`/ai-assets/desktop-agents/group/<id>`) **404s on this build** — an earlier pass captured those 404 pages
+without noticing, which is exactly the kind of thing this section exists to catch. The captures below are the
+working surface (`/ai-assets/desktop-agents/<assetId>`, HTTP 200, names asserted visible, no Deleted badge),
+**but that surface renders no "Last Seen" field at all** (DOM read: `<Last Seen not rendered>` on both), and
+`grep last_scanned_at frontend/` returns **0**. So the DB half of the cell is settled and the **render half is
+not**; [`at7-23-attestations.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-23-attestations.txt) records it as `DB HALF SETTLED · RENDER HALF NOT SETTLED` rather than
+claiming the cell.
 
-| asset | state | `last_scanned_at` before | `last_scanned_at` after | advanced? | `is_deleted` |
-|---|---|---|---|---|---|
-| Codex (coder) | still installed | 17:12:14.512695 | 17:22:23.407717 | yes | false |
-| Claude Code (coder) | still installed | 17:12:11.370594 | 17:22:20.196832 | yes | false |
-| Hermes Agent (coder) | still installed | 17:12:09.093359 | 17:22:18.191217 | yes | false |
-| Claude (coder) | still installed | 17:12:07.764520 | 17:22:17.001798 | yes | false |
-| **OpenClaw (coder)** | **uninstalled, and proven absent on-box three ways** | **16:10:48.175539** | **16:10:48.175539** | **no** | false |
+![the uninstalled subject's detail surface after the paired scan — asset 10729, HTTP 200, no Deleted badge](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-21-ui-lifecycle-agent.png)
+![the still-installed control's identical surface — asset 10727, same build, same assertions](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-21b-ui-lifecycle-agent-control.png)
 
-Four controls advanced on that one scan; the uninstalled subject's value is byte-identical to the
-microsecond, and none is soft-deleted. **This is a LAG, not an absolute freeze, and the difference is the
-point.** `amendment_r31` withdrew the earlier FROZEN wording as unprovable-as-stated, because the column's
-writer (w1) advances it for ANY ingested payload that lists the runtime — including re-posted historical
-payloads, which this contract's own re-drives are. The writer is now named and evidenced rather than
-guessed, and made to move on demand through the full front door, in
-[`evidence/at7-48-lastscanned-writer.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-48-lastscanned-writer.txt). One departure is reported rather than smoothed: the amendments
-phrase a term as "status stays Discovered", but this class carries `status` **NULL** on this tenant —
-unchanged across the pair, as is `is_deleted`.
-**That frozen-vs-advancing contrast is claimed of the DATABASE only, and this round corrected the claim that
-it is user-visible.** It is not. The SPA does render a field headed "Last Seen", but that column is bound to
-`updated_at`, not `last_scanned_at` — `instances-table.tsx:334-335` declares
-`columnHelper.accessor("updated_at", { header: "Last Seen"` — it is day-granular, and it reads the **identical
-`Aug 21, 2026`** for the uninstalled agent and for every still-installed control.
-`grep -rn last_scanned_at frontend/` returns **0** hits: no UI surface renders the column that actually moves.
-Measured in [`evidence/at7-44-last-seen-render.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-44-last-seen-render.txt); the two frames below are the uninstalled agent and its
-still-installed control on the same surface, showing the same day.
+**MCP server, skill, subagent — the `amendment_r26` classes.** After the removal and the second scan: not
+resurrected, not duplicated, and **not refreshed** — one asset row per artifact identity, per-`unique_identifier`
+counts all 1, `updated_at` unchanged, and the removed server's tools neither deactivated nor deleted
+([`at7-41-lifecycle-head.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-41-lifecycle-head.txt), [`at7-18-lifecycle-db.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-18-lifecycle-db.txt)). The product has no stale/deleted vocabulary
+for these classes — its only lifecycle badge is gated on `is_deleted`, which no scanner-lane writer sets — so
+the renders below are captioned in the surface's own vocabulary and never as a "stale" state the product
+cannot represent:
 
-![the uninstalled agent's group surface, with the rendered "Last Seen" in frame — Aug 21, 2026](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-21-ui-lifecycle-agent.png)
+![the removed MCP server after the second scan: still rendered, not duplicated, no Deleted badge](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-15-ui-lifecycle-mcp.png)
+![the same page with the tools list in-frame — the removed server's tools, is_active unchanged](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-19b-ui-lifecycle-tools.png)
+![skill detail after the file was deleted and a second scan ran](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-16-ui-lifecycle-skills.png)
+![subagent detail after the file was deleted and a second scan ran](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-17-ui-lifecycle-subagents.png)
 
-![the STILL-INSTALLED control's same surface — the identical "Last Seen: Aug 21, 2026", which is why this field carries no staleness signal](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-21b-ui-lifecycle-agent-control.png)
+**Posture — `amendment_r50`, measured on an identity-pinned worker.** The subject skill
+`r50at7002800-posture` (assets 447772 / 448472) was really removed at 02:05:14Z. Across **three consecutive
+covered post-removal front-door scans**, its seven issue instances — 6721, 6722, 6725, 6726, 6729, 6732, 6733
+— stayed **byte-frozen**: `resolve_state IssueInstanceResolveStateOpen`, `closed_at NULL`,
+`updated_at 2026-08-24 01:44:50.117728+00` (equal to `created_at`), all five evidence-column md5s unchanged,
+`asset_posture_findings.classified_at` frozen at `01:44:48.829425+00`. That is the head's **diff-guard**
+(`issue_repository.py:1316-1329`) doing exactly what its own comment says — *"deliberately skips rows that are
+OPEN with nothing new to write"* — and the no-op is **counted**: the tenant's `outcome="unchanged"` counter
+rose **126,744 → 170,920** across the bracket while `created` moved only by the in-window control's four rows.
+The worker that wrote them is byte-pinned to head (every `issue_detection/`, `repository/issues/` and
+`posture/` file sha256-identical in-pod), the eight-pathspec PR-diff vs the merge-base is **0**, and the
+residual against `origin/main` is **0** ([`at7-51-posture-reaffirm-headcode.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-51-posture-reaffirm-headcode.txt), [`at7-47-posture-path-identity.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-47-posture-path-identity.txt)).
 
-This mattered beyond a caption, and it has now been ruled. The desktop-agent class was the one lifecycle
-class carved OUT of the C2-LC `OVERTAKEN` ledger row below, on the premise that it has a product-visible
-freshness contrast. That premise does not hold, so round 27 **routed it to `research`** rather than
-answering it — and in round 28 research adjudicated: **the class joins the OVERTAKEN row**
-(`d-c2-lc-agent.amendment_r28`, `spec_interpretations` (9), which supersedes entry (8)'s carve-out
-sentence — and which is itself extended by entry (11) in round 30, superseding the POSTURE carve-out too;
-plan re-frozen — for the sha it carries NOW see the plan-revision line below, which is the body's single
-source for it). Research re-checked the premise itself first and also
-rejected the one surface that does expose the real column — the device-level raw timestamp on the external
-v2 API (`crud_service/api/v2_models/devices.py:88`) — as neither a product-UI render nor a "stale or
-deleted" state. `PRDCT-12069`'s scope was extended to this class in the same ruling (its title now names
-`desktop-agent`, and the refuted sentence in its body is replaced by an explicit *"measurement REFUTED
-that"*); the correction comment this run posted (ClickUp comment id 90140244765982) stands as the audit
-trail. The ledger row below carries the class, and what this PR claims for it is the DB staircase and
-nothing rendered.
+**What has not changed is the defect**, and it is rendered here rather than described: the issue is still
+**Open** and the deleted file's own line is still shown as live Evidence.
 
-*The other four classes — the honest end state, in each surface's own vocabulary.* For MCP servers, their
-tools, skills and subagents the product ships **no stale or deleted representation at all**, so this PR does
-not claim one. What the second scan is shown to have done instead is the amendment's four-part end-state
-([`evidence/at7-18-lifecycle-db.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-18-lifecycle-db.txt), `at7-41`): **not resurrected and not duplicated** — every artifact
-identity resolves to exactly one asset row and the tenant-wide `is_deleted` count is 0; **not refreshed** —
-each removed subject's `status`/`is_deleted`/`updated_at` is unchanged, with `updated_at` frozen *before* the
-second scan began; and the class **provably re-covered by that same scan**, so "unchanged" cannot be the
-artefact of a skipped class. The re-coverage vehicle is named per class: the summary counters above for MCP
-servers and skills; and for the two classes the scanner emits no counter for, a still-present same-machine
-**sibling** — a sibling subagent on `claude-code` and a sibling MCP server on `claude`, both hosted by
-runtimes that survive the uninstall and are still detected — shown **literally present in the second scan's
-payload** while the removed subject is gone from it, with the sibling's three tools intact by DB read-back.
-Zero asset rows were written after the second scan began, in every tenant. The same leg was written by the
-new lane at head into both parity tenants and lands the identical end state (`at7-41` §5).
+![/posture-issues after removal — Status Open, the deleted file's content rendered verbatim as live Evidence](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-22-ui-lifecycle-posture.png)
 
-![the removed MCP server after the second scan: still rendered live, status pill still Discovered, no Deleted badge — the product ships no stale/deleted representation for this class](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-15-ui-lifecycle-mcp.png)
+That is a user-visible wrong state, ticketed on **[PRDCT-12071](https://app.clickup.com/t/86bbj56qh)**, and
+this PR does not present it as stale-handling, as resolved, or as acceptable.
 
-![the same page with the tools list in-frame: all five tools still listed and still is_active — an absent server's tools are untouched by design](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-19b-ui-lifecycle-tools.png)
-
-Each capture is annotated *"the product ships no stale/deleted representation for this class
-(amendment_r26)"* and none is captioned as a stale or deleted rendering. The assertions behind them are
-programmatic reads of the live DOM in the same run, not eyeballs on a PNG: for the MCP page, HTTP 200, status
-pills rendered `["Discovered"]`, Deleted badges **0**, Stale badges **0**, all five tool names present; for
-skills and subagents, Deleted badges **0** and **no status pill at all**, which is those surfaces' design
-(`skills/-components/overview.tsx:147-154`, `subagents/-components/overview.tsx:297-314`) — so absence of a
-pill is the correct honest render, not a missed capture.
-
-**One thing the second scan *did* change, and it is worth naming precisely: the agent→MCP edge.** The
-asset rows did not move, but the `AgentToMcp` edge into the removed bundle was **soft-deleted** by the second
-scan — `is_deleted` flipped to true with an `updated_at` inside the scan window, in **all three** tenants
-([`evidence/at7-41-lifecycle-head.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-41-lifecycle-head.txt) §6). That is the one absence-driven soft-delete either lane has
-(`mcp_writer.py:1603-1662`), and it fired here because the host runtime is still installed and still
-reported, so its keep-set was non-empty and simply no longer listed the removed bundle — the empty-keep-set
-skip that protects a merely-offline machine did not apply. The **sibling MCP server's edge is the control**:
-same source runtime, same scan, still `is_deleted=f`. So the reconcile demonstrably ran and was *selective*,
-not a blanket wipe. What it is not is the demand's asset-level end state — an edge is a relationship, not the
-artifact, and no surface for these classes renders edge state as a badge on the asset. It is called out here
-so that "nothing changed" is never read wider than it is.
-
-| before removal | after removal + a second real scan |
-|---|---|
-| ![skill detail, before removal](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-12-ui-skills.png) | ![skill detail, after the file was deleted and a second scan ran — unchanged, because the product has no stale state to show](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-16-ui-lifecycle-skills.png) |
-| ![subagent detail, before removal](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-13-ui-subagents.png) | ![subagent detail, after the file was deleted and a second scan ran — unchanged, for the same reason](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-17-ui-lifecycle-subagents.png) |
-| ![desktop-agent detail, before uninstall](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-10b-ui-desktop-agent-detail.png) | ![desktop-agent detail, after the runtime was uninstalled and a second scan ran](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-21-ui-lifecycle-agent.png) |
-
-**The skill and subagent pairs look the same, and that is the finding** — not a stale rendering, but the
-absence of one. Measured on this round's own frames above the tallest annotation banner (`y < 850`, the
-banner's own border located per frame): both pairs are **pixel-identical, 0 of 1,224,000 pixels**, across a
-real deletion plus a real re-scan. No pixel claim is made for the other two pairs, and the reason is stated
-rather than smoothed over: the desktop-agent surface is *supposed* to move (it renders "Last Seen"), so a
-pixel count is the wrong instrument for it; and the two MCP frames come from separate capture passes whose
-diff is spread across ~245 rows in a pattern consistent with a small layout shift, so that cell rests on the
-programmatic assertions above instead. The measurement and the region that reproduces it from the six PNGs
-are in [`evidence/at7-28-lifecycle-ui-redrive.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-28-lifecycle-ui-redrive.txt) — six DISTINCT captures, not three shown twice: the before
-halves are the plan's own pre-removal frames (`at7-12`, `at7-13`, `at7-10b`), cited by their own names.
-
-
-
-![posture after removal](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-22-ui-lifecycle-posture.png)
-
-*Image hosting.* All 15 distinct images above (19 embed tags — four are deliberately shown twice, once in their class section and once in the lifecycle pair) are served from a public org repo over `raw.githubusercontent.com`. Before any of them was written into this body each URL was fetched **with no credentials** and had to answer HTTP 200 with an `image/*` content-type **and hash to the same sha256 as the local capture** — byte size, the previous check, is too weak, since two captures of one page can share a size and a stale CDN copy would pass it. 19/19 embed tags resolve, covering 15/15 distinct images; 0 fail. The receipts, including the two hosting options that do not work, are [`evidence/at10-02-image-check.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-02-image-check.txt).
-
-### The artifacts themselves, not just their paths
-
-`pr_readiness.embedded_evidence` asks for these to be readable in the PR rather than pointed at. Every
-block below is quoted verbatim from the named file under `evidence/`.
-
-**at1 — a REAL Event Grid `BlobCreated` delivery, peeked off the lab Service Bus queue** ([`at1-03-eventgrid-message.json`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at1-03-eventgrid-message.json)):
-
-```json
-{
- "_captured": "REAL Event Grid BlobCreated delivery on the lab Service Bus queue endpoint-asset-ingestion-prdct11935 (peeked, not consumed)",
- "label_aka_subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18
- "application_properties": {
-  "aeg-subscription-name": "TO-BYOC-EVENTS",
-  "aeg-delivery-count": "0",
-  "aeg-data-version": "",
-  "aeg-metadata-version": "1",
-  "aeg-event-type": "Notification"
- },
- "message_id": "f752afad-bba6-4d5d-8f95-1202c09d162f",
- "body": {
-  "topic": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st"
-  "subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-18/17870713
-  "eventType": "Microsoft.Storage.BlobCreated",
-  "id": "5f03648c-301e-0017-3b30-2fccc0063ad1",
-  "data": {
-   "api": "PutBlob",
-```
-
-**at1 — the writer SETTLING that object, on the shipped head.** *Round-42 correction: this block used to
-show six **boot** lines under a settlement caption, stamped `2026-08-20T15:53` with a round-20 marker — the
-caption asserted what the capture did not contain. It is replaced with the settlement itself, from a marked
-scan driven end to end through the real Kong → Blob → Event Grid → Service Bus chain on branch
-`16b7bca77c`* ([`at1-08-config-provenance.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at1-08-config-provenance.txt)):
-
-```
 ## both blobs downloaded and grepped: the probe skill name + nonce2 are IN the blob bytes
    /tmp/prdct11935/r32/1787346443-65b77d7b-….log: setup-r32-at108-probe-20260821210231 (nonce2 x1)
    /tmp/prdct11935/r32/1787346497-653dda08-….log: (nonce2 x2)
@@ -1869,7 +1934,7 @@ them; the generator's completeness check reports `25/25 closed; outstanding: non
 
 | # | settlement class | metric | lane(s) | disposition | where it was demonstrated, or the reason it was not run |
 |---|---|---|---|---|---|
-| ~~1~~ | `processed_with_failures` | `asset_ingestion_agent_slices_dropped_total` | new only | **DEMONSTRATED LIVE** | ADDED IN ROUND 20, and the class did not exist before it. An object whose agent slice was abandoned by per-agent isolation used to meter plain `processed` — the lane reported success for an object whose rows had not all landed, wh… |  **WITHDRAWN (round 45): both instruments were reverted out of this PR; neither exists on this head.**
+| ~~1~~ | ~~`processed_with_failures`~~ | ~~`asset_ingestion_agent_slices_dropped_total`~~ | ~~new only~~ | ~~**DEMONSTRATED LIVE**~~ **→ WITHDRAWN** | ADDED IN ROUND 20, and the class did not exist before it. An object whose agent slice was abandoned by per-agent isolation used to meter plain `processed` — the lane reported success for an object whose rows had not all landed, wh… |  **WITHDRAWN (round 45): both instruments were reverted out of this PR; neither exists on this head.**
 | 2 | `reingest-skip` | `asset_ingestion_agents_reingest_skipped_total` | both | **BOTH-LANE CLASS IN CODE** | BOTH-LANE CLASS IN CODE; DEMONSTRATED IN ONE LANE IN THESE LEGS, and the difference is itself ledgered (A-2). The skip is implemented once, in the SHARED python mcp_asset_creation activities BOTH lanes call — evaluate_mcp_ingestio… |
 | 3 | `agents_skipped{reason="empty_name"}` | `asset_ingestion_agents_skipped_total` | new only | **NAMED-NOT-RUN** | NAMED-NOT-RUN, with reason and both sides' call sites. THIS IS THE CLASS THE GATE FOUND (round 28 D2, round 30 GAP-3). A coding agent whose name is empty is dropped per-agent during extraction, before it becomes a write step: |
 | 4 | `assets_ingested{source}` | `mcp_assets_ingested_total` | both | **DEMONSTRATED IN BOTH** | DEMONSTRATED IN BOTH — ADDED ROUND 37. Read off each lane's own /metrics this round: new lane {source="scanner", tenant_schema="prdct11935_tb"} 15.0; gen-1 worker {tenant_schema="prdct11935_ta"} 8702.0. Emitted from the shared act… |
@@ -1891,7 +1956,7 @@ them; the generator's completeness check reports `25/25 closed; outstanding: non
 | 20 | `created` | `asset_ingestion_records_written_total` | both | **DEMONSTRATED IN BOTH** | DEMONSTRATED IN BOTH — at6-04a (row diff) + PART 3 counters |
 | 21 | `reingest_edges_restored{source}` | `mcp_reingest_edges_restored_total` | new only | **DEMONSTRATED** | DEMONSTRATED on the new lane — ADDED ROUND 37: {connection_type="AgentToMcp",tenant_schema="prdct11935_tb"} 3.0, ABSENT on the gen-1 worker in the same window, for the same stricter-gate reason as the row above (activities.py:1337… |
 | 22 | `reingest_skip_evaluations{verdict}` | `mcp_reingest_skip_evaluations_total` | new only | **DEMONSTRATED** | DEMONSTRATED on the new lane, and the gen-1 side is LEDGERED, not assumed — ADDED ROUND 37. New lane this round: {prdct11935_tb,verdict="skip"} 29.0 and {verdict="base_changed"} 15.0. ABSENT on the gen-1 worker's scrape. That is t… |
-| 23 | `session_alerts published` | `asset_ingestion_session_alerts_total` | new only | **DEMONSTRATED LIVE** | DEMONSTRATED live — ADDED ROUND 28 (gate GAP-2). This whole family is introduced by the head commit itself ("count the alert publishes it loses"), so no capture taken before 16b7bca77c could carry it. asset_ingestion_session_alert… |
+| 23 | `session_alerts published` | `asset_ingestion_session_alerts_total` | new only | **DEMONSTRATED LIVE** | DEMONSTRATED live — ADDED ROUND 28 (gate GAP-2). **Attribution corrected (round-50 sweep):** this row used to say the family *"is introduced by the head commit itself"*. It is not — `session_alerts` is declared in `metrics.py` at the merge-base `822abd2356` exactly as at head (2 hits each side), and `writers.py` has **0** changed lines in this PR's diff. The measurement stands; the family is pre-existing, and only `published`/`skipped_no_queue` are reachable on the scanner lane (`publish_failed` is gateway-only, `gateway_writers.py:420`). asset_ingestion_session_alert… |
 | 24 | `step_total{outcome,step}` | `asset_ingestion_step_total` | new only | **DEMONSTRATED LIVE** | DEMONSTRATED LIVE — read off the shipping pod's /metrics this round: `asset_ingestion_step_total{outcome="ok",step="fetch_object",...}`. 13 steps x {ok,error,skipped} (telemetry/steps.py:118). |
 | 25 | `swg_observations{outcome}` | `asset_ingestion_swg_observations_total` | swg lane | **NAMED-NOT-RUN (shared block)** | boundary that caused the original miss. |
 | 26 | `empty window, all tenants(workflow.go:113)` | *(gen-1 exit — no Python instrument)* | gen-1 only | **REAL CLASS, NO NEW-LANE COUNTERPART** | REAL CLASS, NO NEW-LANE COUNTERPART, and it does not survive the cutover. The scheduled parent settles SUCCESS having found no tenant with S3 files in the window. The event-driven lane is PUSH-based, so "nothing arrived" is the ab… |
@@ -1906,93 +1971,31 @@ them; the generator's completeness check reports `25/25 closed; outstanding: non
 
 
 
-## Both lanes, same payload, side by side
+## The gen-1-vs-new-lane comparison — WITHDRAWN, not quietly dropped
 
-One Kong request fed both lanes the *same* payload bytes — vector's S3 sink wrote it under gen-1's tenant,
-its Azure Blob sink under the new lane's tenant, and neither lane can see the other's copy (the S3 bucket has
-no prefix for the new lane's tenant at all, and in the at6-07 transport leg gen-1's workers were at zero pods for the whole leg while TB still received its rows).
-gen-1 ran from its **own unpaused Temporal schedule**, untouched by this PR; its `ScannerTenantWorkflow`
-execution ids, their parent schedule executions and their result counts are pasted in the evidence.
+A ~27 KB section stood here that put gen-1's rows beside the new lane's, said *"across all three legs the
+lanes agree on every asset class"*, and ledgered five named differences — including an **L-1** row reading
+*"four seeded connector MCP assets … LOSS by the new lane … **fixed in this PR**, byte-identical"*.
 
-Three legs, each on freshly truncated tenants: **created** (first ingest), **matched** (re-ingest after a real
-change made with the runtime's own command — `codex mcp add … server-sequential-thinking`) and
-**reingest-skip** (re-ingest with nothing changed, the flag ON). Across all three the lanes agree on every
-asset class, every skill and subagent content hash, every MCP-tool row, usage sessions and issue rows — and,
-after this PR's fix, on all four seeded web connectors with byte-identical identities.
+It is removed, and for two reasons that are worth stating rather than hiding behind a diff:
 
-What still differs is confined to MCP identity and typing, and every item is itemised in
-[`evidence/at6-06-ledger.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-06-ledger.txt) with its direction, its root cause at `file:line`, whether the transport is
-involved, and its disposition:
+1. **The round-45 owner ruling withdrew the claim.** *"PRDCT-11935 is Azure ENABLEMENT ONLY. It is not a
+   bug-fix PR."* … *"Then update the PR body: C13 is NO LONGER claimed as proven."* A side-by-side that
+   concludes the lanes agree **is** that claim, whatever the banner above it says, and at6's guard is
+   explicit that any such claim in the PR body is a failure.
+2. **Its headline item became false in the same ruling.** The seeded-connector work that L-1 called *"fixed
+   in this PR"* was **reverted** — `build_seeded_connector_servers` and `_extension_name_from_mcpb` do not
+   exist at this head (`grep -rn` over `backend_python/src` returns zero for both). A row claiming a fix
+   that is no longer in the diff is worse than no row.
 
-| # | difference | direction | disposition |
-|---|---|---|---|
-| L-1 | four seeded connector MCP assets (Slack, Gmail, Google Calendar, Google Drive) + their agent edges | LOSS by the new lane | **fixed in this PR**, byte-identical identities on both lanes now |
-| L-2 | script-launched local servers collapse onto one asset per launcher (`bash`, `node`) instead of one per script — **four asset rows, the four `AgentToMcp` edges into exactly those rows, and the content-hash flap on the surviving shared row** | LOSS, **pre-existing and transport-independent** | **escalated, not fixed here.** The four edges were flagged by the round-21 verify gate as loss-direction lines outside the closed enumeration; an earlier round had classified them at run time, which the amendment reserves to the plan owner, so the gate was right to refuse it. They were routed to research, which adjudicated them in the **ROUND-23 RULING** (`d-c13-3.amendment_r21`, plan re-emitted at `sha256 c989e18f…` *(superseded)*) as *"THE L-2 IDENTITY FAMILY'S OWN EDGES"* and **extended the L-2 entry to name them**: an edge is an FK pair into `assets` with no identity beyond its endpoints, so it cannot exist in a lane that lacks its destination row — the edge loss and the asset loss are one collapse seen in two tables. The ruling binds that admission to a **descriptor-union carriage test** (measured PASS, `at6-09` §4b: the `bash`/`node` replacement edges carry the exact union of their collapsed scripts' `.sources`) and to a **per-edge transport grep** (`at6-07`: all four edge identities absent on both transports, both replacement edges present and byte-identical). The fix remains an identity MOVE that must ship with the re-key migration for `assets`/`app_definitions`/`access_control` and move the gateway/policy mirror in lockstep. Carried on **[PRDCT-12061](https://app.clickup.com/t/86bbhqxe8)**. |
-| L-3 | `@playwright/mcp::unknown` where gen-1 resolved `::0.0.79` | LOSS, first-write window, **pre-existing and transport-independent** | **escalated**, and the disposition was **corrected**: the fix this ledger used to name — drop the manifest exclusion at `version_resolution.py:181-183` — was *measured and refuted* (`at6-08` §L-3: the exclusion mirrors the writer's own `_scanner_app_id` gate, so dropping it changes no row and only adds hot-path latency). What is left is a first-write window whose designed convergence is the async `McpServerEnrichmentWorkflow` + `supersede_unknown_version_siblings`, asserted from code and explicitly **not** measured here. The decision, and that measurement, are carried on **[PRDCT-12061](https://app.clickup.com/t/86bbhqxe8)**. |
-| D-4 | `mcp-remote` typed `Local\|Npm` + one asset per proxied remote, vs gen-1's single `Remote\|Http` asset with a **self-referential** edge | **MISEXTRACTION-CORRECTION** — ruled outside the loss enumeration | gen-1 asks an LLM to name the remote leg; when it answers `mcp-remote` the identity collapses and the edge points at itself (`workflow.py:1716-1717`). The new lane derives it deterministically (`extract_bridge_remote_url`), so the collapse is impossible. The amendment's edge-granularity enumeration flags the gen-1-only self-edge, so it was routed to the plan owner, who **adjudicated it in the ROUND-22 RULING** (`d-c13-3.amendment_r21`, plan re-emitted at `sha256 c989e18f…` *(superseded)*): *"a gen-1-only edge whose ledger disposition proves fabrication is a correction, not a loss, so it neither fails this demand nor extends the admissible set"*. No true fact is lost — every `.sources` descriptor gen-1 fabricated onto a self-edge is carried verbatim on the new lane's correctly-targeted edges of the same bridge version. Per-D-4 transport check now lives in [`evidence/at6-07-transport-equivalence.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-07-transport-equivalence.txt) (identity absent on both transports; the four bridge→remote edges present and byte-identical on both); grounds and scope in [`evidence/at6-09-fresh-tenant-parity.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-09-fresh-tenant-parity.txt) §4. The ruling is deliberately narrow: any *other* gen-1-only loss-direction line still routes back to research. |
-| V-1 | on an **unpinned** launcher (`npx -y mcp-remote <url>`, `npx -y @upstash/context7-mcp`) the two lanes key the same underlying server under different **concrete** version coordinates — gen-1 `mcp-remote::0.1.43` / `@upstash/context7-mcp::4.0.2`, the new lane `::0.1.38` / `::4.0.3` | **FABRICATION-CORRECTION** — ruled outside the loss enumeration (round-35 plan-owner ruling), **not a loss** | **Neither coordinate is the endpoint's truth, and the new lane's is not "correct" — it is the same fabrication, frozen.** The scanner ships the endpoint's real installed version in the payload (`selfDependency`: `mcp-remote` **0.1.30**, `@upstash/context7-mcp` **4.0.3**, matching this machine's npx cache) and **both lanes ignore it**: gen-1 re-resolves the registry's `latest` on every sweep (`mcp_asset_creation/workflow.py:1062-1077`, `:1120-1135`; `mcp_package_extractor.py:666-678`), the new lane resolves once under a budget and caches (`mcp_writer.py:412-417`, `mcp_writer.py:447-479`, `mcp_writer.py:731-732`; `version_resolution.py:301-425`). The churn is measurable: npm published `0.1.40` at 20:53, `0.1.41` at 21:28, `0.1.43` at 22:33, and gen-1 minted one row per sweep matching `latest` at that moment — while `0.1.42`, `latest` for only ten minutes with no sweep inside it, was **never minted on either pair**. Direction gen-1 → new lane, **improved but not fixed**: the per-sweep churn dies at cutover, the selfDependency blindness does not. A V-1 row's keying-derivative furniture (its `AgentToMcp` edge and the D-4-shaped self-edge `McpToMcp 94146 -> 94146`) is classified **with** the row, never as separate loss lines. Clause-by-clause application on re-measured evidence: [`evidence/at6-18-v1-classification.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-18-v1-classification.txt); ledger row with the honesty rule: [`evidence/at6-06-ledger.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-06-ledger.txt); carried on **[PRDCT-12061](https://app.clickup.com/t/86bbhqxe8)** comment `90140245277673`. Adjudicated by the plan owner and posted for owner veto — [the round-35 run-thread post](https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787366812940799?thread_ts=1787063683.640599&cid=C0BCW4JDZB2) — whose permalink this round re-resolved via `chat.getPermalink` and whose posted text re-fetched **byte-identically** (3233 bytes both sides): [`evidence/at10-11-c3-audit-extension-r35.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at10-11-c3-audit-extension-r35.txt). Engineer and verify may APPLY this test; **neither may extend it**, and a clause-passing row with any condition unmet is a FAIL that routes back to research. |
-| L-4 | on the MCP-bundle edge gen-1 wrote the provenance descriptor `{"kind":"extension","name":"Onyx Lab MCP"}` where the new lane wrote `{"kind":"direct"}` | **CLOSED — fixed in this PR** | `ce9ad09c30` mirrors the Go lane's derivation in `extract.py:154`/`:309` (`_extension_name_from_mcpb`), candidate order and blank-skipping identical. Three unit tests, and **observed live**: the edge the lane now writes carries `{"sources":[{"kind":"extension","name":"Onyx Lab MCP"}]}` while the same tenant still holds the pre-fix `{"kind":"direct"}` row for the previous bundle version, so the change is checkable against history (`at7-04`, `at6-08`). An earlier version of this table still rowed L-4 as an escalated LOSS while the body said "L-4 — FIXED" twice; this row is the corrected, single statement. |
-| L-5 | **not a lane divergence** — an operability gap found while re-driving `at9-05` this round: `/health/ready` does not gate on the receive path | pre-existing, transport-independent | **escalated**: with both Azure data roles removed and 17 `amqp:unauthorized-access` lines in the same window, the probe returned `HTTP 200 {"status":"ready","service":"endpoint-asset-ingestion","checks":{"queue":"ok"}}` on all 12 probes over 4 minutes and the pod stayed **Ready** — so a pod that can consume nothing advertises itself as healthy. Cause, from the SDK: `check_health`'s `peek_messages` issues an AMQP **management** request (`com.microsoft:peek-message`), not a receive-link operation. Not fixed here — `check_health` is shared with the SQS sibling on every cloud, so making readiness a real receive gate changes AWS pod lifecycle too. Evidence: `at9-05-roles.txt` §2b **as published at [pywebagent@d2c544b4](https://github.com/onyxsecurity/pywebagent/blob/d2c544b469/evidence/prdct11935/at9-05-roles.txt)** — the round-48 re-measure of at9-05 could **not** reproduce this probe, because the lab service principal has since acquired a namespace-wide `Azure Service Bus Data Receiver`, so the peek it depended on is now allowed rather than denied. The finding stands on the earlier capture; the reason it is not re-measurable is recorded in the current `at9-08` §6. |
-| **C2-LC** | **C2 clause 5's stale-rendering half for ALL SIX lifecycle classes — MCP-server, MCP-tools, skill, subagent, desktop-agent (round 28) and POSTURE (round 30)** — after a real removal and a second real scan the product shows no stale and no deleted state for any of the four | **OVERTAKEN** — not a lane divergence in either direction; the premise that the product represents such a state does not hold | **Ruled by the plan owner, ticketed, and rendered honestly rather than dressed up.** The demand's *not-resurrected / not-duplicated* half binds untouched and is **proven** (one asset row per artifact identity, tenant-wide `is_deleted` = 0, zero rows written after the second scan began — [`evidence/at7-41-lifecycle-head.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-41-lifecycle-head.txt), [`at7-18-lifecycle-db.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-18-lifecycle-db.txt)). Its *stale-or-deleted* half is unrepresentable: the stored `AssetStatus` enum is exactly {Sanctioned, Unsanctioned, Discovered} (`asset.go:63`, `assets.py:42-46`), **neither lane** moves `status`/`is_deleted` on absence-from-scan (new lane's only absence-driven soft-delete is agent→MCP *edges* with the empty keep-set deliberately skipped, `mcp_writer.py:1603-1662`, PRDCT-6301; gen-1's only reconcile knob routes to that same edges-only activity, `post_inventory.go:118,196`; skills/subagents have zero delete paths, `writers.py:329-341,360-430`, `subagent_seed.py:224`; an absent server's tools are untouched by design, `activities.py:1766-1767`), and the SPA's whole lifecycle vocabulary for these classes is a `Deleted` badge gated on `is_deleted` (`mcp/$appId.tsx:172`, `skills/$appId.tsx:88`, `subagents/$appId.tsx:100`) that the scanner lane never sets. So this is a **pre-existing cross-lane product gap**, not something this transport PR introduces or could honestly fix — forcing a stale representation in would change shared-writer semantics on every cloud. Adjudicated in the round-26 plan amendment (`spec_interpretations` (8) + the four `d-c2-lc-*.amendment_r26` fields, plan frozen at `sha256 e4943218…` *(superseded)*), posted for owner veto — [the run-thread post](https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787285758703799?thread_ts=1787063683.640599&cid=C0BCW4JDZB2), resolved against Slack's `chat.getPermalink` in [`evidence/at7-43-veto-permalink-r26.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-43-veto-permalink-r26.txt) — and ticketed on **[PRDCT-12069](https://app.clickup.com/t/86bbhzk2z)** ([`evidence/at7-42-lifecycle-followup-ticket.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-42-lifecycle-followup-ticket.txt), matched against the live task), which carries the per-class measurement, the `file:line` root causes and the absence-is-not-delete constraint any fix must honour. **THE DESKTOP-AGENT CLASS IS NOW IN THIS ROW TOO (round 28).** It was originally carved out on the premise that it has a product-rendered freshness contrast. That premise was refuted by measurement and the carve-out is superseded: the SPA's "Last Seen" binds to `updated_at`, **not** `last_scanned_at` (`instances-table.tsx:334-335`; `group-overview.tsx:115` passes `lastSeen={group.updated_at}`, rendered day-granular at `:216-221`), and it renders the **identical `Aug 21, 2026`** for the uninstalled runtime and for every still-installed control — `grep last_scanned_at frontend/` returns **0** hits, the class's only lifecycle render is the `is_deleted`-gated Deleted badge (`desktop-agents/$appId.tsx:307`) that no scanner-lane writer sets, and the instances table filters `is_deleted` rows out entirely, so a soft-delete would render as disappearance rather than as a "deleted" state. Evidence [`evidence/at7-44-last-seen-render.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-44-last-seen-render.txt). **AND THE AGENT CLASS'S FRESHNESS TERM IS RE-SCOPED IN ROUND 31 (`d-c2-lc-agent.amendment_r31`).** `amendment_r28`'s part-(2) wording — an absolute `last_scanned_at` **FROZEN** — is **WITHDRAWN as unprovable-as-stated**, and this run's own artifacts are why: they measured the uninstalled runtime's column advancing twice after uninstall and withdrew the wording themselves. The cause is now named from source rather than guessed: the column's complete writer set is **(w1)** the per-user ingest upsert (`common/repository/desktop_agent_application.py:209/:215/:225` via `desktop_agent_creator/activities.py:1878`, shared by BOTH lanes), which stamps the **ingest wall-clock** for every runtime listed in **any** ingested payload — *including re-posted historical payloads, i.e. this run's own contractually-required re-drives* — plus **(w2)** the guard aggregate (`:311/:385`) and **(w3)** the compliance ensure-row (`openai_compliance/…/activities.py:102`). So the honest cross-window property is a **LAG**, and the demand now requires the measurable form instead: the **single-scan staircase** ([`evidence/at7-30-agent-lifecycle-control.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-30-agent-lifecycle-control.txt) — across the paired second scan the subject holds `2026-08-21 16:10:48.175539+00` byte-identical while **four** same-machine installed controls advance to 17:22:17..23, the subject proven absent on-box three ways in the same capture), the **writer named and evidenced** ([`evidence/at7-48-lastscanned-writer.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-48-lastscanned-writer.txt) — the inventory above, plus a labelled MECHANISM attribution: the archived payload that *does* list the subject re-POSTed through the full Kong → Blob → Event Grid → Service Bus chain, moving its value to `17:58:27.571731+00` on demand while the controls held and nothing was created, duplicated or resurrected), and **lag honesty everywhere** — any absolute-freeze claim is a FAIL, and none is made here. One honest departure is reported rather than smoothed: both amendments phrase a term as *"status stays Discovered"*, but on this tenant the desktop-agent class carries **`status` NULL** on all seven rows, unchanged across the pair, as is `is_deleted`, which stays false. Posted for owner veto — [the round-31 run-thread post](https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787333760193809?thread_ts=1787063683.640599&cid=C0BCW4JDZB2), receipt [`evidence/research-r31-veto-permalink.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/research-r31-veto-permalink.txt). Research adjudicated it in the round-28 amendment (`d-c2-lc-agent.amendment_r28`; **`spec_interpretations` (9), which supersedes entry (8)'s agent carve-out — wherever entry (8) is quoted or relied on in this ledger, read it with (9) attached: its header's "not amended" list, its carve-out sentence, and its "unamended agent cell" refinement are all superseded for this class**), having first re-checked the premise and rejected the only surface exposing the real column — the device-level raw timestamp on the external v2 API (`crud_service/api/v2_models/devices.py:88`) — as neither a product-UI render nor a stale/deleted state. Posted for owner veto — [the round-28 run-thread post](https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787305160264809?thread_ts=1787063683.640599&cid=C0BCW4JDZB2), resolved against Slack's `chat.getPermalink` in [`evidence/at7-46-veto-permalink-r28.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-46-veto-permalink-r28.txt) — and **PRDCT-12069's scope was extended to this class in the same ruling** (its title now names `desktop-agent`; the refuted sentence in its body is replaced by an explicit *"measurement REFUTED that"*; re-fetched live with per-element substring checks as [`evidence/at7-45-lifecycle-followup-ticket-r28.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-45-lifecycle-followup-ticket-r28.txt), and independently re-fetched by this run, which also confirms the round-27 correcting comment 90140244765982 still stands on the task). **AND THE POSTURE CLASS JOINS THIS ROW IN ROUND 30 — but with its own, worse framing, which is the point of
-the amendment.** The five classes above ship *no* stale/deleted rendering; posture ships a **wrong** one.
-After the source file is deleted, the pipeline does not merely freeze the rows: it **ACTIVELY RE-AFFIRMS the
-issue Open on every scan of the owning agent, and `/posture-issues` renders the deleted file's content as
-live Evidence with Status: Open**. That is a user-visible product **DEFECT** — re-affirmed Open with deleted
-content as live Evidence, a user-visible wrong state, ticketed — and this PR does not present it as stale, as
-resolved, as correct lifecycle handling, or as acceptable lifecycle behaviour. **Measured this round on head**
-([`evidence/at7-09-db-rows-posture.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-09-db-rows-posture.txt)): across a paired real Kong-front-door re-scan the three instances
-1637/1638/1639 kept the same ids, one per firing definition, none newly minted, each still joining a live
-asset row (not orphaned), and the subject's asset row stayed at 1 (which closes the risk half — the bridge's
-risk side writes `assets.total_risk_score` as a column, not rows); `updated_at` advanced
-**15:17:13 → 15:29:04** while `resolve_state` stayed `IssueInstanceResolveStateOpen`, `closed_at` stayed
-NULL, and `asset_posture_findings.classified_at` stayed **frozen at 13:44:18** — the tell that the row was
-re-written from a cached finding, not from any live artifact. Attributed to its triggering
-bridge→`IssueDetectionWorkflow` parentage (each child's workflow id embeds its parent bridge's run id).
-**It is not azure-lane-specific and not a lane divergence:** research measured the identical behaviour with
-the azure consumer at **zero replicas** and zero `scanner-object-*` bridges, driven by gen-1's
-`scanner-tenant-*` bridge alone (`evidence/r30-genone-reaffirm.txt`), while this round measured it with the
-azure lane live — the detection engine is one shared `IssueDetectionWorkflow` both lanes' bridges invoke. And
-it is **pre-existing**: every file on that executed path is byte-identical between the frozen base
-`67b4096f` and this head, re-derived at verify time on the head under verify in
-[`evidence/at7-47-posture-path-identity.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-47-posture-path-identity.txt) (clause (a) 0-line diffs over all eight pathspecs, each proven
-non-empty; clause (b) the `writers.py` hunks pasted with **zero** touching `_posture_trigger` or
-`_ISSUE_AND_RISK_BRIDGE_WORKFLOW`). Adjudicated in the round-30 amendment (`d-c2-lc-posture.amendment_r30`;
-`spec_interpretations` (11)), posted for owner veto — [the round-30 run-thread post](https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787324020228879?thread_ts=1787063683.640599&cid=C0BCW4JDZB2) —
-and ticketed as **[PRDCT-12071](https://app.clickup.com/t/86bbj56qh)** (fetched live with per-element
-substring checks in [`evidence/at7-46-posture-followup-ticket-r30.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-46-posture-followup-ticket-r30.txt)), **cross-linked to
-[PRDCT-12069](https://app.clickup.com/t/86bbhzk2z)** because they share a root cause: no scanner-lane writer
-sets `assets.is_deleted`, which is the gate on the one absence-adjacent close hook
-(`unlink_deleted_assets_from_issues`), so PRDCT-12069's positive-evidence staleness fix would activate an
-already-existing close hook rather than invent new close semantics. Closing on absence inside this PR was
-rejected for the reason the posture plane documents itself — *"Closing on that signal silently auto-resolves
-real customer findings every time the LLM has a hiccup"* (`issue_detection/activities.py:494-498`).
-**ENTRY (11) SUPERSESSION NOTE (check (t)):** wherever this ledger quotes or relies on `spec_interpretations`
-entry (8) or entry (9), read them with entry (11) attached — entry (8)'s header NOT-amended list and entry
-(9)'s "the posture and usage cells remain NOT amended" are both superseded for the POSTURE class as of
-round 30. The usage cell is unaffected and remains as entry (9) leaves it.
-What this PR claims for the desktop-agent class is the four-part amended end-state and nothing more: **not resurrected / not duplicated** (0 duplicate `unique_identifier`s among 10 desktop-agent assets, `is_deleted` = 0), **not refreshed with the class re-covered** — the `last_scanned_at` staircase-with-control, re-measured in round 31: the four still-installed runtimes advanced to `17:22:17`-`17:22:23` on one real scan while the uninstalled OpenClaw held `16:10:48.175539` byte-identical, with the uninstall verified on the box three ways and the scan's own payload naming only the four survivors ([`evidence/at7-30-agent-lifecycle-control.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at7-30-agent-lifecycle-control.txt)) — and the **honest render** below. That staircase is a **DATABASE measurement and is claimed as nothing else**; no caption or sentence in this PR presents the frozen row, the rendered "Last Seen", or the staircase as a product-visible stale state. |
-| A-1..A-8 | per-tenant gauges, per-line metrics, re-ingestion skip + its state table, inline version resolution, bridge target resolution, connector provenance the Go lane cannot carry, richer edge sources, per-scan installation history | ADD | expected drift, listed |
-
-**WITHDRAWN BY THE ROUND-45 OWNER RULING.** This section used to argue, at length and with a
-four-condition amendment table, that C13's direction rule was met absolutely and that the residual
-gen-1-vs-new-writer divergences were admissible. The ticket owner has since ruled PRDCT-11935 **Azure
-enablement only**, so that argument is not a claim this PR makes and the text has been removed rather
-than left standing as a live assertion. Read the banner at the top of this body for what replaces it:
-**the new lane does not write seeded Claude connectors, does not derive mcpb extension provenance, and
-does not stamp `scanner_version`** — out of scope for this ticket, tracked separately, and the owner
-will rule it an accepted gap.
-
-The measurements those paragraphs rested on are unaffected and still published, for anyone who wants the
-record: [`at6-06-ledger.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-06-ledger.txt) (the per-loss ledger),
-[`at6-07-transport-equivalence.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-07-transport-equivalence.txt) (0 changed lines across transports, 8/8 per-loss greps),
-[`at6-08-residual-losses.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-08-residual-losses.txt),
-[`at6-09-fresh-tenant-parity.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-09-fresh-tenant-parity.txt) and
-[`at6-19-closure-table.md`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-19-closure-table.md).
-
-**The one claim this PR does still make here, and it is the load-bearing one for an Azure enablement:**
-the same writer image, fed the same bytes, writes byte-identical rows on SQS+S3 and on Service Bus+Blob —
-0 changed lines, gen-1 off for the leg ([`at6-07`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-07-transport-equivalence.txt)). The transport is what this ticket
-changes, and the transport changes nothing about what gets written.
+What this PR **does** claim, and proves, is narrower and is the thing the transport change can actually be
+held to: **transport equivalence** — the same writer image, fed the same object bytes, writes the same rows
+whether the object arrives over SQS/S3 or over Service Bus/Blob ([`at6-07-transport-equivalence.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-07-transport-equivalence.txt),
+[`at6-04a`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-04a-diff-created.txt) / [`at6-04b`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-04b-diff-matched.txt) /
+[`at6-04c`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-04c-diff-reingest-skip.txt)) — plus the settlement-class coverage in
+[`at6-05-per-class.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-05-per-class.txt) and the closure table below. The gen-1 comparison and its
+five divergence rows survive **as an owner-accepted gap** in [`at6-06-ledger.txt`](https://raw.githubusercontent.com/onyxsecurity/pywebagent/prdct11935-evidence/evidence/prdct11935/at6-06-ledger.txt),
+which is where a reader who wants that history should go — it is not evidence for this PR.
 
 ## Automated reviewer summary
 
