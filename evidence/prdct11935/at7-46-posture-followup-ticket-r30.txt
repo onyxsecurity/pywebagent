@@ -1,25 +1,33 @@
-# PRDCT-11935 at7-46 — PRDCT-12071 (86bbj56qh) fetched live from the ClickUp API
-# FILE LAST WRITTEN 2026-08-21T15:14:02Z
-# FETCHED AT (live ClickUp API call) 2026-08-21T15:12:46Z
-# COMMAND USED (exact):
-#   cd /home/coder/.claude/skills/clickup && node query.mjs get 86bbj56qh --json
+# PRDCT-11935 at7-46-posture-followup-ticket-r30.txt — PRDCT-12071 fetched LIVE from the ClickUp API this window, with per-element substring checks
+# FILE LAST WRITTEN 2026-08-24T01:39:35Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:39:35Z
+# FETCHED AT (live ClickUp API call) 2026-08-24T01:39:35Z
+# COMMAND USED (exact):  cd /home/coder/.claude/skills/clickup && node query.mjs get 86bbj56qh --json
 
 ==============================================================================
-SECTION 2 — TASK IDENTITY
+SECTION 1 — PER-ELEMENT SUBSTRING CHECKS (the at10 check (q) cite target)
+==============================================================================
+PRESENT :: Open
+PRESENT :: Evidence
+PRESENT :: issue_instances
+PRESENT :: PRDCT-11935
+PRESENT :: PRDCT-12069
+PRESENT :: Mechanism
+PRESENT :: deleted
+
+==============================================================================
+SECTION 2 — TASK IDENTITY + FULL BODY (verbatim, as returned this window)
 ==============================================================================
 custom_id   : PRDCT-12071
 url         : https://app.clickup.com/t/86bbj56qh
 id          : 86bbj56qh
-status      : Open (type=open, id=p90143931606_ODLy53F1)
+status      : eng: code review (type=custom)
 list        : Sprint 38 (18/8 - 24/8) (id=901418754787)
-creator     : Coder Agent <coder@onyx.security> (id=94221387)
+creator     : Coder Agent <coder@onyx.security>
 title       : Product defect: posture issues re-affirm Open with deleted content as live Evidence — issue_instances for a removed artifact are re-touched Open on every scan of the owning agent (measured in PRDCT-11935)
-date_created(ms): 1787323777190   date_updated(ms): 1787323827112
+date_created(ms): 1787323777190   date_updated(ms): 1787326621660
 
-==============================================================================
-SECTION 3 — FULL BODY VERBATIM (task.description, exactly as returned)
-==============================================================================
-<<<BEGIN-BODY-VERBATIM>>>
+=== FULL BODY VERBATIM (task.description) ===
 Why this ticket exists
 
 PRDCT-11935's C2 lifecycle leg (pr-verifier rule C2 clause 5: "a second scan after the artifact is removed shows it stale or marked deleted — not resurrected and not duplicated") was driven for real on the head build for the POSTURE class, and the independent verifier (round 27) measured a behaviour materially worse than the sibling classes' missing stale representation (PRDCT-12069): the posture pipeline actively re-affirms an issue Open against an artifact that no longer exists, and /posture-issues renders the deleted file's content as live Evidence with Status: Open. PRDCT-11935 ships transport parity; PRDCT-12069 carries the missing stale/deleted representation for asset classes; THIS ticket carries the posture plane's active re-assertion — a user-visible wrong state, not merely an absent rendering.
@@ -48,80 +56,3 @@ Related
 PRDCT-12069 (86bbhzk2z) — the sibling product gap (no stale/deleted representation for scanner-discovered asset classes); shares the upstream root cause (no absence-driven is_deleted).
 PRDCT-11935 (86bbg11ad) — where this was measured; its plan carries the class as an owner-visible OVERTAKEN amendment (round 30) citing this ticket.
 PRDCT-6301 — the absence-is-not-a-delete-instruction lineage.
-<<<END-BODY-VERBATIM>>>
-
-==============================================================================
-SECTION 4 — PER-ELEMENT SUBSTRING CHECKS
-==============================================================================
-Normalisation applied before matching: ClickUp markdown escaping stripped
-  (`last\_scanned\_at` -> `last_scanned_at`, and backslash-escaped punctuation unescaped).
-Haystack = task title + normalised body.
-
-4.1 TITLE names the re-affirmed-Open posture behaviour
-  [PRESENT] title names re-affirmed-Open posture behaviour
-        title verbatim: Product defect: posture issues re-affirm Open with deleted content as live Evidence — issue_instances for a removed artifact are re-touched Open on every scan of the owning agent (measured in PRDCT-11935)
-        - re-affirm Open           PRESENT
-        - re-affirm                PRESENT
-        - Open                     PRESENT
-        - posture issues           PRESENT
-        - issue_instances          PRESENT
-        - re-touched Open          PRESENT
-
-4.2 MEASURED RE-AFFIRM STAMPS
-  NOTE ON FORM: the body writes every stamp time-only with a trailing Z
-  (e.g. `14:45:28Z`); the calendar date `2026-08-21` appears elsewhere in the
-  body but never adjacent to a time. Both forms are therefore checked and
-  reported separately rather than collapsed.
-
-  (a) round-30 gen-1-only measurement stamp:
-    [ABSENT ] exact literal  '2026-08-21 14:45:28'    matched: (none)
-    [PRESENT] time form     '14:45:28'               matched: '14:45:28'
-    [PRESENT] as written     '14:45:28Z'              matched: '14:45:28Z'
-    [PRESENT] date alone     '2026-08-21'             matched: '2026-08-21'
-
-  (b) round-27 stamps (plan says any-of; all three checked):
-    [PRESENT] 13:53:22     matched: '13:53:22'     | as written '13:53:22Z'  
-    [PRESENT] 13:54:24     matched: '13:54:24'     | as written '13:54:24Z'  
-    [PRESENT] 14:07:12     matched: '14:07:12'     | as written '14:07:12Z'  
-    => round-27 stamp group: PRESENT (3 of 3 individually present)
-
-  (c) frozen classified_at stamp:
-    [PRESENT] 13:44:18     matched: '13:44:18'     | as written '13:44:18Z'
-
-4.3 MECHANISM file:line CITES (each checked individually)
-  [PRESENT] issue_detection/activities.py                              matched: 'issue_detection/activities.py'
-  [PRESENT] link_applications_to_issues                                matched: 'link_applications_to_issues'
-  [PRESENT] common/repository/skill.py                                 matched: 'common/repository/skill.py'
-  [PRESENT] common/posture/pipeline.py                                 matched: 'common/posture/pipeline.py'
-  [PRESENT] issue_repository.py                                        matched: 'issue_repository.py'
-  [PRESENT] bulk_open_instances                                        matched: 'bulk_open_instances'
-
-4.4 DESIGN CONSTRAINT — 'closing on absence would auto-resolve real findings'
-  [PRESENT] design constraint reasoning (auto-resolve / hiccup / absence)
-        - auto-resolve                       PRESENT  -> 'auto-resolve'
-        - hiccup                             PRESENT  -> 'hiccup'
-        - absence                            PRESENT  -> 'absence'
-
-4.5 PRDCT-12069 CROSS-LINK
-  [PRESENT] PRDCT-12069 cross-link
-        - PRDCT-12069                        PRESENT  -> 'PRDCT-12069'
-
-==============================================================================
-SECTION 5 — SUMMARY
-==============================================================================
-  PRESENT  title names re-affirmed-Open posture behaviour
-  ABSENT   round-30 stamp, EXACT literal '2026-08-21 14:45:28'
-  PRESENT  round-30 stamp, time form '14:45:28' (body: '14:45:28Z')
-  PRESENT  round-27 re-affirm stamps 13:53:22 / 13:54:24 / 14:07:12 (all three)
-  PRESENT  frozen classified_at stamp 13:44:18
-  PRESENT  mechanism cite :: issue_detection/activities.py
-  PRESENT  mechanism cite :: link_applications_to_issues
-  PRESENT  mechanism cite :: common/repository/skill.py
-  PRESENT  mechanism cite :: common/posture/pipeline.py
-  PRESENT  mechanism cite :: issue_repository.py
-  PRESENT  mechanism cite :: bulk_open_instances
-  PRESENT  design constraint reasoning (auto-resolve / hiccup / absence)
-  PRESENT  PRDCT-12069 cross-link
-
-SUMMARY: 12 of 13 checked elements PRESENT (1 ABSENT).
-
