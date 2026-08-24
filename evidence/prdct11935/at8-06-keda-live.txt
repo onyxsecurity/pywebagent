@@ -1,6 +1,7 @@
 # PRDCT-11935 at8-06 — the LIVE KEDA arm: backlog-driven scale-OUT above minReplicaCount and
+# FILE LAST WRITTEN 2026-08-24T03:48:34Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 #                        scale-back-IN, DRIVEN AND MEASURED THIS ROUND on the current heads.
-# FILE LAST WRITTEN 2026-08-24T03:16:58Z
 #
 # PROVENANCE — every sha this capture depends on, named:
 #   onyx head        2b60fdc4df25188104e737e6311087681355eff8  (branch factory-eval-v32/PRDCT-11935)
@@ -201,7 +202,7 @@ status:
       (ii)  KEDA pollingInterval ........... 30s (spec, section 1)
       (iii) one replica's drain rate ....... 0.9 msg/s, MEASURED in this very window: over 02:55:03Z->02:55:21Z
                                              the deployment still had exactly 1 READY replica and the metric
-                                             fell 303 -> 287, i.e. 16 messages in 18s.
+                                             fell from 303 to 287, i.e. 16 messages in 18s.
       (iv)  scale threshold ................ HPA scales out when metric/target exceeds the 10% tolerance:
                                              with 1 replica and averageValue target 10, that needs
                                              ActiveMessageCount >= 12.
