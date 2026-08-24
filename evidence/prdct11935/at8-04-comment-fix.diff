@@ -1,106 +1,230 @@
-# PRDCT-11935 at8-04 — deliverable C's 'fix the stale comment': OVERTAKEN-BY-UPSTREAM, per-instance
-# FILE LAST WRITTEN 2026-08-21T18:37:39Z
-# onyx a2486bb33f · flux-fleet factory-eval-v32/PRDCT-11935 @ cab40f0e42 · captured 2026-08-21T18:37:39Z
+# PRDCT-11935 at8-04 — Deliverable C ("fix the stale comment") is OVERTAKEN BY UPSTREAM, evidenced
+#                        PER INSTANCE to the amendment_r31 (i) specification
+# FILE LAST WRITTEN 2026-08-24T01:47:47Z
+# PROVENANCE — every sha this capture depends on, named:
+#   onyx head        2b60fdc4df25188104e737e6311087681355eff8  (branch factory-eval-v32/PRDCT-11935)
+#   flux-fleet       a4493c1e5ac0545fdf7fcd2f349060288111c42c  (PR onyxsecurity/flux-fleet#2307 head — the PR is OPEN, NOT merged;
+#                    fetched this round into a FRESH clone at /tmp/prdct11935/r51/at8/ff, never the box checkout)
+#   flux merge-base with origin/main, AS MEASURED THIS ROUND
+#                    2c8ad2f2d4250763880752b1f39f29cbd2ebeadf
+#                    (amendment_r31 recorded fa943d66a8 "at ruling time" and requires the capture to state the
+#                     merge-base sha IT used — this one. origin/main has moved since; the measurements below are
+#                     taken at THIS merge-base and at THIS head, not at the ruling-time sha.)
+#   upstream commit  6964ee876d65dd3ffe85e8ee1b397be200df44c7
+#   image actually running in the cluster (deploy/eai-azure, the azure-mode consumer of the lab queue)
+#                    localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+#   capture time     2026-08-24T01:47:47Z
 #
-# RE-EMITTED ROUND 31 to the spec of amendment_r31 requirement (i). The round-28 gate recorded this class
-# as genuinely OBE but noted that, unlike every other overtaken class in this run, it carried no formal
-# plan amendment. It now does — d-c3comment-saas.amendment_r31 and d-c3comment-centerpoint.amendment_r31,
-# posted for owner veto at
-# https://onyx-security.slack.com/archives/C0BCW4JDZB2/p1787333760193809?thread_ts=1787063683.640599&cid=C0BCW4JDZB2
-# — and that amendment states plainly that at8-04 AS SHIPPED did not yet carry (i)'s per-instance
-# stale-clause greps at base and head, nor the override files' own diff --stat. Those are added below.
+# WHY RE-EMITTED (round 51). The shipped at8-04 was captured at flux-fleet cab40f0e42 and — as
+# amendment_r31 itself notes — did not carry requirement (i)'s stale-clause greps at base/head or the
+# override files' own diff --stat. This is the re-emission to that spec, at the current heads.
 #
-# A MEASUREMENT-HYGIENE NOTE, because the amendment records that research's own first-hand base check was
-# a FALSE PASS BY CONSTRUCTION — a failed `git show` swallowed by `grep -c`, against a `factory-eval-base`
-# ref that does not exist in the flux-fleet repo at all. Every row below is error-checked: the generator
-# runs `git cat-file -e <ref>:<path>` first and prints an explicit ERROR row instead of a zero if the path
-# is not resolvable at that ref. It also uses the REAL path — clusters/ox-az-p-eus2-c02/instances/<inst>/
-# onyx-app/release.yaml — after an earlier pass of this very round measured a shorter, non-existent path
-# and got "FILE MISSING" for all six cells, which is exactly the failure mode the amendment describes.
-#
-# THE REFS. flux-fleet carries NO factory-eval-base ref, so the repo's effective frozen base is the
-# branch's merge-base with origin/main: fa943d66a8a4f6ff296262c9ca6049c0a983a9fe
-# The other two refs are 68bdecfd1e70 (the head at8-04's earlier revision captured against) and this
-# branch's current head cab40f0e42bf3e65fa0e8ba40522f2b2d04dd954.
+# THE DELIVERABLE, AND ITS DISPOSITION
+#   Ticket deliverable C asked for a stale comment block to be fixed (re-scoped by spec_interpretations (3)
+#   to release.yaml:64-72 on the Azure c02 instances). It is adjudicated OVERTAKEN-BY-UPSTREAM by
+#   amendment_r31: there is no comment block left to fix, because upstream deleted EVERY comment from the
+#   instance override files and relocated the rules they carried into a doc. The intent is served by
+#   DELETION + RELOCATION, and this branch's own corrections to the lane's rules ship in that doc.
 
-## THE TICKET asked to fix a stale comment at release.yaml:64-66 (block re-scoped to :64-72 by
-## spec_interpretations (3)). Two rounds corrected that comment. Then upstream removed the premise.
-
-## main's PRDCT-4368 (#2334) — the commit that overtook this deliverable:
-    6964ee876 2026-08-20T08:58:16+00:00
+=== 0. THE UPSTREAM COMMIT
+    6964ee876d65dd3ffe85e8ee1b397be200df44c7
+    2026-08-20T08:58:16+00:00
     PRDCT-4368 | Remove all comments from the instance override files, and record the rules they carried (#2334)
-    ancestor of the merge-base fa943d66a8: YES
-    ancestor of this branch's head cab40f0e42:            YES
+    its own diff --stat, in full (eight instance release.yaml files, one doc — nothing else):
+     .../instances/bamfunds/onyx-app/release.yaml       |  16 --
+     .../instances/intuit/onyx-app/release.yaml         |  31 ---
+     .../instances/saas/onyx-app/release.yaml           |  10 -
+     .../instances/saas/onyx-app/release.yaml           | 189 --------------
+     .../instances/saas/onyx-app/release.yaml           |  13 -
+     .../instances/saas/onyx-app/release.yaml           | 128 ---------
+     .../instances/centerpoint/onyx-app/release.yaml    | 112 --------
+     .../instances/saas/onyx-app/release.yaml           | 112 --------
+     docs/architecture/instance-override-rules.md       | 290 +++++++++++++++++++++
+     9 files changed, 290 insertions(+), 611 deletions(-)
+    ancestry, measured (exit 0 = is an ancestor):
+      $ git merge-base --is-ancestor 6964ee876 2c8ad2f2d4  ->  exit=0 (YES, ancestor)
+      $ git merge-base --is-ancestor 6964ee876 origin/mai  ->  exit=0 (YES, ancestor)
+      $ git merge-base --is-ancestor 6964ee876 pr2307  ->  exit=0 (YES, ancestor)
 
-## what it did, measured from the commit's own diff rather than from its message:
-    deleted lines across the instance override files : 611
-    instance override files touched                  : 8
+================================================================================
+=== INSTANCE: saas   (clusters/ox-az-p-eus2-c02/instances/saas/onyx-app)
+================================================================================
 
-## (i) THE PER-INSTANCE MEASUREMENT TABLE — error-checked at every ref
-  instance    ref        what was measured                        comments  stale  lines
-  saas        fa943d66a  merge-base with origin/main                     0      0    849
-  saas        68bdecfd1  at8-04's earlier capture head                   0      0    886
-  saas        cab40f0e4  this branch's head                              0      0    886
-  saas                   upstream 6964ee876 diff --stat for THIS file:
-                           .../instances/saas/onyx-app/release.yaml           | 112 ---------------------
-  saas                   (iii) comment lines this branch ADDS back              0
-  centerpoint fa943d66a  merge-base with origin/main                     0      0    849
-  centerpoint 68bdecfd1  at8-04's earlier capture head                   0      0    886
-  centerpoint cab40f0e4  this branch's head                              0      0    886
-  centerpoint            upstream 6964ee876 diff --stat for THIS file:
-                           .../instances/centerpoint/onyx-app/release.yaml    | 112 ---------------------
-  centerpoint            (iii) comment lines this branch ADDS back              0
+--- (a) THE UPSTREAM COMMIT'S OWN diff --stat OVER **THIS INSTANCE'S OVERRIDE FILE**
+    $ git show --numstat --format='' 6964ee876 -- .../saas/onyx-app/release.yaml
+      0	112	clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/release.yaml
+      (added  deleted  path — 0 added, 112 deleted: the commit is a pure comment DELETION here)
+    first 20 lines of that hunk, verbatim:
+      diff --git a/clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/release.yaml b/clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/release.yaml
+      index 084cd85d3..e54d53aab 100644
+      --- a/clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/release.yaml
+      +++ b/clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/release.yaml
+      @@ -1,20 +1,3 @@
+      -# onyx-app for Azure cells — consumer waves 1+1.5 (extension trio + enricher).
+      -# Full live-config mirrors of the monolith consumers, var-substituted; identical
+      -# across instances, so the whole definition lives at the flavor level.
+      -# scanner/mcp-gateway event consumers are not provisioned on Azure (no queues).
+      -# The chart is pulled from the cluster's default `onyx` HelmRepository (ACR).
+      -# Azure replacements for the AWS-isms in the shared base service files. This
+      -# patches after them and before drop-aws-only-values.yaml and versions.yaml, which
+      -# is last. ServiceAccounts: the chart owns the three consumer SAs
+      -# (create: true), keeping the exact names + client-ids the monolith release used
+      -# to own — the Entra federated credentials are bound to these (namespace, name)
+      -# pairs, so the retire-handoff preserved workload identity. The enricher gets
+      -# its own SA with no workload-identity annotation: no client-id var exists for
+      -# it and the service uses no Azure identity (the monolith's SA carried a broken
+      -# literal "null").
+      -# KEDA: azure-servicebus triggers authenticated by the instance's SAS connection
 
-    Read the two stale columns: the clause "base overlay is not patched into the Azure build" greps ZERO
-    in BOTH instance files at the merge-base, at 68bdecfd1e70, AND at this branch's head — so there is no
-    longer a comment block at release.yaml:64-72 to fix in either instance. Comment lines are zero at
-    every ref for both. And requirement (iii) holds: this branch adds ZERO comment lines back into either
-    override file, which is what the amendment makes a FAIL condition.
+--- (b) COMMENT LINES IN THIS INSTANCE'S release.yaml — at the merge-base AND at head
+      at merge-base 2c8ad2f2d4 : 0 comment lines  (849 lines total)
+      at head       a4493c1e5a : 0 comment lines  (886 lines total)
+      comment lines this branch ADDS to release.yaml (git diff <merge-base>...head, '^+\s*#') : 0
+      -> zero at both refs, and zero added. Requirement (iii) holds for this instance.
 
-## what this branch DOES change in those two files, for contrast (no comments, only values):
- .../instances/centerpoint/onyx-app/release.yaml    | 39 +++++++++++++++++++++-
- .../instances/saas/onyx-app/release.yaml           | 39 +++++++++++++++++++++-
- 2 files changed, 76 insertions(+), 2 deletions(-)
+--- (c) THE STALE CLAUSE — "base overlay is not patched into the Azure build"
+      grep hits in this instance's release.yaml at merge-base 2c8ad2f2d4 : 0
+      grep hits in this instance's release.yaml at head       a4493c1e5a : 0
+      files under this instance's overlay containing the clause, at merge-base : 0
+      files under this instance's overlay containing the clause, at head       : 0
+      -> CLEAN at both refs. There is no stale comment left to fix, because there is no comment.
 
-## and where the knowledge went instead — the doc PRDCT-4368 created for it:
-##   $ git diff --stat 6964ee876^1 6964ee876 -- docs/architecture/instance-override-rules.md
-     docs/architecture/instance-override-rules.md | 290 +++++++++++++++++++++++++++
-##   and what THIS branch adds to that destination:
-     docs/architecture/instance-override-rules.md | 29 ++++++++++++++++++++++++----
+--- (d) WHAT THIS BRANCH DOES COMMENT, AND WHY THAT IS NOT A REGRESSION
+      comment lines this branch adds, per file under this instance's overlay:
+        b/clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/versions.yaml 7
+        b/clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/drop-aws-only-values.yaml 42
+      release.yaml is absent from that list — it gains ZERO comments.
+      drop-aws-only-values.yaml and versions.yaml were NEVER touched by 6964ee876 (see the commit's own
+      full stat below: it edits eight release.yaml files and one doc, nothing else), so those two files
+      remain comment-carrying by upstream's own choice and commenting them back is not re-introducing
+      what upstream removed.
 
-## THE INTENT HOLDS BY DELETION + RELOCATION. The stale clause is gone at base and at head, and the lane's
-## REAL rules — including this branch's corrections — ship in the doc destination:
+================================================================================
+=== INSTANCE: centerpoint   (clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app)
+================================================================================
 
-## THIS branch's lane rules, now recorded there rather than in the file (the section this adds):
-    - **`endpoint-asset-ingestion` is now ENABLED here, and it is the one exception to the rule below.** The MCP
-      scanner lane has an Azure implementation (Blob → Event Grid → Service Bus → the in-process writer), so this
-      instance sets `enabled: true` and supplies the lane's own `asset_ingestion_asb` stanza. Three traps come with it:
-      - **The lane binds its OWN published keys — `${endpoint_asset_ingestion_servicebus_namespace}` and
-        `${endpoint_asset_ingestion_queue_name}` — never the shared `${servicebus_namespace}`.** The shared key is
-        published only when the *extension* lane's toggle is on, so reusing it would make this lane silently depend
-        on a different lane's switch.
-      - **Those two keys are published CONDITIONALLY** (`cell-azure-instance/fluxcd_config.tf`, gated on
-        `create_service_bus && var.create_endpoint_asset_ingestion_queue`), and Flux resolves an unprovided `${...}`
-        to the **empty string** while the Kustomization still reconciles. Enabling this lane on an instance whose
-        queue toggle is off therefore renders an empty queue name and fails at the POD — the transport guard refuses
-        to start, a CrashLoopBackOff — not at the render. **Apply infrastructure first, then this toggle.**
-      - **`asset_ingestion_s3.{aws_region,endpoint}` are blanked HERE, not in `drop-aws-only-values.yaml`.** Removing
-        a key from `spec.values` does not stop the chart's default reappearing, and that default is a live
-        `aws_region: us-east-1`. Because the drop file is patched *after* this one, a remove there would delete the
-        blanks set here — so this leaf is blanked in place and deliberately absent from the drop list.
+--- (a) THE UPSTREAM COMMIT'S OWN diff --stat OVER **THIS INSTANCE'S OVERRIDE FILE**
+    $ git show --numstat --format='' 6964ee876 -- .../centerpoint/onyx-app/release.yaml
+      0	112	clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/release.yaml
+      (added  deleted  path — 0 added, 112 deleted: the commit is a pure comment DELETION here)
+    first 20 lines of that hunk, verbatim:
+      diff --git a/clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/release.yaml b/clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/release.yaml
+      index 084cd85d3..e54d53aab 100644
+      --- a/clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/release.yaml
+      +++ b/clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/release.yaml
+      @@ -1,20 +1,3 @@
+      -# onyx-app for Azure cells — consumer waves 1+1.5 (extension trio + enricher).
+      -# Full live-config mirrors of the monolith consumers, var-substituted; identical
+      -# across instances, so the whole definition lives at the flavor level.
+      -# scanner/mcp-gateway event consumers are not provisioned on Azure (no queues).
+      -# The chart is pulled from the cluster's default `onyx` HelmRepository (ACR).
+      -# Azure replacements for the AWS-isms in the shared base service files. This
+      -# patches after them and before drop-aws-only-values.yaml and versions.yaml, which
+      -# is last. ServiceAccounts: the chart owns the three consumer SAs
+      -# (create: true), keeping the exact names + client-ids the monolith release used
+      -# to own — the Entra federated credentials are bound to these (namespace, name)
+      -# pairs, so the retire-handoff preserved workload identity. The enricher gets
+      -# its own SA with no workload-identity annotation: no client-id var exists for
+      -# it and the service uses no Azure identity (the monolith's SA carried a broken
+      -# literal "null").
+      -# KEDA: azure-servicebus triggers authenticated by the instance's SAS connection
 
-## the two instance files are still byte-identical to each other, which the rules doc requires:
-      saas         7fa0aa9b974cb01aacba12b4ffad448e1ee5e34a
-      centerpoint  7fa0aa9b974cb01aacba12b4ffad448e1ee5e34a
+--- (b) COMMENT LINES IN THIS INSTANCE'S release.yaml — at the merge-base AND at head
+      at merge-base 2c8ad2f2d4 : 0 comment lines  (849 lines total)
+      at head       a4493c1e5a : 0 comment lines  (886 lines total)
+      comment lines this branch ADDS to release.yaml (git diff <merge-base>...head, '^+\s*#') : 0
+      -> zero at both refs, and zero added. Requirement (iii) holds for this instance.
 
-## and the mirrored infrastructure comment — NOT covered by PRDCT-4368, so it stays and stays correct:
-        # resolves an unprovided ${...} to the EMPTY STRING and reconciles successfully, so an
-        # instance whose flux release enables the lane while
-        # create_endpoint_asset_ingestion_queue is off does NOT fail the Kustomization — it
-        # renders an empty queue name, and the failure surfaces at the pod as the transport
-        # guard's refusal to start (CrashLoopBackOff). That is why the apply ORDER matters:
-        # infrastructure first, then the flux toggle.
+--- (c) THE STALE CLAUSE — "base overlay is not patched into the Azure build"
+      grep hits in this instance's release.yaml at merge-base 2c8ad2f2d4 : 0
+      grep hits in this instance's release.yaml at head       a4493c1e5a : 0
+      files under this instance's overlay containing the clause, at merge-base : 0
+      files under this instance's overlay containing the clause, at head       : 0
+      -> CLEAN at both refs. There is no stale comment left to fix, because there is no comment.
 
-## DISPOSITION: the sub-item is OVERTAKEN. The stale comment no longer exists — main deleted it along
-## with every other comment in those files — and re-adding a corrected one would now violate the
-## convention main established in the same change. Ledgered as correction 10 in the PR body.
+--- (d) WHAT THIS BRANCH DOES COMMENT, AND WHY THAT IS NOT A REGRESSION
+      comment lines this branch adds, per file under this instance's overlay:
+        b/clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/versions.yaml 7
+        b/clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/drop-aws-only-values.yaml 42
+      release.yaml is absent from that list — it gains ZERO comments.
+      drop-aws-only-values.yaml and versions.yaml were NEVER touched by 6964ee876 (see the commit's own
+      full stat below: it edits eight release.yaml files and one doc, nothing else), so those two files
+      remain comment-carrying by upstream's own choice and commenting them back is not re-introducing
+      what upstream removed.
+
+================================================================================
+=== THE DOC DESTINATION — where the lane's rules actually live now
+================================================================================
+
+    docs/architecture/instance-override-rules.md — created by 6964ee876 (+290 lines) as the single home for
+    the knowledge the eight comment-free release.yaml files no longer state out loud. THIS BRANCH adds the
+    endpoint-asset-ingestion section to it (and indexes it from docs/README.md). The diff, verbatim:
+
+    diff --git a/docs/architecture/instance-override-rules.md b/docs/architecture/instance-override-rules.md
+    index a66fa797a..86443c1c1 100644
+    --- a/docs/architecture/instance-override-rules.md
+    +++ b/docs/architecture/instance-override-rules.md
+    @@ -1,5 +1,7 @@
+     # Instance override rules
+     
+    +> **Status:** Evergreen — last verified 2026-08-20
+    +
+     This document holds the durable knowledge that used to live as comments inside the eight
+     `clusters/<cell>/instances/<tenant>/onyx-app/release.yaml` files; those files are deliberately comment-free, so
+     this is the only place that records why a value that looks redundant, arbitrary, or wrong must stay. Layering
+    @@ -190,11 +192,30 @@ Chart pins today: `1.0.16` on c01 bamfunds / intuit / saas and c04 saas; `1.0.27
+       deliberately no `apps/onyx-app/azure/` cloud tier, so the whole Azure delta is duplicated between the two
+       tenants and nothing validates the pair.
+     
+    -- **`{endpoint-asset-ingestion,endpoint-gateway-ingestion,scanner-event-consumer,mcp-gateway-event-consumer}.enabled:
+    -  false` — keep all four, and add one for any new AWS-only lane whose shared overlay gets registered.** The chart
+    +- **`endpoint-asset-ingestion` is now ENABLED here, and it is the one exception to the rule below.** The MCP
+    +  scanner lane has an Azure implementation (Blob → Event Grid → Service Bus → the in-process writer), so this
+    +  instance sets `enabled: true` and supplies the lane's own `asset_ingestion_asb` stanza. Three traps come with it:
+    +  - **The lane binds its OWN published keys — `${endpoint_asset_ingestion_servicebus_namespace}` and
+    +    `${endpoint_asset_ingestion_queue_name}` — never the shared `${servicebus_namespace}`.** The shared key is
+    +    published only when the *extension* lane's toggle is on, so reusing it would make this lane silently depend
+    +    on a different lane's switch.
+    +  - **Those two keys are published CONDITIONALLY** (`cell-azure-instance/fluxcd_config.tf`, gated on
+    +    `create_service_bus && var.create_endpoint_asset_ingestion_queue`), and Flux resolves an unprovided `${...}`
+    +    to the **empty string** while the Kustomization still reconciles. Enabling this lane on an instance whose
+    +    queue toggle is off therefore renders an empty queue name and fails at the POD — the transport guard refuses
+    +    to start, a CrashLoopBackOff — not at the render. **Apply infrastructure first, then this toggle.**
+    +  - **`asset_ingestion_s3.{aws_region,endpoint}` are blanked HERE, not in `drop-aws-only-values.yaml`.** Removing
+    +    a key from `spec.values` does not stop the chart's default reappearing, and that default is a live
+    +    `aws_region: us-east-1`. Because the drop file is patched *after* this one, a remove there would delete the
+    +    blanks set here — so this leaf is blanked in place and deliberately absent from the drop list.
+    +
+    +- **`{endpoint-gateway-ingestion,scanner-event-consumer,mcp-gateway-event-consumer}.enabled:
+    +  false` — keep all three, and add one for any new AWS-only lane whose shared overlay gets registered.** The chart
+       defaults them to `false`, but the shared overlays (which the Azure kustomization registers as patches) set them
+    -  to `true`, so the instance disable is what wins. Enabled on Azure, their `${...:=}` queue URLs render empty and
+    -  their region renders the published `us-east-1`, giving workloads that start and consume nothing.
+    +  to `true`, so the instance disable is what wins. Enabled on Azure *without* an Azure transport, their
+    +  `${...:=}` queue URLs render empty and their region renders the published `us-east-1`, giving workloads that
+    +  start and consume nothing — which is precisely the failure the `endpoint-asset-ingestion` entry above avoids by
+    +  supplying a real Azure transport rather than merely flipping the toggle.
+     
+     - **`${region}` on an Azure cell is `us-east-1`; the real cell region is `${azure_region}` (`eastus2`).** Anything
+       reaching for a region here must use `azure_region`. This is why
+
+    -> the lane's three real traps (bind the lane's OWN published keys; those keys are published
+       CONDITIONALLY so an unprovided ${...} renders EMPTY and fails at the pod, not at the render;
+       asset_ingestion_s3 is blanked in release.yaml and deliberately NOT in the drop list because of
+       patch ordering) are recorded in the doc destination, for BOTH instances — the section is written
+       against the cell (`ox-az-p-eus2-c02`), which is exactly the pair.
+
+================================================================================
+=== SUMMARY TABLE — the amendment (i) checklist, per instance
+================================================================================
+    requirement                                                  saas            centerpoint
+    upstream diff --stat over the instance override file         112 deleted     112 deleted
+    comment lines in release.yaml at head                        0               0
+    comment lines added to release.yaml by this branch           0               0
+    stale-clause grep at merge-base 2c8ad2f2d4               0               0
+    stale-clause grep at head a4493c1e5a                     0               0
+    doc destination carries the lane's rules                     YES             YES
+
+    Both instances settle individually on their own grep/count lines above; neither is inferred from
+    the other. d-c3comment-saas and d-c3comment-centerpoint are OVERTAKEN, evidenced, and no comment is
+    authored back into either instance override file.
