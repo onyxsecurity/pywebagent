@@ -1,19 +1,18 @@
-# PRDCT-11935 at7-05 — DB rows, class SKILLS — content-hash identity
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T03:39:18Z · tenant onyx_security
-#
-# RE-CAPTURED ON THE HEAD-EXACT IMAGE (gate G7). Round 23's gate found 19 of 21 at7 artifacts still
-# declared 0665ecc545 with image r24/r25 — the commit before the round-24 sender fix, on images built
-# before it. Every row below was re-driven on :prdct11935-r26, which is built from a2486bb33f and proven
-# byte-exact (4741/4741 head .py files, evidence/at6-12-image-provenance.txt).
-# gen-1 was quiesced for the window (schedule PAUSED + zero pods), so each class is attributable to the
-# lane under test — the receipt is evidence/at7-00-isolation.txt.
-#
+# PRDCT-11935 at7-05-db-rows-skills.txt — the skills class rows with skill_md_hash joined to the on-disk sha256 computed this window
+# FILE LAST WRITTEN 2026-08-24T01:10:06Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:10:06Z
 
---- class SKILLS
-   id   |          name          |                          skill_md_hash                           |        status         
---------+------------------------+------------------------------------------------------------------+-----------------------
- 131278 | lab-w25-20260821033140 | 091dffb345495cabb7547ba8c21ab306114bcff3c68389df23afbd5173bfebfb | AssetStatusDiscovered
-(1 row)
+SET
+   id   | asset_id |         name          |                          skill_md_hash                           |                          skill_dir_hash                          |                        unique_identifier                         |        status         | is_deleted |          created_at           |          updated_at           
+--------+----------+-----------------------+------------------------------------------------------------------+------------------------------------------------------------------+------------------------------------------------------------------+-----------------------+------------+-------------------------------+-------------------------------
+ 362069 |   441993 | r50at7002800-skill    | 3b3e94d234b2801edbfabeb8a53f61cfb0759221e557a1865a4fceb6e7d5f1e8 | 72ee8d6b139cd83682b33064304d3ed2be6be53e570faf9f01e28b99584e9ca9 | 72ee8d6b139cd83682b33064304d3ed2be6be53e570faf9f01e28b99584e9ca9 | AssetStatusDiscovered | f          | 2026-08-24 00:29:58.896873+00 | 2026-08-24 00:29:58.896873+00
+ 362070 |   442005 | r50at7002800-sibskill | 942492d346f7283ef6d77d57474d4366ccbb9eb68b7cba5739fb3e4d281601d5 | bb8d62f5c9a8c62e96cbc082999f4beaac239fff191cf61262691941b7fdcab4 | bb8d62f5c9a8c62e96cbc082999f4beaac239fff191cf61262691941b7fdcab4 | AssetStatusDiscovered | f          | 2026-08-24 00:29:58.896873+00 | 2026-08-24 00:29:58.896873+00
+(2 rows)
 
+ON-DISK sha256 computed this window by sha256sum:
+  3b3e94d234b2801edbfabeb8a53f61cfb0759221e557a1865a4fceb6e7d5f1e8  /home/coder/.claude/skills/r50at7002800-skill/SKILL.md
+  942492d346f7283ef6d77d57474d4366ccbb9eb68b7cba5739fb3e4d281601d5  /home/coder/.claude/skills/r50at7002800-sibskill/SKILL.md
+
+FIDELITY JOIN — stored skill_md_hash == on-disk sha256 of SKILL.md:
+  subject  r50at7002800-skill     3b3e94d234b2801edbfabeb8a53f61cfb0759221e557a1865a4fceb6e7d5f1e8  MATCH
+  sibling  r50at7002800-sibskill  942492d346f7283ef6d77d57474d4366ccbb9eb68b7cba5739fb3e4d281601d5  MATCH
