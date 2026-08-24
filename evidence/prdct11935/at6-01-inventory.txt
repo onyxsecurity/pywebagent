@@ -1,5 +1,6 @@
 # PRDCT-11935 at6-01 — the SETTLEMENT-CLASS INVENTORY, re-derived from the code labels at the SHIPPED head
-# FILE LAST WRITTEN 2026-08-24T00:41:15Z
+# FILE LAST WRITTEN 2026-08-24T03:48:34Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T00:41:15Z
 #
 # ROUND-50 REWRITE. The previous revision of this file was stamped "onyx branch a2486bb33f" — a PRE-HEAD
@@ -208,7 +209,7 @@ The queue-layer settlement primitives the Azure transport actually runs (common_
 ##   round 34:  36 instruments · 28 Labels · 54 emissions · 21 IN
 ##   round 37:  40 instruments · 32 Labels · 58 emissions · 25 IN   (on the PRE-REVERT branch)
 ##   round 50:  40 instruments · 32 Labels · 58 emissions · 24 IN · 0 unresolved · 0 cite-failures
-##   The IN count falls 25 -> 24 because `agent_slices_dropped` is gone at head. That single-row delta is
+##   The IN count falls from 25 to 24 because `agent_slices_dropped` is gone at head. That single-row delta is
 ##   the mechanical signature of the revert, and it is why the generator is the fix and the list is not.
 
 --- the machine-generated verdict table follows, verbatim from the generator's stdout ---
