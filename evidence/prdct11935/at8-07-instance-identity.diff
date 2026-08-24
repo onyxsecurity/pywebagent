@@ -1,35 +1,62 @@
-# PRDCT-11935 at8-07 — the two instances' rendered KEDA objects are identical modulo instance naming
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# captured 2026-08-18T19:41:33Z
+# PRDCT-11935 at8-07 — the two instances’ rendered KEDA objects are identical modulo instance naming
+# FILE LAST WRITTEN 2026-08-24T01:46:19Z
+# PROVENANCE — every sha this capture depends on, named:
+#   onyx head        2b60fdc4df25188104e737e6311087681355eff8  (branch factory-eval-v32/PRDCT-11935)
+#   flux-fleet       a4493c1e5ac0545fdf7fcd2f349060288111c42c  (PR onyxsecurity/flux-fleet#2307 head — the PR is OPEN, NOT merged;
+#                    fetched this round into a FRESH clone at /tmp/prdct11935/r51/at8/ff, never the box checkout)
+#   flux merge-base with origin/main   2c8ad2f2d4250763880752b1f39f29cbd2ebeadf
+#   image actually running in the cluster (deploy/eai-azure, the azure-mode consumer of the lab queue)
+#                    localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+#   capture time     2026-08-24T01:46:19Z
 #
-# This is what lets the live arm of ONE instance (saas) cover the other by identity rather than by
-# inference: if the rendered trigger + auth differ only in the instance name, arming one arms the shape
-# of both. Any non-naming delta would require arming both.
+# WHY RE-EMITTED (round 51). The shipped at8-07 named NO flux-fleet sha at all — the one sha that
+# decides whether a render diff is current. Re-derived here from the fresh clone at the PR head.
+#
+# WHY THIS FILE EXISTS. at8's live KEDA arm is driven on ONE instance (saas). This diff is what lets
+# that arm cover centerpoint by IDENTITY rather than by inference: if the two instances' rendered
+# ScaledObject + TriggerAuthentication + Secret differ only in the instance name, arming one arms the
+# shape of both. Any non-naming delta would oblige arming both.
 
-## ScaledObject + TriggerAuthentication + Secret, saas vs centerpoint (raw diff):
---- /tmp/prdct11935/saas.keda.yaml	2026-08-18 19:41:33.676805551 +0000
-+++ /tmp/prdct11935/centerpoint.keda.yaml	2026-08-18 19:41:33.707805016 +0000
-@@ -33,14 +33,14 @@
- kind: Secret
- metadata:
-   name: servicebus-connection
--  namespace: saas
-+  namespace: centerpoint
- stringData:
-   connection: ${servicebus_connection_string}
- apiVersion: keda.sh/v1alpha1
- kind: TriggerAuthentication
- metadata:
-   name: keda-trigger-auth-servicebus
--  namespace: saas
-+  namespace: centerpoint
- spec:
-   secretTargetRef:
-     - key: connection
+=== WHAT WAS COMPARED
+    per instance, concatenated in a fixed order:
+      · Secret servicebus-connection            (instance overlay, kustomize output)
+      · TriggerAuthentication keda-trigger-auth-servicebus (instance overlay, kustomize output)
+      · ScaledObject endpoint-asset-ingestion   (helm template of that instance's spec.values)
+    48 lines per side.
 
-## the same diff with the instance name normalised — empty output means identical modulo naming:
-   (no differences)
+=== 1. RAW DIFF — saas vs centerpoint
+    --- saas.keda.yaml	2026-08-24 01:45:25.223893099 +0000
+    +++ centerpoint.keda.yaml	2026-08-24 01:45:25.254892562 +0000
+    @@ -2,14 +2,14 @@
+     kind: Secret
+     metadata:
+       name: servicebus-connection
+    -  namespace: saas
+    +  namespace: centerpoint
+     stringData:
+       connection: ${servicebus_connection_string}
+     apiVersion: keda.sh/v1alpha1
+     kind: TriggerAuthentication
+     metadata:
+       name: keda-trigger-auth-servicebus
+    -  namespace: saas
+    +  namespace: centerpoint
+     spec:
+       secretTargetRef:
+         - key: connection
+    -> the ONLY delta is `namespace: saas` vs `namespace: centerpoint`, twice. The ScaledObject half
+       (trigger type, queueName, messageCount, authenticationRef, min/max) is byte-identical.
 
-## and the same check across the ENTIRE kustomize build of both instances:
-   whole build: identical modulo the instance name
+=== 2. NORMALISED DIFF — the same comparison with the instance name folded out (s/saas/centerpoint/g)
+    (empty — the two files are byte-identical after folding out the instance name)
+    exit status 0, no output.
+
+=== 3. THE SHA THAT SAYS IT PLAINLY
+    43fdac0f22b2649208932e90628cc0e598db029283afc3b30759bf4649fc42a2  saas.keda.norm.yaml
+    43fdac0f22b2649208932e90628cc0e598db029283afc3b30759bf4649fc42a2  centerpoint.keda.yaml
+    -> one sha across both instances.
+
+=== CONCLUSION
+    saas and centerpoint render the SAME azure-servicebus trigger on the SAME SAS TriggerAuthentication.
+    Live-arming saas (at8-06) therefore exercises centerpoint's trigger shape too; d-c2keda-centerpoint
+    is covered by identity, and this file is the identity.
