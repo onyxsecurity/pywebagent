@@ -1,88 +1,222 @@
-# PRDCT-11935 at7-00 — the C2 ISOLATION WINDOW (round 25, head-exact image)
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx branch a2486bb33f · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
-# captured 2026-08-21T03:39:35Z · tenant onyx_security
+# PRDCT-11935 at7-00 — the C2 ISOLATION WINDOW (window r50at7002800, head-exact re-drive)
+# FILE LAST WRITTEN 2026-08-24T03:31:00Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves. This file REPLACES the round-25 version, which measured window 2026-08-21T03:32Z on image
+#   prdct11935-r26 and branch a2486bb3 — a different window, a different image, and rows that are NOT the rows at7 now cites.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 (working tree clean; `git rev-parse HEAD` + `git status --porcelain` at 03:28:21Z)
+# images actually running, read live at 2026-08-24T03:26Z (kubectl -n onyxd get pods -o custom-columns=...imageID):
+#     eai-azure-7c4f9bd78c-hd7xd                  endpoint-asset-ingestion:r46b-head  @sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25   restarts=0  started 2026-08-23T22:08:57Z
+#     endpoint-asset-ingestion-5bcd755bd7-ltmrt   endpoint-asset-ingestion:r46b-head  @sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25   restarts=0  started 2026-08-23T21:42:13Z
+#     temporal-python-worker-678758dc4f-8cq6g     temporal-python-worker:r50-head     @sha256:01880ce899b58002164d1b0bd486d2ececdaf93af679bf464519f20c5bfbe0da   restarts=0  started 2026-08-23T23:27:38Z
+# captured 2026-08-24T03:23:54Z .. 2026-08-24T03:28:21Z (DB reads via read-only psql; k8s/temporal reads 03:26-03:27Z) · tenant onyx_security (61750f27-8fbd-42a4-80cf-4191cfb2371a)
+# window r50at7002800 : 2026-08-24T00:28:00Z (first install, at7-01) -> 2026-08-24T02:39Z (last at7 capture, at7-23/at7-51)
 #
-# gen-1 is quiesced three independent ways for this window: its collector schedule is PAUSED, every
-# deployment that could execute it is at zero replicas, and no pod for them exists. The subjects for
-# four classes were then CREATED INSIDE the window, so their rows cannot predate it.
+# READ THIS FIRST — how this window differs from round 25. Round 25 bought isolation by QUIESCING gen-1:
+# the collector schedule was paused and four deployments were scaled to zero. In window r50at7002800 that is
+# NOT what happened, and this file does not pretend otherwise. The collector ran the whole time and both
+# scanner-lane consumers were live. Attribution here rests on three MEASURED things instead of on quiescence:
+#   (a) an id high-water mark per class table, so every row cited is id > mark;
+#   (b) an EXHAUSTIVE enumeration of every row created in the window in every class table — 15/7/1/11/2/2/21 rows,
+#       every one of which carries a name unique to this window (or to at9, disclosed below); and
+#   (c) the per-object azure-lane -> DB attribution already pasted in at7-02, which shows the azure chain
+#       performed the FIRST insert of every subject identity.
+# Where round 25 asserted "nothing else could have written", this file asserts the weaker but actually-measured
+# "several other things could have written, and here is the complete list of what they in fact wrote."
 
-=== 1. the schedule is paused
-    
-              ScheduleId                WorkflowType        Paused          Notes           RunningWorkflows   NextRunTime    LastRunTime                          Specification                          
-      scanner-collector-schedule  ScannerCollectorWorkflow  true    round-25 at7 C2 window  []                7 minutes ago  8 minutes ago  {"interval":[{"interval":"60s","phase":"0s"}],"jitter":"0s"}  
-=== 2. zero replicas, and no pods
-    temporal-general-worker    0     <none>
-    temporal-scanner-worker    0     <none>
-    scanner-event-consumer     0     <none>
-    endpoint-asset-ingestion   0     <none>
-    pods alive for those four: 0
-=== 3. the only writer left
-    eai-azure   localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26   1
+=== 1. THE WINDOW MARKS — and, honestly, where each one comes from
 
-=== the window marks, taken before anything was installed
-    MARKS assets=124637 tools=97 usage=1389
+    PROVENANCE, STATED UP FRONT: no pre-install mark was recorded for window r50at7002800. The round-25
+    method (write down max(id) per table BEFORE installing anything) was not executed this window; no
+    artifact on disk carries a "MARKS ..." line for it. Every number below is therefore a RECONSTRUCTION
+    read live from the tenant DB after the fact, at 2026-08-24T03:23:54Z, with:
 
-=== the scan
-    AT7 SCAN START 2026-08-21T03:32:01Z
-    scanner exit=0
-    2026-08-21T03:33:08.626979255Z	INFO	Scan run completed	{"payloads_sent": 8, "users": 1, "agents_detected_total": 5, "mcp_servers_total": 3, "projects_total": 2, "skills_total": 205, "duration_ms": 64461, "scan_run_id": "2b1d37fe-649f-486c-bc07-b5c602895a03"}
-           type        | created_in_window 
+      SELECT max(id) FILTER (WHERE created_at <  '2026-08-24 00:28:00+00') AS mark_maxid_before,
+             min(id) FILTER (WHERE created_at >= '2026-08-24 00:28:00+00') AS first_id_in_window,
+             count(*) FILTER (WHERE created_at >= '2026-08-24 00:28:00+00') AS rows_in_window,
+             max(id) AS max_now
+        FROM onyx_security.<table>;
 
-=== what it created, by class
-     AssetTypeMCP      |                 1
-     AssetTypeSkill    |                 1
-     AssetTypeSubAgent |                 1
-    (3 rows)
+                table            | mark_maxid_before | first_id_in_window | rows_in_window | max_now | how established
+    -----------------------------+-------------------+--------------------+----------------+---------+------------------------------
+     assets                      |            440245 |             441993 |             15 |  450716 | READ LIVE (reconstructed)
+     tools                       |               158 |                159 |              7 |     165 | READ LIVE, and CORROBORATED
+     usage_sessions              |              7165 |               7555 |              1 |    7555 | READ LIVE (reconstructed)
+     agent_skills                |            360597 |             362069 |             11 |  369435 | READ LIVE (reconstructed)
+     agent_subagents             |             50237 |              52911 |              2 |   52912 | READ LIVE (reconstructed)
+     mcp_servers                 |             18928 |              19792 |              2 |   19793 | READ LIVE (reconstructed)
+     issue_instances             |              6671 |               6685 |             21 |    6751 | READ LIVE (reconstructed)
+     desktop_agent_applications  |               628 |             (none) |              0 |     628 | READ LIVE (reconstructed)
 
-    --- class MCP SERVERS (created in this window)
-       id   |     name     |    unique_identifier     | type  | source_type |   v   
-    --------+--------------+--------------------------+-------+-------------+-------
-     131106 | Onyx Lab MCP | mcpb:onyx-lab-mcp::1.5.0 | Local | File        | 1.5.0
+    WHAT THE ARTIFACTS DO GIVE. The artifacts on disk pin the FIRST in-window id of every class, which
+    bounds each mark from above without any live read at all — at7-05 (agent_skills 362069 / asset 441993),
+    at7-06 (agent_subagents 52911 / asset 442189), at7-04 (mcp_servers 19792 / asset 442199), at7-09-tools
+    (tools 159), at7-07 (usage_sessions 7555), at7-09-posture (assets 447740/447772/448472/448499/450716,
+    issue_instances 6720-6734 and 6748-6751). Only `tools` is fully recoverable from an artifact alone,
+    because tools ids are dense here: at7-09-tools shows the window's rows are 159-165, and the live read
+    independently returns mark 158 = 159-1. That is the one line marked CORROBORATED — two methods, one answer.
+    For the other seven the artifact gives the ceiling and the live read gives the mark itself.
+
+    WHY THE RECONSTRUCTION IS SOUND. A reconstructed mark is only wrong if a row that existed before the
+    window has since disappeared from the id range between the mark and the first in-window id. That range
+    was checked and is EMPTY in every table (read live 03:24Z):
+      assets       id 440246..441992   -> 0 rows        agent_skills    id 360598..362068 -> 0 rows
+      agent_subagents 50238..52910     -> 0 rows        usage_sessions  id   7166..7554   -> 0 rows
+      mcp_servers  id  18929..19791    -> 0 rows        issue_instances id   6672..6684   -> 0 rows
+      onyx_security.assets rows with created_at IS NULL -> 0
+    Those are sequence burns (ON CONFLICT DO NOTHING consumes a nextval), not deleted rows. The product
+    also soft-deletes rather than hard-deletes — is_deleted is a column and is `f` on every row cited here.
+
+    RESIDUAL, STATED PLAINLY: a row created before 00:28:00Z, holding an id ABOVE the stated mark, and
+    HARD-deleted between then and 03:23Z would silently lower the reconstructed mark and would not appear
+    in any gap check. Nothing observed suggests that happened, but it cannot be excluded after the fact.
+    This is precisely why the marks are used here only as a floor. What actually bounds attribution is
+    section 2: the per-class created_in_window counts are exhaustive, and every row in them carries a
+    marker name minted for this window (r50at7002800-*, mcpb:onyx-lab-r50at7002800::1.0.0, external_id
+    20260824_002925_7185b3) whose bytes are joined to on-disk sha256s in at7-01/at7-05/at7-06.
+
+    ON THE WINDOW'S CLOSING EDGE: the filters above are open-ended (created_at >= window start, no upper
+    bound), so they would have swept up anything written between the window's end and the 03:23Z capture.
+    They did not: the newest create in every class table sits inside the window —
+      assets 2026-08-24 02:06:00.413388+00 · tools 00:30:00.463886+00 · usage_sessions 00:30:01.779228+00
+      agent_skills 02:06:00.413388+00 · agent_subagents 00:29:59.603306+00 · mcp_servers 00:30:00.437327+00
+      issue_instances 02:07:23.854862+00
+    so an open-ended filter and a window-bounded one return the same 15/7/1/11/2/2/21 rows.
+
+=== 2. WHAT IT CREATED, BY CLASS — every row with id > its mark
+
+    SELECT type, count(*) FROM onyx_security.assets WHERE created_at >= '2026-08-24 00:28:00+00' GROUP BY type;
+
+           type        | created_in_window
+    -------------------+-------------------
+     AssetTypeMCP      |                 2
+     AssetTypeSkill    |                11
+     AssetTypeSubAgent |                 2
+     AssetTypeDesktopAgent |             0     <- not a row in the GROUP BY; stated explicitly, see below
+    (3 rows returned; the fourth line is the measured absence)
+
+    --- class MCP SERVERS  (assets 442199 subject / 442200 sibling control; mcp_servers 19792/19793 > mark 18928)
+      id   | asset_id |         name         |         unique_identifier         |          created_at
+    -------+----------+----------------------+-----------------------------------+-------------------------------
+     19792 |   442199 | Onyx Lab R50 MCP     | mcpb:onyx-lab-r50at7002800::1.0.0 | 2026-08-24 00:30:00.320436+00
+     19793 |   442200 | Onyx Sibling R50 MCP | mcpb:onyx-sib-r50at7002800::1.0.0 | 2026-08-24 00:30:00.437327+00
+    (2 rows)
+    The identifiers are the name+version out of the manifest.json that npx @anthropic-ai/mcpb@2.1.2 packed
+    this window (at7-01 §2). 442199 is the lifecycle SUBJECT (removed at 02:05:14Z); 442200 stays installed.
+
+    --- class MCP TOOLS  (ids 159-165, all > mark 158)
+     id  | asset_id |        server        |     tool      |          created_at
+    -----+----------+----------------------+---------------+-------------------------------
+     159 |   442199 | Onyx Lab R50 MCP     | r50__echo     | 2026-08-24 00:30:00.348225+00
+     160 |   442199 | Onyx Lab R50 MCP     | r50__hostname | 2026-08-24 00:30:00.348225+00
+     161 |   442199 | Onyx Lab R50 MCP     | r50__search   | 2026-08-24 00:30:00.348225+00
+     162 |   442199 | Onyx Lab R50 MCP     | r50__time     | 2026-08-24 00:30:00.348225+00
+     163 |   442199 | Onyx Lab R50 MCP     | r50__verify   | 2026-08-24 00:30:00.348225+00
+     164 |   442200 | Onyx Sibling R50 MCP | r50sib__ping  | 2026-08-24 00:30:00.463886+00
+     165 |   442200 | Onyx Sibling R50 MCP | r50sib__stat  | 2026-08-24 00:30:00.463886+00
+    (7 rows)  159-163 subject, 164-165 sibling. These 7 are the ENTIRE tools-table delta for the window.
+
+    --- class SKILLS  (agent_skills 362069 subject, 362070 sibling; both > mark 360597)
+       id   | asset_id |         name          |          created_at
+    --------+----------+-----------------------+-------------------------------
+     362069 |   441993 | r50at7002800-skill    | 2026-08-24 00:29:58.896873+00
+     362070 |   442005 | r50at7002800-sibskill | 2026-08-24 00:29:58.896873+00
+    (2 of the 11 in-window agent_skills rows; the other 9 are the posture rows and the at9 rows below)
+
+    --- class SUBAGENTS  (agent_subagents 52911 subject / 52912 sibling, both > mark 50237)
+      id   | asset_id |        name         |          created_at
+    -------+----------+---------------------+-------------------------------
+     52911 |   442189 | r50at7002800-sub    | 2026-08-24 00:29:59.603306+00
+     52912 |   442193 | r50at7002800-sibsub | 2026-08-24 00:29:59.603306+00
+    (2 rows — the ENTIRE agent_subagents delta for the window)
+
+    --- class USAGE SESSIONS  (id 7555 > mark 7165)
+      id  |      external_id       | app_id |          created_at
+    ------+------------------------+--------+-------------------------------
+     7555 | 20260824_002925_7185b3 |  55751 | 2026-08-24 00:30:01.779228+00
+    (1 row — the ENTIRE usage_sessions delta for the window)
+    external_id is verbatim the session id the hermes CLI printed this window (at7-01 §5); app_id 55751 is
+    the Hermes Agent (coder) desktop-agent asset, which was NOT created this window (see the agent class).
+
+    --- class POSTURE  (assets 447740/447772/448472/448499/450716 > mark 440245; issue_instances 6720-6734,
+        6748-6751 > mark 6671)
+       id   |           name           |          created_at           | role
+    --------+--------------------------+-------------------------------+-----------------------------------
+     447740 | r50at7002800-posturectl  | 2026-08-24 01:28:07.756492+00 | control (stays)
+     447772 | r50at7002800-posture     | 2026-08-24 01:28:07.756492+00 | SUBJECT (removed 02:05:14Z)
+     448472 | r50at7002800-posture     | 2026-08-24 01:31:28.47118+00  | SUBJECT (second derived identity)
+     448499 | r50at7002800-posturectl  | 2026-08-24 01:31:28.47118+00  | control (stays)
+     450716 | r50at7002800-posturectl2 | 2026-08-24 02:06:00.413388+00 | control, in-window CREATED control
+      SUBJECT issue instances on 447772 / 448472:  6721, 6722, 6725, 6726, 6729, 6732, 6733
+      CONTROL issue instances:                     6720, 6723, 6724, 6727, 6728, 6730, 6731, 6734, 6748-6751
+      (created 2026-08-24 01:44:50.117728+00, and 02:07:23.854862+00 for the 6748-6751 group)
+
+    --- class DESKTOP AGENT — created_in_window = 0, RE-OBSERVED not created
+      id  | asset_id |       name       |                  unique_identifier                  |          created_at           |        last_scanned_at
+    ------+----------+------------------+-----------------------------------------------------+-------------------------------+-------------------------------
+      105 |    10729 | OpenClaw (coder) | endpoint_openclaw::ec255301bd4407d309fbce94811384b0 | 2026-08-19 15:20:34.914874+00 | 2026-08-24 00:32:03.44933+00
     (1 row)
-    
-    --- class MCP TOOLS
-     id  |    server    |     tool     |      type       | is_active 
-    -----+--------------+--------------+-----------------+-----------
-      98 | Onyx Lab MCP | lab_echo     | ToolTypeMCPTool | t
-      99 | Onyx Lab MCP | lab_hostname | ToolTypeMCPTool | t
-     100 | Onyx Lab MCP | lab_search   | ToolTypeMCPTool | t
-     101 | Onyx Lab MCP | lab_time     | ToolTypeMCPTool | t
-     102 | Onyx Lab MCP | lab_verify   | ToolTypeMCPTool | t
-    (5 rows)
-    
-    --- class SKILLS
-       id   |          name          |                          skill_md_hash                           |        status         
-    --------+------------------------+------------------------------------------------------------------+-----------------------
-     131278 | lab-w25-20260821033140 | 091dffb345495cabb7547ba8c21ab306114bcff3c68389df23afbd5173bfebfb | AssetStatusDiscovered
-    (1 row)
-    
-    --- class SUBAGENTS
-       id   |          name          |                             unique_identifier                              |                         subagent_md_hash                         
-    --------+------------------------+----------------------------------------------------------------------------+------------------------------------------------------------------
-     131332 | lab-w25-20260821033140 | subagent::cacc4e6cef1596e37492b4d987a8369403902b8b09eb3d30ffeaf73a91de1f42 | cacc4e6cef1596e37492b4d987a8369403902b8b09eb3d30ffeaf73a91de1f42
-    (1 row)
-    
-    --- class USAGE SESSIONS
-      id  |      external_id       | has_content_events |          created_at           
-    ------+------------------------+--------------------+-------------------------------
-     2396 | 20260821_033142_faf0bc | t                  | 2026-08-21 03:32:14.971905+00
-    (1 row)
-    
-    --- class DESKTOP AGENT (machine tie)
-      id   |         name         |         v          |              serial              |        last_scanned_at        
-    -------+----------------------+--------------------+----------------------------------+-------------------------------
-        23 | Claude Code (coder)  |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:03.743466+00
-     10656 | Claude (coder)       |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:32:10.983891+00
-     10727 | Codex (coder)        |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:06.260268+00
-     10729 | OpenClaw (coder)     | 2026.5.7 (eeef486) | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:33:07.042041+00
-     55751 | Hermes Agent (coder) |                    | ec255301bd4407d309fbce94811384b0 | 2026-08-21 03:32:14.768672+00
-    (5 rows)
-    
-    --- the scan receipt with its azure object key
-     id  |             scan_run_id              | total_agents | total_mcp_servers | total_skills |                                                                key                                                                 
-    -----+--------------------------------------+--------------+-------------------+--------------+------------------------------------------------------------------------------------------------------------------------------------
-     384 | 2b1d37fe-649f-486c-bc07-b5c602895a03 |            5 |                18 |          205 | tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787283188-b8f13266-b5eb-4664-a0cc-74c041363512.log
-    (1 row)
-    
+    Stated as the old file stated it, without papering over it: asset 10729 PREDATES this window by five
+    days. `SELECT count(*) FROM onyx_security.desktop_agent_applications WHERE created_at >= '2026-08-24
+    00:28:00+00'` returns 0, and max(id) is still 628 — the same value as the mark. The agent class is
+    covered this window by RE-OBSERVATION: openclaw was really re-installed by npm (at7-01 §1, version
+    OpenClaw 2026.5.7 (eeef486)) and this window's azure-lane ingest moved last_scanned_at to
+    2026-08-24 00:32:03.44933+00. The row's identity is stable across rounds, so its id is NOT above the
+    mark and MUST NOT be cited as an in-window create. What is in-window for this class is the timestamp,
+    not the row.
+
+    --- DISCLOSED: four in-window asset rows that are NOT at7's
+       id   |          name            |          created_at           | agent_skills id
+    --------+--------------------------+-------------------------------+-----------------
+     444164 | at9lp-r50b-010438        | 2026-08-24 01:23:03.262353+00 | 363915
+     444168 | at9lp-r50-20260824T0100Z | 2026-08-24 01:23:03.262353+00 | 363916
+     444171 | at9lp-r50c-011140        | 2026-08-24 01:23:03.262353+00 | 363917
+     444180 | at9lp-r50d-012008        | 2026-08-24 01:23:03.262353+00 | 363918
+    These are at9's own probe skills, driven on this box in the same wall-clock period. They are counted in
+    the 15 / 11 totals above and are listed here so the enumeration is complete and no reader has to wonder
+    what the residue is. They share no name, hash or asset id with any at7 subject or control.
+    Likewise issue_instances 6685 and 6686 (created 00:44:41.184533+00) hang off asset 440245
+    `deploy-helper-r50b-20260824002016`, an asset created BEFORE this window — they are in the 21-row
+    issue_instances delta and belong to at9, not at7.
+
+=== 3. WHAT ELSE COULD HAVE WRITTEN THE SCHEMA IN THIS WINDOW, AND WHAT IT ACTUALLY WROTE
+
+    3a. The gen-1 collector was NOT paused. Read live at 03:27Z:
+        $ temporal schedule describe --schedule-id scanner-collector-schedule --namespace default
+          Spec [{"every":"1m 0s"}]   Paused  false   LastRunTime 13 seconds ago   ActionCounts {"Total":7796,...}
+          Notes  "verify-r40 at1-07 window closed"      <- the pause note is from a PRIOR round, not this one
+        $ temporal workflow count --query "WorkflowType='ScannerCollectorWorkflow' AND
+              StartTime BETWEEN '2026-08-24T00:28:00Z' AND '2026-08-24T02:40:00Z'"
+          Total: 132        (2h12m at one run per minute — it ran continuously through the window)
+
+    3b. Every deployment round 25 scaled to zero was at 1 replica. Read live at 03:26Z
+        (kubectl -n onyxd get deploy -o custom-columns=NAME,REPLICAS,IMAGE):
+          temporal-general-worker    1   temporal-general-worker:tilt-73039ae7d7226fd1
+          temporal-scanner-worker    1   temporal-scanner-worker:tilt-9019cb2915c24a19
+          scanner-event-consumer     1   scanner-event-consumer:r46b-head
+          endpoint-asset-ingestion   1   endpoint-asset-ingestion:r46b-head       (the AWS-lane consumer)
+          eai-azure                  1   endpoint-asset-ingestion:r46b-head       (the azure-lane consumer)
+          temporal-python-worker     1   temporal-python-worker:r50-head          (posture / issue detection)
+        Their pods all started BEFORE the window (20:18Z-23:27Z on 2026-08-23) with restarts=0, so each was
+        live for the window's whole span. And 498 IssueDetectionWorkflow executions started inside the window.
+        So the honest statement is: SIX writers with schema access were running, not one.
+
+    3c. What they in fact wrote is section 2, and section 2 is exhaustive. The per-class created_in_window
+        counts ARE the answer to "what else wrote": 15 assets, 7 tools, 1 usage session, 11 agent_skills,
+        2 agent_subagents, 2 mcp_servers, 21 issue_instances — and every single one of those rows carries
+        a name minted for this window (r50at7002800-*, mcpb:onyx-lab-r50at7002800::1.0.0, external_id
+        20260824_002925_7185b3) or is one of the six at9 rows named in 2's disclosure. The collector's 132
+        runs and the AWS-lane consumer contributed ZERO rows to these tables. That is measured, by
+        enumeration, not assumed from a paused schedule — and it is a stronger claim than round 25's,
+        because it survives the writers being live.
+
+    3d. What the other writers DID do is UPDATE, and this file does not claim otherwise. at7-02 already
+        discloses that the AWS-lane pod endpoint-asset-ingestion-5bcd755bd7-ltmrt re-upserted every subject
+        4-7 seconds after the azure lane's first insert, and the desktop-agent rows show updates continuing
+        past the window (Claude (coder) and Hermes Agent (coder) both carry last_scanned_at
+        2026-08-24 03:08:5x+00, well after 02:39Z). Nothing in at7 is cited off updated_at or
+        last_scanned_at as proof of in-window authorship — except the desktop-agent re-observation in
+        section 2, which is labelled as exactly that and carries created_in_window = 0.
+
+    3e. Which lane performed the FIRST insert is settled per row in at7-02, not here: the eai-azure pod's
+        own upsert log lines precede each DB created_at by ~15 ms and carry the azure object key
+        (e.g. asset_id=442199 with s3_key tenant=61750f27-.../date=2026-08-24/1787531397-a886be06-...).
+        This file establishes WHEN the rows were created; at7-02 establishes BY WHICH LANE.
