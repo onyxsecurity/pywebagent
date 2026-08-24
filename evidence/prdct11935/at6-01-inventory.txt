@@ -1,336 +1,336 @@
-# PRDCT-11935 at6-01 — the SETTLEMENT-CLASS INVENTORY, re-derived at the SHIPPED head
-# FILE LAST WRITTEN 2026-08-22T07:00:06Z
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · captured 2026-08-21T09:21:52Z
+# PRDCT-11935 at6-01 — the SETTLEMENT-CLASS INVENTORY, re-derived from the code labels at the SHIPPED head
+# FILE LAST WRITTEN 2026-08-24T00:41:15Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T00:41:15Z
 #
-# EVERY LINE NUMBER BELOW IS GREPPED FROM THE SOURCE AT THIS HEAD by the generator that wrote this
-# file — none is carried from a previous capture. The round-25 gate found the previous revision was
-# stamped f4b3e9dfb2 (head~2) and carried three cites that no longer resolve; re-deriving mechanically
-# is the fix for the class of defect, not just for those three.
+# ROUND-50 REWRITE. The previous revision of this file was stamped "onyx branch a2486bb33f" — a PRE-HEAD
+# commit — and it INVENTED two settlement families that do not exist at the shipped head: the object
+# outcome `processed_with_failures` and the writers.py session-alert family metered by
+# `_meter_session_alerts` (including its `publish_failed` value). Both were reverted by the round-45
+# owner ruling. at6's own `forbidden` list names this defect exactly: "Inventing settlement classes not
+# read from the code labels, or dropping one silently."
 #
-# WHAT CHANGED THIS ROUND
-#   · re-derived on a2486bb33f — the head commit is "Serialise the Azure sender and count the alert
-#     publishes it loses", so it ADDS a settlement family, and an inventory taken at head~2 could not
-#     have it. The session_alerts family is now enumerated below and shown live.
-#   · three cites corrected against the source: the marker-voiding site is writers.py:810
-#     (the old cite pointed at a docstring), dead_letter_message is asb.py:283 (the old cite
-#     pointed inside abandon_message at asb.py:268), and the agent-identity write at
-#     writers.py:299 hard-codes outcome="created" — "matched" is emitted only on the MCP
-#     path at mcp_writer.py:1032, so the two are listed separately instead of as one row.
-#   · the two classes the gate found inventoried-but-unclosed are now DEMONSTRATED for real (§DEMO).
+# So the whole inventory is RE-DERIVED FROM THE HEAD SOURCE TREE, and the derivation is mechanical rather
+# than re-read by eye:
+#   · every settlement class is READ OUT OF THE CODE LABELS — a Literal[] on the Labels class, or a
+#     literal kwarg at the call site — never from a previous capture;
+#   · EVERY cite in this file is machine-verified by re-opening the cited file at the cited line at head
+#     and asserting the line still says what the cite claims (§7 prints all 79 of them, and the two
+#     generators FAIL rather than emit a row whose cite does not resolve);
+#   · the two invented families are proven absent with greps and their zero counts (§1);
+#   · the gen-1-union half is recorded as the OWNER-ACCEPTED GAP with the ruling quoted verbatim, and NOT
+#     executed (§5, §6) — which is what at6's rescoped required_evidence asks for.
+#
+# WHAT IS PRESERVED. §8 and §9 are earlier rounds' LIVE measurements — real counters read off the pods'
+# own /metrics, real consumer log lines, a real $DeadLetterQueue peek. They are real and are kept
+# verbatim, with a provenance note naming the branch and time they were captured on. Correcting a stale
+# derivation is not licence to discard a measurement.
+#
+# HOW TO RE-RUN EVERYTHING IN THIS FILE (both generators are idempotent and read only the source tree):
+#     $ git rev-parse HEAD     # must print 2b60fdc4df25188104e737e6311087681355eff8
+#     $ python3 /tmp/prdct11935/r50/at6docs/enumerate-metrics-r50.py   # §3; exits 0, 0 cite-failures
+#     $ python3 /tmp/prdct11935/r50/at6docs/verify-cites-r50.py        # §7; exits non-zero on any bad cite
 
-Per-object outcome (metric asset_ingestion_objects_total{outcome}), ingestion/object_processor.py:
-  processed                  object_processor.py:157                every slice written; downstream posture/enrichment started
-  processed_with_failures    object_processor.py:157                same call site, the other branch of `"processed_with_failures" if
-                                                                    dropped else "processed"`: ACKED, but at least one agent slice was
-                                                                    ABANDONED by per-agent isolation, so rows for those agents were NOT
-                                                                    written. The failing identity's re-ingest marker is voided
-                                                                    (writers.py:810) so the NEXT scan re-runs it in full;
-                                                                    the count rides asset_ingestion_agent_slices_dropped_total.
-  skipped_flag_off           object_processor.py:104                ack + drop, ZERO rows; dropped_bytes metered
-  skipped_unknown_tenant     object_processor.py:91                 ack + drop, ZERO rows (tenant not in public.tenants) — OBJECT level
-  failed                     object_processor.py:144                raises -> NOT acked -> queue redelivers
+=================== 1. THE TWO SETTLEMENT FAMILIES THIS FILE INVENTED — PROVEN ABSENT AT HEAD ===================
+## at6's own `forbidden` list says: "Inventing settlement classes not read from the code labels, or
+## dropping one silently." The revision of this file shipped before this round did exactly that, twice.
+## Both families were REVERTED by the round-45 owner ruling (quoted in full in §6), so an inventory taken
+## on the pre-ruling branch could carry them and an inventory taken at the shipped head cannot.
+##
+## (a) THE OBJECT OUTCOME `processed_with_failures`
+##     WHAT THE PREVIOUS REVISION SAID: it listed `processed_with_failures  object_processor.py:157` as a
+##     per-object outcome, described it as "ACKED, but at least one agent slice was ABANDONED", said the
+##     count "rides asset_ingestion_agent_slices_dropped_total", and claimed twice more that
+##     "ObjectLabels.outcome (metrics.py:138) declares FIVE values".
+##     WHAT IS TRUE AT HEAD: ObjectLabels.outcome declares FOUR values, the class is emitted nowhere, and
+##     the counter it was said to ride does not exist.
+      $ grep -rn 'processed_with_failures' backend_python/src | wc -l
+      0
+      $ grep -rn 'agent_slices_dropped\|AgentSlicesDroppedLabels' backend_python/src | wc -l
+      0
+      $ sed -n '130,134p' backend_python/src/endpoint_asset_ingestion/metrics.py
+      class ObjectLabels(Labels):
+          """Per-object ingestion outcome, labeled by tenant."""
 
-Per-record result (metric asset_ingestion_records_total{result}), consumer/message_handler.py:
-  ok                         message_handler.py:173                 record reached the processor
-  unknown_tenant             message_handler.py:148                 RECORD level, and a DIFFERENT class from the object-level
-                                                                    skipped_unknown_tenant above: the tenant SEGMENT of the object key is
-                                                                    missing or not a uuid, so the record is skipped before any fetch
-                                                                    (log at message_handler.py:147). The message is ACKED.
-  wrong_source               message_handler.py:152                 valid key, foreign source= segment for this lane
-  parse_err                  message_handler.py:98                  body is not this transport's schema -> metered + ACK
+          tenant_schema: str = "unknown"
+          outcome: Literal["processed", "skipped_flag_off", "skipped_unknown_tenant", "failed"] = "processed"
+##     FOUR declared values, and object_processor.py emits exactly those four (§2). Note also that
+##     `processed` is at object_processor.py:150 at head, not :157 — so even the surviving half of that
+##     row's cite did not resolve.
+##
+## (b) THE `writers.py` SESSION-ALERT FAMILY METERED BY `_meter_session_alerts`, AND ITS `publish_failed`
+##     WHAT THE PREVIOUS REVISION SAID: "Session-alert fan-out … the family THIS HEAD ADDS, declared at
+##     metrics.py:544, metered by _meter_session_alerts (writers.py:677)", with published@686,
+##     publish_failed@688, skipped_no_queue@690, and the claim that publish_failed "is the outcome the
+##     head commit exists to make countable".
+##     WHAT IS TRUE AT HEAD: `_meter_session_alerts` does not exist. The `session_alerts` family DOES
+##     still exist — it is NOT invented — but the SCANNER lane (writers.py) emits only two of its three
+##     values, and `publish_failed` is reachable on the GATEWAY lane alone.
+      $ grep -rn '_meter_session_alerts' backend_python/src | wc -l
+      0
+      $ grep -rn 'metrics\.session_alerts\.' backend_python/src/endpoint_asset_ingestion
+      backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:418:        metrics.session_alerts.add(alerts_published, SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="published"))
+      backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:420:            metrics.session_alerts.add(alerts_failed, SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="publish_failed"))
+      backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:648:        metrics.session_alerts.add(session_result.alerts_published, SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="published"))
+      backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:650:        metrics.session_alerts.inc(SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="skipped_no_queue"))
+##     So the corrected row is: SessionAlertLabels.outcome declares three values (metrics.py:236); the
+##     scanner lane reaches `published` and `skipped_no_queue`; `publish_failed` is a GATEWAY-lane-only
+##     value at head. That is a lane fact read off the call sites, not a parity claim.
+##
+## THE SEVEN FURTHER CITES THAT NO LONGER RESOLVED. Beyond the two invented families, the previous
+## revision's own anchors had drifted. Rather than list them from memory, every cite in this file is now
+## machine-verified (§7) — the drifted ones, corrected, are:
+      previous cite                                      resolves at head to
+      object_processor.py:157  (processed)               object_processor.py:150
+      writers.py:299           (records_written created) writers.py:296
+      writers.py:810           (re-ingest marker void)   GONE — the marker-voiding site went with the revert
+      writers.py:1215          (agents_reingest_skipped) writers.py:1140
+      writers.py:1224          (agents_skipped)          writers.py:1149
+      mcp_writer.py:1032       (created/matched)         mcp_writer.py:1031 (emission) / :1032 (the is_new ternary)
+      asb.py:283               (dead_letter_message)     asb.py:246 (def) / :251 (the log line)
+      asb.py:266               (complete_message)        asb.py:239 (def) / :244 (the log line)
+      asb.py:247-252           (renewal failure)         asb.py:216-221
+      asb.py:194-196           (renewal starts in recv)  asb.py:182-184
+      metrics.py:138           (ObjectLabels.outcome)    metrics.py:134
+      metrics.py:544           (session_alerts)          metrics.py:522
+      pipeline.py:169          (lines)                   pipeline.py:166
+##     None of these is carried by hand this round: §7 re-opens every one of them at head and prints it.
 
-Poison (metric asset_ingestion_poison_messages_total{reason} + asset_ingestion_dead_letters_total):
-  no_ingestible_object       message_handler.py:109                 the body DECODED and named no object this lane can fetch — a
-                                                                    lifecycle event, or a BlobCreated whose url stops at the container.
-  unparseable                message_handler.py:121                 the object FETCHED but has no parseable records
-  BOTH settle by dead_letter_message() -> on Azure the queue's native $DeadLetterQueue
-  (common_core/services/queue/asb.py:283); the counters move at message_handler.py:132 and :135
-  poison-ack FALLBACK        message_handler.py:141                 dead-lettering ITSELF fails -> ack to avoid an infinite
-                                                                    poison loop: poison_messages moves, dead_letters does NOT.
+=================== 2. THE INVENTORY, RE-DERIVED FROM THE CODE LABELS AT HEAD ===================
+## Every value below is READ OUT OF THE CODE — either a `Literal[...]` on the Labels class (DECLARED) or a
+## literal kwarg at a call site (EMITTED). Nothing is inferred, and §7 prints the cited line for each.
 
-Per-WRITE outcome (metric asset_ingestion_records_written_total{outcome}):
-  created                    writers.py:299                         the agent-identity step's assets write. It HARD-CODES
-                                                                    outcome="created"; this row used to claim "created / matched" here,
-                                                                    which the source does not support.
-  created / matched          mcp_writer.py:1032                       the MCP app-definition write — the only site that emits the
-                                                                    two-valued label: outcome="created" if app_def.is_new else "matched"
+Per-object outcome — metric asset_ingestion_objects_total{outcome}, ObjectLabels (metrics.py:130):
+  DECLARED: ["processed", "skipped_flag_off", "skipped_unknown_tenant", "failed"]   (metrics.py:134)
+  processed                object_processor.py:150   every slice written; the object ACKs and the record
+                                                     handler returns ObjectIngestionOutcome.PROCESSED (:153)
+  skipped_flag_off         object_processor.py:104   ack + drop, ZERO rows; dropped_bytes metered at :108
+  skipped_unknown_tenant   object_processor.py:91    ack + drop, ZERO rows (tenant not in public.tenants) —
+                                                     OBJECT level, and a different class from the RECORD-level
+                                                     unknown_tenant below
+  failed                   object_processor.py:144   inside the try opened at :137; re-raises at :145 -> NOT
+                                                     acked -> the queue redelivers
 
-Session-alert fan-out (metric asset_ingestion_session_alerts_total{outcome}) — the family THIS HEAD ADDS,
-declared at metrics.py:544, metered by _meter_session_alerts (writers.py:677):
-  published                  writers.py:686                         the alert-processing request was enqueued
-  publish_failed             writers.py:688                         the send exhausted its retries — request NOT enqueued. This is
-                                                                    the outcome the head commit exists to make countable: it used to be
-                                                                    swallowed on this lane while the gateway lane counted it, so a
-                                                                    producer failing on EVERY send moved no counter at all.
-  skipped_no_queue           writers.py:690                         no alert producer configured; rows still written (sessions
-                                                                    never gate posture)
-  END STATE: none of the three changes message settlement — the object still ACKs. They are a WRITE-side
-  settlement family, which is why they belong in this inventory and get their own closure rows in at6-06.
+Per-record result — metric asset_ingestion_records_total{result}, RecordLabels (metrics.py:124):
+  DECLARED: ["ok", "unknown_tenant", "wrong_source", "parse_err"]   (metrics.py:124)
+  ok             message_handler.py:173   the record reached the processor
+  unknown_tenant message_handler.py:148   RECORD level: the tenant SEGMENT of the object key is missing or not
+                                          a uuid, so the record is skipped before any fetch (log at :147).
+                                          The message is ACKED.
+  wrong_source   message_handler.py:152   valid key, foreign source= segment for this lane
+  parse_err      message_handler.py:98    body is not this transport's schema -> metered (parse_errors also
+                                          ticks at :97) + ACK at :99
+
+Poison — asset_ingestion_poison_messages_total{reason} (:132) + asset_ingestion_dead_letters_total (:135).
+PoisonLabels.reason carries no Literal, so the values are read off the two call sites:
+  no_ingestible_object   message_handler.py:109   the body DECODED and named no object this lane can fetch — a
+                                                  lifecycle event, or a BlobCreated whose url stops at the
+                                                  container. Guarded by `self._empty_is_poison` (:102).
+  unparseable            message_handler.py:121   the object FETCHED but has no parseable records
+                                                  (ObjectParseError out of the record loop at :117)
+  BOTH settle via client.dead_letter_message (message_handler.py:134). On the AZURE transport that is
+  ASBQueueClient.dead_letter_message (asb.py:246, log line :251) -> the queue's native $DeadLetterQueue.
+  poison-ack FALLBACK    message_handler.py:141   dead-lettering ITSELF fails -> ack to avoid an infinite
+                                                  poison loop: poison_messages has already moved (:132),
+                                                  dead_letters does NOT.
+
+Per-WRITE outcome — metric asset_ingestion_records_written_total{outcome}, RecordsWrittenLabels
+(metrics.py:201; the alias `WriteOutcome = Literal["created", "matched", "unchanged"]` at metrics.py:20):
+  created           writers.py:296      the agent-identity step's assets write. HARD-CODES outcome="created".
+  created / matched mcp_writer.py:1031  the MCP app-definition write — the only site that emits the
+                                        two-valued label: `outcome="created" if app_def.is_new else "matched"`
+                                        (the ternary is on :1032)
+  (writers.py:638 and :643 emit the usage-session writes; their `table` values are usage_sessions /
+   usage_session_events, carried in the mechanical table in §3.)
+
+Session-alert fan-out — metric asset_ingestion_session_alerts_total{outcome}, SessionAlertLabels
+(metrics.py:236). CORRECTED THIS ROUND, see §1(b):
+  DECLARED: ["published", "skipped_no_queue", "publish_failed"]   (metrics.py:236)
+  published        writers.py:648          SCANNER lane — the alert-processing requests that were enqueued
+  skipped_no_queue writers.py:650          SCANNER lane — no alert producer configured; rows still written
+                                           (sessions never gate posture)
+  published        gateway_writers.py:418  GATEWAY lane
+  publish_failed   gateway_writers.py:420  GATEWAY lane ONLY at head. The scanner lane does not reach this
+                                           value: writers.py has no publish_failed call site.
+  END STATE: none of these changes message settlement — the object still ACKs. They are a WRITE-side
+  settlement family, which is why they belong in this inventory and get closure rows in at6-06.
 
 Re-ingest SKIP class (its own counters, not an objects{outcome}):
-  agents_reingest_skipped    writers.py:1215                        agent slices whose content hash was unchanged
-  mcp_servers_reingest_skipped mcp_writer.py:1547                   the same decision on the MCP side, per lane
+  agents_reingest_skipped      writers.py:1140       agent slices whose content hash was unchanged
+  agents_skipped{empty_name}   writers.py:1149       AgentSkippedLabels.reason DECLARES ["empty_name"]
+                                                     (metrics.py:269) and the call site emits it
+  mcp_servers_reingest_skipped mcp_writer.py:1547    lane="agent"  (McpReingestSkippedLabels.lane DECLARES
+                               gateway_writers.py:378 lane="gateway", metrics.py:325)
 
-## EVERY EXIT THAT SETTLES WITH NO LABEL — REPORTED AS GAPS, which is what clause 1 asks for.
-## RE-DERIVED ROUND 29, EXTENDED ROUND 31. Round 29's revision said "all of them are enumerated here"
-## after listing six. The round-28 gate found three more at head that it had missed — so the completeness
-## claim was false, and it is withdrawn rather than repeated. What this section now claims is bounded and
-## checkable: it enumerates the nine unlabelled exits found by two independent sweeps of the ingestion
-## lane AND the queue layer beneath it (the earlier sweeps never looked below the handler, which is where
-## the three new ones live). The demand's own words are "an exit that settles with no label is itself a
-## gap to report, not an entry to invent", so these are reported, not dressed up as classes.
+The queue-layer settlement primitives the Azure transport actually runs (common_core/services/queue):
+  complete_message      client.py:77  protocol · asb.py:239 ASB impl (log "Completed message" at :244)
+  dead_letter_message   client.py:85  protocol · asb.py:246 ASB impl (log "Dead-lettered message" at :251)
+  abandon_message       client.py:96  protocol · asb.py:253 ASB impl — main's `-> None` contract; it cancels
+                                      the indefinite lock-renewal task and abandons (delivery count +1)
+  EXACTLY ONE definition of each in each file, checked mechanically (the round-46 ruling's CRITICAL TRAP):
+      $ grep -c 'async def abandon_message' backend_python/src/common_core/services/queue/asb.py
+      1
+      $ grep -c 'async def abandon_message' backend_python/src/common_core/services/queue/client.py
+      1
+      $ grep -c '<<<<<<<\|>>>>>>>' backend_python/src/common_core/services/queue/{asb.py,client.py}
+      backend_python/src/common_core/services/queue/asb.py:0
+      backend_python/src/common_core/services/queue/client.py:0
+  asb.py additionally keeps `_system_properties` (asb.py:48) — the one thing main does not have.
+
+## THE ENUM/LABEL MISMATCH, RESTATED AT HEAD. The previous revision claimed the enum declares THREE while
+## the metric declares FIVE, and that this produced a live disagreement (a record logged `processed` while
+## the object metric said `processed_with_failures`). THAT DISAGREEMENT NO LONGER EXISTS — the class it
+## depended on was reverted. What survives at head is smaller and is stated as what it is:
+##   ObjectIngestionOutcome (object_processor.py:40) declares THREE members — PROCESSED (:43),
+##   SKIPPED_FLAG_OFF (:44), SKIPPED_UNKNOWN_TENANT (:45) — while ObjectLabels.outcome (metrics.py:134)
+##   declares FOUR values. The fourth, `failed`, is METRIC-ONLY BY CONSTRUCTION: :144 meters it and :145
+##   re-raises, so process() never returns for that class and no enum member is needed. Three vs four is
+##   therefore correct-by-design, not a defect — and the round-32 finding it used to carry is withdrawn
+##   with its class.
+
+=================== 3. THE FULL MECHANICAL VERDICT TABLE — every instrument, IN or OUT ===================
+## WHY THIS IS MACHINE-GENERATED. `agents_skipped{reason="empty_name"}` was missing from this inventory for
+## three rounds while its sibling nine lines away was carried; two verify rounds raised it and two hand
+## rewrites still missed it. A hand-curated list cannot prove it is complete. So the boundary is computed.
 ##
-## THE STRUCTURAL REASON THERE ARE SO MANY, stated once: the queue layer has no settlement dimension at
-## all. QueueConsumerLabels (consumer_pool.py:18-21) is an empty Labels class and the only metric the pool
-## emits is a label-free processing_duration histogram, so EVERY settlement class in this lane is emitted
-## by the handler — and any exit that bypasses the handler is unlabelled by construction.
+## THE GENERATOR: /tmp/prdct11935/r50/at6docs/enumerate-metrics-r50.py. Lineage: the round-34 enumerator
+## (one registry, one emission root), extended the way round 37 described — registries and emission roots
+## are BOTH plural, and an emission whose instrument resolves to no walked registry is a hard ERROR row
+## rather than a silent drop. ROUND-50 ADDITION: every printed call site is verified by re-opening the
+## cited file at the cited line and asserting it still emits what it claims; a row whose cite does not
+## resolve is printed as a CITE-FAILURE instead of as a class. That check is the direct answer to this
+## round's defect — an inventory whose cites are machine-verified cannot carry a reverted class.
 ##
-##  (1) consumer/message_handler.py:124   `await client.complete_message(msg)`
-##      The body PARSED, produced ZERO records, and `_empty_is_poison` is FALSE — the AWS path, where an
-##      empty parse is only ever an s3:TestEvent. No records{result}, no objects{outcome}, no poison
-##      counter, no dead-letter: the message is ACKED with no metric of any kind. On AZURE the same shape
-##      is NOT silent — empty_parse_is_poison is true there, so it dead-letters as no_ingestible_object.
-##      AWS-only, and this PR does not change it.
+## WHAT THE ERROR ROW FOUND THIS ROUND: the queue layer declares its own instrument inline in
+## consumer_pool.py:35, a THIRD registry neither the round-34 nor the round-37 generator walked. Its two
+## emissions came back as ERROR-unresolved on the first run. Walking it turns the ERROR into a verdict
+## (OUT — a histogram), and the counts below are the post-fix run.
 ##
-##  (2) ingestion/object_processor.py:88   `tenant = await get_tenant_by_uuid_cached(...)`
-##      The tenant lookup runs BEFORE the try/except that meters `failed` (which opens at :137). If the
-##      database is unreachable the exception propagates out of process() with NO objects{outcome} label
-##      at all — the message is correctly not acked and the broker redelivers, but nothing counts it.
-##      This is not hypothetical: the round-26 verification hit exactly this path when Postgres was
-##      evicted, and the only visible trace was the DLQ growing. It is also why at6-06's old claim that
-##      ":144 meters it" was wrong — :144 is inside a try this call is outside of. That claim is corrected.
-##
-##  (3) ingestion/object_processor.py:96-102   `get_bool_feature_flag_for_tenant(..., raise_on_error=True)`
-##      Same position — outside the :137 try. A LaunchDarkly evaluation error raises with no label. The
-##      fail-CLOSED behaviour is deliberate (at6-01's cross-lane divergence section covers the design),
-##      but the settlement itself is unlabelled.
-##
-##  (4) the broker-side park: Service Bus `MaxDeliveryCountExceeded`
-##      When a message exhausts max_delivery_count the BROKER dead-letters it. No application code runs,
-##      so no poison_messages{reason} and no dead_letters counter move — the app-side series say nothing
-##      happened. The previous revision of this file printed that very string in its own DLQ peek and
-##      walked past it. It is the most consequential of the five: the round-26 outage parked ~28 real
-##      objects this way, invisible to every app metric. Ticketed as PRDCT-12070 (durable retry).
-##
-##  (5) consumer/message_handler.py:118   the `for record in records: await self._handle_record(record)` loop
-##      A TRANSIENT failure inside a record raises out of handle() by design so the message is not acked
-##      and the broker redelivers. Correct behaviour, no label: nothing meters the attempt that failed.
-##
-##  (6) ingestion/gateway_writers.py:416   `logger.exception("gateway alert fan-out failed (non-fatal)")`
-##      and ingestion/gateway_alerts.py:92,95 — the two early `return 0, 0` paths (no alert contexts, or
-##      no alert queue configured). On the GATEWAY lane these are logged and swallowed with no
-##      session_alerts{outcome} sample; the scanner lane's equivalent DOES meter skipped_no_queue
-##      (writers.py). A lane-asymmetric unlabelled exit, reported here rather than smoothed.
-##
-##  (7) common_core/services/queue/consumer_pool.py:156-163   poll error -> backoff + `continue`
-##      ##        except Exception:
-##      ##            logger.exception(
-##      ##      ##      "Worker poll error, backing off",
-##      ##      ##      worker_id=worker_id,
-##      ##      ##      backoff_seconds=self._config.error_backoff_seconds,
-##      ##            )
-##      ##            await asyncio.sleep(self._config.error_backoff_seconds)
-##      ##            continue
-##      Whatever the broker already handed out in the failed batch is settled by neither ack nor abandon.
-##      On Service Bus receive_messages starts a per-message lock-renewal task BEFORE it finishes building
-##      the return list (asb.py:194-196), so a raise partway discards the whole batch INCLUDING messages
-##      already locked and already renewing. The lock lapses, the broker redelivers, and delivery_count
-##      climbs toward the DLQ — with no label, because the exception never reaches the handler that owns
-##      every records{} and objects{} sample. Reachable in normal operation (broker blip, throttle,
-##      credential refresh).
-##
-##  (8) common_core/services/queue/consumer_pool.py:171-184   handler exception -> abandon
-##      TWO unlabelled exits in one block: (a) the abandon itself at :181, and (b) :182-184 where the
-##      abandon FAILS — leaving the message wholly unsettled under a lock whose renewal task is still
-##      running, held until the pod dies. This is the primary failure path of the whole lane, and it is
-##      also where every gap (2), (3) and (5) above lands: the handler's own labelling was aborted
-##      mid-flight, so the pool settles the message with no class recorded.
-##
-##  (9) common_core/services/queue/asb.py:247-252   lock renewal failed -> stop renewing, silently
-##      ##            except Exception:
-##      ##      ##      logger.exception(
-##      ##      ##          "Failed to renew message lock, stopping renewal",
-##      ##      ##          message_id=getattr(asb_msg, "message_id", None),
-##      ##      ##      )
-##      ##      ##      return
-##      The lock is now on a countdown. When it lapses the broker REDELIVERS WHILE THIS WORKER IS STILL
-##      PROCESSING — a sibling worker can take the same message, and this worker's eventual
-##      complete_message/abandon_message then fails against a lock it no longer holds, surfacing as (8).
-##      It is a background task entirely outside the handler, so no metric exists for renewal loss. This
-##      is the one exit that can produce DUPLICATE CONCURRENT PROCESSING of a message, and it is invisible.
-##      Reported here as the most under-instrumented of the nine.
-##
-## AND A LABEL THAT DISAGREES WITH ITS OWN RETURN VALUE — the same class of defect, found by driving it:
-##      ObjectIngestionOutcome (object_processor.py:40) declares THREE members — PROCESSED,
-##      SKIPPED_FLAG_OFF, SKIPPED_UNKNOWN_TENANT — while ObjectLabels.outcome (metrics.py:138) declares
-##      FIVE values. So for an object that abandoned an agent slice, :157 meters
-##      `processed_with_failures` and :170 returns `PROCESSED`, and _handle_record logs that returned
-##      enum. MEASURED, not inferred — evidence/at6-15-processed-with-failures.txt drove one such object
-##      and captured both halves for the same s3_key: the isolation fired for app_name=codex while its
-##      siblings landed, and the record log says `outcome=processed` while the
-##      object metric says `processed_with_failures`. An operator reading the log and an operator reading
-##      the metric get different answers about how the same object settled.
+##   round 34:  36 instruments · 28 Labels · 54 emissions · 21 IN
+##   round 37:  40 instruments · 32 Labels · 58 emissions · 25 IN   (on the PRE-REVERT branch)
+##   round 50:  40 instruments · 32 Labels · 58 emissions · 24 IN · 0 unresolved · 0 cite-failures
+##   The IN count falls 25 -> 24 because `agent_slices_dropped` is gone at head. That single-row delta is
+##   the mechanical signature of the revert, and it is why the generator is the fix and the list is not.
 
-## GAP REPORTED, NOT INVENTED: WriteOutcome "unchanged" is declared at metrics.py:20 and
-## emitted by no writer:
-    $ grep -rn 'outcome="unchanged"' backend_python/src/endpoint_asset_ingestion  ->  0 producers
+--- the machine-generated verdict table follows, verbatim from the generator's stdout ---
 
-## and the retired class, proven absent at head rather than asserted:
-    $ grep -rn 'unusable_event_subject' backend_python/src   ->  0 hits
+# registries walked: 3 · emission roots grepped: 3
+# instruments declared: 40 · Labels classes: 32
+# emission sites (cite-verified): 58
+# UNRESOLVED emissions (instrument in no walked registry): 0
+# CITE FAILURES (cited line no longer emits what it claims): 0
 
-=================== COMPLETENESS, MADE MECHANICAL (round 34, gate GAP-3) ===================
-## WHY THIS SECTION EXISTS. `agents_skipped{reason="empty_name"}` was missing from this inventory for
-## three rounds while its sibling `agents_reingest_skipped` — declared nine lines away in the same file
-## and emitted from the same function — was inventoried. Verify raised it in round 28 (its D2) and again
-## in round 30 (GAP-3); the file was rewritten twice in between and still omitted it. That is the
-## signature of a HAND-CURATED list: it cannot prove it is complete, and re-reading it by eye had already
-## failed twice. So the boundary is now computed instead of drawn.
-##
-## THE GENERATOR: /tmp/prdct11935/r34/enumerate-metrics.py. It walks metrics.py with the AST to find every
-## Counter/Histogram/Gauge instrument and every Labels class, greps the whole lane for every
-## `metrics.<x>.inc|add|observe|record(` call site, pairs each emission with the Labels class it passes,
-## and then gives EVERY instrument a verdict — IN (a settlement class this inventory must carry, with its
-## disposition field, its literal values and its call sites) or OUT (with the reason). Nothing is
-## silently absent, and a new sibling cannot be missed without this output changing.
-##
-## WHAT IT FOUND, and it is worse than the one class the gate named: # metrics.py declares 36 instrument(s); 28 Labels class(es) | # emission sites found in the lane: 54
-## NINE IN-boundary classes were absent from this inventory, not one. They are added below.
-
-  agents_skipped                   asset_ingestion_agents_skipped_total
-      disposition field(s): reason   Labels: AgentSkippedLabels
-      literal values at the call sites: ['empty_name']
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:1224
-
-  db_retries                       asset_ingestion_db_retries_total
-      disposition field(s): reason   Labels: DbRetryLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/db_retry.py:98
-
-  downstream_start_failures        asset_ingestion_downstream_start_failures_total
-      disposition field(s): (count-only drop/skip/park)   Labels: DownstreamStartFailureLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/custom_data_downstreams.py:54
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/mcp_downstreams.py:59
-
-  gateway_employee_resolution      asset_ingestion_gateway_employee_resolution_total
-      disposition field(s): source   Labels: GatewayEmployeeResolutionLabels
-      literal values at the call sites: ['device_join', 'email_fallback']
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:172
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:178
-
-  gateway_server_write_failures    asset_ingestion_gateway_server_write_failures_total
-      disposition field(s): write   Labels: GatewayServerWriteFailureLabels
-      literal values at the call sites: ['mcp_server', 'session_events']
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:340
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:360
-
-  inline_version_resolutions       asset_ingestion_inline_version_resolution_total
-      disposition field(s): kind,lane,outcome   Labels: InlineVersionResolutionLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/version_resolution.py:326
-
-  inventory_sample_failures        asset_inventory_sample_failures_total
-      disposition field(s): (count-only drop/skip/park)   Labels: AssetInventoryFailureLabels
-      emitted backend_python/src/endpoint_asset_ingestion/inventory_gauges.py:102
-
-  step_total                       asset_ingestion_step_total
-      disposition field(s): outcome   Labels: StepLabels
-      emitted backend_python/src/endpoint_asset_ingestion/telemetry/steps.py:118
-
-  swg_observations                 asset_ingestion_swg_observations_total
-      disposition field(s): outcome   Labels: SwgObservationLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/swg_writers.py:197
-
-## THE FULL VERDICT TABLE — every instrument, IN or OUT with its reason
- (21):
-  agent_slices_dropped             asset_ingestion_agent_slices_dropped_total
-      disposition field(s): (count-only drop/skip/park)   Labels: AgentSlicesDroppedLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:159
-  agents_reingest_skipped          asset_ingestion_agents_reingest_skipped_total
+IN — settlement classes the inventory MUST carry (24):
+  agents_reingest_skipped          asset_ingestion_agents_reingest_skipped_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:484)
       disposition field(s): (count-only drop/skip/park)   Labels: AgentReingestSkippedLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:1215
-  agents_skipped                   asset_ingestion_agents_skipped_total
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:1140   |metrics.agents_reingest_skipped.add(len(skipped_identities), AgentReingestSkippedLabels(tenant_schema=deps.tenant_schema))
+  agents_skipped                   asset_ingestion_agents_skipped_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:480)
       disposition field(s): reason   Labels: AgentSkippedLabels
-      literal values at the call sites: ['empty_name']
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:1224
-  db_retries                       asset_ingestion_db_retries_total
+      DECLARED values  AgentSkippedLabels.reason = ['empty_name']   (backend_python/src/endpoint_asset_ingestion/metrics.py:269)
+      EMITTED  values at the verified call sites: ['empty_name']
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:1149   |metrics.agents_skipped.add(inventory.skipped_empty_name_agents, AgentSkippedLabels(tenant_schema=deps.tenant_schema, reason="empty_name"))
+  assets_ingested                  mcp_assets_ingested_total   (declared backend_python/src/python_temporal_worker/mcp_asset_creation/metrics.py:132)
+      disposition field(s): source   Labels: McpAssetIngestionLabels
+      emitted backend_python/src/python_temporal_worker/mcp_asset_creation/activities.py:1486   |mcp_asset_ingestion_metrics.assets_ingested.inc(McpAssetIngestionLabels(tenant_schema=input_data.tenant_schema, source=input_data.source.value))
+  connectors_suppressed            mcp_connectors_suppressed_total   (declared backend_python/src/python_temporal_worker/mcp_asset_creation/metrics.py:148)
+      disposition field(s): lane   Labels: McpConnectorSuppressedLabels
+      DECLARED values  McpConnectorSuppressedLabels.lane = ['scanner', 'workflow']   (backend_python/src/python_temporal_worker/mcp_asset_creation/metrics.py:87)
+      EMITTED  values at the verified call sites: ['scanner', 'workflow']
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:673   |mcp_asset_ingestion_metrics.connectors_suppressed.inc(McpConnectorSuppressedLabels(tenant_schema=tenant_schema, lane="scanner"))
+      emitted backend_python/src/python_temporal_worker/mcp_asset_creation/workflow.py:926   |mcp_asset_ingestion_metrics.connectors_suppressed.inc(McpConnectorSuppressedLabels(tenant_schema=tenant_schema, lane="workflow"))
+  db_retries                       asset_ingestion_db_retries_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:459)
       disposition field(s): reason   Labels: DbRetryLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/db_retry.py:98
-  dead_letters                     asset_ingestion_dead_letters_total
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/db_retry.py:98   |metrics.db_retries.inc(DbRetryLabels(reason=reason, tenant_schema=tenant_schema))
+  dead_letters                     asset_ingestion_dead_letters_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:507)
       disposition field(s): (count-only drop/skip/park)   Labels: 
-      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:135
-  downstream_start_failures        asset_ingestion_downstream_start_failures_total
+      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:135   |metrics.dead_letters.inc()  # monotonic app-side poison counter — only after the message is actually in the DLQ
+  downstream_start_failures        asset_ingestion_downstream_start_failures_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:476)
       disposition field(s): (count-only drop/skip/park)   Labels: DownstreamStartFailureLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/custom_data_downstreams.py:54
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/mcp_downstreams.py:59
-  dropped_bytes                    asset_ingestion_dropped_bytes_total
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/custom_data_downstreams.py:54   |metrics.downstream_start_failures.inc(DownstreamStartFailureLabels(workflow=_CUSTOM_DATA_EMBEDDING_WORKFLOW))
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/mcp_downstreams.py:59   |metrics.downstream_start_failures.inc(DownstreamStartFailureLabels(workflow=name))
+  dropped_bytes                    asset_ingestion_dropped_bytes_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:403)
       disposition field(s): (count-only drop/skip/park)   Labels: DroppedBytesLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:108
-  gateway_employee_resolution      asset_ingestion_gateway_employee_resolution_total
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:108   |metrics.dropped_bytes.add(ref.object_size_bytes, DroppedBytesLabels(tenant_schema=tenant_schema))
+  gateway_employee_resolution      asset_ingestion_gateway_employee_resolution_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:536)
       disposition field(s): source   Labels: GatewayEmployeeResolutionLabels
-      literal values at the call sites: ['device_join', 'email_fallback']
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:172
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:178
-  gateway_server_write_failures    asset_ingestion_gateway_server_write_failures_total
+      DECLARED values  GatewayEmployeeResolutionLabels.source = ['device_join', 'email_fallback']   (backend_python/src/endpoint_asset_ingestion/metrics.py:253)
+      EMITTED  values at the verified call sites: ['device_join', 'email_fallback']
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:172   |metrics.gateway_employee_resolution.add(
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:178   |metrics.gateway_employee_resolution.add(
+  gateway_server_write_failures    asset_ingestion_gateway_server_write_failures_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:531)
       disposition field(s): write   Labels: GatewayServerWriteFailureLabels
-      literal values at the call sites: ['mcp_server', 'session_events']
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:340
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:360
-  inline_version_resolutions       asset_ingestion_inline_version_resolution_total
+      DECLARED values  GatewayServerWriteFailureLabels.write = ['mcp_server', 'session_events']   (backend_python/src/endpoint_asset_ingestion/metrics.py:243)
+      EMITTED  values at the verified call sites: ['mcp_server', 'session_events']
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:340   |metrics.gateway_server_write_failures.inc(
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:360   |metrics.gateway_server_write_failures.inc(
+  inline_version_resolutions       asset_ingestion_inline_version_resolution_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:496)
       disposition field(s): kind,lane,outcome   Labels: InlineVersionResolutionLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/version_resolution.py:326
-  inventory_sample_failures        asset_inventory_sample_failures_total
+      DECLARED values  InlineVersionResolutionLabels.lane = ['agent', 'gateway']   (backend_python/src/endpoint_asset_ingestion/metrics.py:294)
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/version_resolution.py:326   |metrics.inline_version_resolutions.inc(InlineVersionResolutionLabels(tenant_schema=tenant_schema, lane=lane, kind=candidate.kind, outcome=outcome))
+  inventory_sample_failures        asset_inventory_sample_failures_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:575)
       disposition field(s): (count-only drop/skip/park)   Labels: AssetInventoryFailureLabels
-      emitted backend_python/src/endpoint_asset_ingestion/inventory_gauges.py:102
-  lines                            asset_ingestion_lines_total
+      emitted backend_python/src/endpoint_asset_ingestion/inventory_gauges.py:102   |metrics.inventory_sample_failures.inc(AssetInventoryFailureLabels(tenant_schema=schema_name))
+  lines                            asset_ingestion_lines_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:397)
       disposition field(s): kind   Labels: LinesLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/pipeline.py:169
-  mcp_servers_reingest_skipped     asset_ingestion_mcp_servers_reingest_skipped_total
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/pipeline.py:166   |metrics.lines.add(count, LinesLabels(tenant_schema=deps.tenant_schema, kind=kind))
+  mcp_servers_reingest_skipped     asset_ingestion_mcp_servers_reingest_skipped_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:492)
       disposition field(s): lane   Labels: McpReingestSkippedLabels
-      literal values at the call sites: ['agent', 'gateway']
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:378
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:1547
-  objects                          asset_ingestion_objects_total
+      DECLARED values  McpReingestSkippedLabels.lane = ['agent', 'gateway']   (backend_python/src/endpoint_asset_ingestion/metrics.py:325)
+      EMITTED  values at the verified call sites: ['agent', 'gateway']
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:378   |metrics.mcp_servers_reingest_skipped.add(len(reingest_skipped), McpReingestSkippedLabels(tenant_schema=deps.tenant_schema, lane="gateway"))
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:1547   |metrics.mcp_servers_reingest_skipped.add(len(reingest_skipped), McpReingestSkippedLabels(tenant_schema=tenant_schema, lane="agent"))
+  objects                          asset_ingestion_objects_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:407)
       disposition field(s): outcome   Labels: ObjectLabels
-      literal values at the call sites: ['failed', 'processed_with_failures', 'skipped_flag_off', 'skipped_unknown_tenant']
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:91
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:104
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:144
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:157
-  parse_errors                     asset_ingestion_parse_errors_total
+      DECLARED values  ObjectLabels.outcome = ['processed', 'skipped_flag_off', 'skipped_unknown_tenant', 'failed']   (backend_python/src/endpoint_asset_ingestion/metrics.py:130)
+      EMITTED  values at the verified call sites: ['failed', 'processed', 'skipped_flag_off', 'skipped_unknown_tenant']
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:91   |metrics.objects.inc(ObjectLabels(outcome="skipped_unknown_tenant"))
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:104   |metrics.objects.inc(ObjectLabels(tenant_schema=tenant_schema, outcome="skipped_flag_off"))
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:144   |metrics.objects.inc(ObjectLabels(tenant_schema=tenant_schema, outcome="failed"))
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:150   |metrics.objects.inc(ObjectLabels(tenant_schema=tenant_schema, outcome="processed"))
+  parse_errors                     asset_ingestion_parse_errors_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:387)
       disposition field(s): result   Labels: RecordLabels
-      literal values at the call sites: ['parse_err']
-      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:97
-  poison_messages                  asset_ingestion_poison_messages_total
+      DECLARED values  RecordLabels.result = ['ok', 'unknown_tenant', 'wrong_source', 'parse_err']   (backend_python/src/endpoint_asset_ingestion/metrics.py:124)
+      EMITTED  values at the verified call sites: ['parse_err']
+      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:97   |metrics.parse_errors.inc()
+  poison_messages                  asset_ingestion_poison_messages_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:472)
       disposition field(s): reason   Labels: PoisonLabels
-      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:132
-  records                          asset_ingestion_records_total
+      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:132   |metrics.poison_messages.inc(PoisonLabels(reason=poison_reason))
+  records                          asset_ingestion_records_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:383)
       disposition field(s): result   Labels: RecordLabels
-      literal values at the call sites: ['ok', 'parse_err', 'unknown_tenant', 'wrong_source']
-      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:98
-      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:148
-      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:152
-      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:173
-  records_written                  asset_ingestion_records_written_total
+      DECLARED values  RecordLabels.result = ['ok', 'unknown_tenant', 'wrong_source', 'parse_err']   (backend_python/src/endpoint_asset_ingestion/metrics.py:124)
+      EMITTED  values at the verified call sites: ['ok', 'parse_err', 'unknown_tenant', 'wrong_source']
+      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:98   |metrics.records.inc(RecordLabels(result="parse_err"))
+      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:148   |metrics.records.inc(RecordLabels(result="unknown_tenant"))
+      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:152   |metrics.records.inc(RecordLabels(result="wrong_source"))
+      emitted backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:173   |metrics.records.inc(RecordLabels(result="ok"))
+  records_written                  asset_ingestion_records_written_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:446)
       disposition field(s): outcome   Labels: RecordsWrittenLabels
-      literal values at the call sites: ['assets', 'created', 'mcp_upsert', 'usage_session_events', 'usage_sessions']
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:1031
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:299
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:665
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:670
-  session_alerts                   asset_ingestion_session_alerts_total
+      EMITTED  values at the verified call sites: ['assets', 'created', 'mcp_upsert', 'usage_session_events', 'usage_sessions']
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:1031   |metrics.records_written.inc(
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:296   |metrics.records_written.inc(RecordsWrittenLabels(step=STEP_AGENT_IDENTITY, table="assets", tenant_schema=deps.tenant_schema, outcome="created"))
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:638   |metrics.records_written.add(
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:643   |metrics.records_written.add(
+  reingest_edges_restored          mcp_reingest_edges_restored_total   (declared backend_python/src/python_temporal_worker/mcp_asset_creation/metrics.py:142)
+      disposition field(s): source   Labels: McpEdgeRestoreLabels
+      emitted backend_python/src/python_temporal_worker/mcp_asset_creation/activities.py:1337   |mcp_asset_ingestion_metrics.reingest_edges_restored.inc(
+  reingest_skip_evaluations        mcp_reingest_skip_evaluations_total   (declared backend_python/src/python_temporal_worker/mcp_asset_creation/metrics.py:137)
+      disposition field(s): source,verdict   Labels: McpReingestSkipLabels
+      emitted backend_python/src/python_temporal_worker/mcp_asset_creation/activities.py:1323   |mcp_asset_ingestion_metrics.reingest_skip_evaluations.inc(
+  session_alerts                   asset_ingestion_session_alerts_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:522)
       disposition field(s): outcome   Labels: SessionAlertLabels
-      literal values at the call sites: ['publish_failed', 'published', 'skipped_no_queue']
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:418
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:420
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:686
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:688
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:690
-  step_total                       asset_ingestion_step_total
+      DECLARED values  SessionAlertLabels.outcome = ['published', 'skipped_no_queue', 'publish_failed']   (backend_python/src/endpoint_asset_ingestion/metrics.py:236)
+      EMITTED  values at the verified call sites: ['publish_failed', 'published', 'skipped_no_queue']
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:418   |metrics.session_alerts.add(alerts_published, SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="published"))
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:420   |metrics.session_alerts.add(alerts_failed, SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="publish_failed"))
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:648   |metrics.session_alerts.add(session_result.alerts_published, SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="published"))
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:650   |metrics.session_alerts.inc(SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="skipped_no_queue"))
+  step_total                       asset_ingestion_step_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:423)
       disposition field(s): outcome   Labels: StepLabels
-      emitted backend_python/src/endpoint_asset_ingestion/telemetry/steps.py:118
-  swg_observations                 asset_ingestion_swg_observations_total
+      emitted backend_python/src/endpoint_asset_ingestion/telemetry/steps.py:118   |metrics.step_total.inc(StepLabels(step=step, tenant_schema=tenant_schema, outcome=outcome))
+  swg_observations                 asset_ingestion_swg_observations_total   (declared backend_python/src/endpoint_asset_ingestion/metrics.py:542)
       disposition field(s): outcome   Labels: SwgObservationLabels
-      emitted backend_python/src/endpoint_asset_ingestion/ingestion/swg_writers.py:197
+      emitted backend_python/src/endpoint_asset_ingestion/ingestion/swg_writers.py:197   |metrics.swg_observations.inc(
 
-OUT — not settlement classes, each with its reason (15):
+OUT — not settlement classes, each with its reason (16):
   db_op_duration_seconds           asset_ingestion_db_op_duration_seconds           latency/size histogram — measures duration, not a disposition
   db_ops                           asset_ingestion_db_ops_total                     counts volume, carries no disposition field — not a settlement class
   empty_keepset_cleanups           asset_ingestion_empty_keepset_cleanups_total     counts volume, carries no disposition field — not a settlement class
@@ -341,6 +341,7 @@ OUT — not settlement classes, each with its reason (15):
   messages_received                asset_ingestion_messages_received_total          counts volume, carries no disposition field — not a settlement class
   object_age_seconds               asset_ingestion_object_age_seconds               latency/size histogram — measures duration, not a disposition
   object_duration_seconds          asset_ingestion_object_duration_seconds          latency/size histogram — measures duration, not a disposition
+  processing_duration              onyx_queue_message_processing_duration_seconds   latency/size histogram — measures duration, not a disposition
   reconcile_deletions              asset_ingestion_reconcile_deletions              latency/size histogram — measures duration, not a disposition
   redeliveries                     asset_ingestion_redeliveries_total               counts volume, carries no disposition field — not a settlement class
   slice_duration_seconds           asset_ingestion_slice_duration_seconds           latency/size histogram — measures duration, not a disposition
@@ -355,194 +356,346 @@ OUT — not settlement classes, each with its reason (15):
 ##      `agents_reingest_skipped` and `dead_letters` are carried on exactly that basis, which is why
 ##      `agents_skipped` belonged here all along.
 ##   OUT for histograms (duration/size), gauges (a level, not a disposition), volume counters with no
-##      disposition field, and instruments declared but never emitted in this lane (reported as gaps).
+##      disposition field, and instruments declared but never emitted in these roots (reported as gaps).
 ##
-## LANE NOTE: three of the nine (gateway_employee_resolution, gateway_server_write_failures,
+## LANE NOTE: three of the IN classes (gateway_employee_resolution, gateway_server_write_failures,
 ## swg_observations) belong to the GATEWAY and SWG lanes rather than the scanner lane this PR ships.
 ## They are inventoried anyway, with their lane named, because they are emitted by the same service and
-## this inventory's own unlabelled-exit section already reports gateway exits — excluding them would
-## re-introduce exactly the hand-drawn boundary that caused the miss.
+## §4 already reports gateway exits — excluding them would re-introduce exactly the hand-drawn boundary
+## that caused the agents_skipped miss.
 
-=================== THE OTHER LANE — GEN-1's OWN SETTLEMENT EXITS (the union half) ===================
-## ADDED ROUND 31 (gate G1). at6 pins this file as "the settlement-class inventory … BOTH LANES UNIONED",
-## and the previous revision was single-lane: `grep -c '\.go'` returned 0 and it never named gen-1 once.
-## So the demand's explicit reverse direction — "a class only one lane can reach is still a class, and
-## already a divergence to ledger" — had nowhere to live. Every anchor below was re-grepped at this head
-## by the generator that wrote this section (/tmp/prdct11935/r31/gen-at6-01-union.py), which REFUSES to
-## emit a row whose line does not contain its declared marker.
+=================== 4. EVERY EXIT THAT SETTLES WITH NO LABEL — REPORTED AS GAPS ===================
+## The demand's own words are "an exit that settles with no label is itself a gap to report, not an entry
+## to invent", so these are reported, not dressed up as classes. RE-ANCHORED AT HEAD THIS ROUND: the
+## previous revision's queue-layer anchors (asb.py:247-252, asb.py:194-196, consumer_pool.py:156-163,
+## :171-184) all pointed at the pre-revert branch and none of them resolved here. Every line below is
+## re-opened and printed in §7.
 ##
-## THE HEADLINE, because it reframes this whole inventory: the gen-1 lane emits EXACTLY ONE metric in the
-## entire scanner_collector package — scanner_event_object_age_seconds{source="event"} at
-## object_workflow.go:99-102 — and that is a latency timer recorded BEFORE settlement, not a settlement
-## label. Gen-1 has ZERO settlement counters. Its settlement class is recoverable only by matching
-## structured-log message strings, and for the exits marked NO LABEL below, not even that. Set against
-## the new lane's five metered object classes, four record classes and three step classes, the
-## observability gap between the lanes is not a detail of this migration — it is one of its main effects.
-
-  workflow.go:113
-      source     workflow.GetLogger(ctx).Info("No scanner tenants with S3 files in window",
-      class      SUCCESS, empty window across ALL tenants — the whole schedule run no-ops
-      label      LOG ONLY (no metric)
-      new lane   NONE — the event lane is push-driven, so 'nothing arrived' is the absence of a message, not an
-                 outcome. GEN-1-ONLY CLASS.
-
-  workflow.go:181
-      source     workflow.GetLogger(ctx).Error("Scanner tenant child failed",
-      class      a tenant child FAILED -> log and continue; its counts are excluded, other tenants still settle
-      label      LOG ONLY
-      new lane   objects{outcome="failed"} (object_processor.py:144) — Python METERS it, Go only logs
-
-  workflow.go:194
-      source     if failedCount > 0 {
-      class      schedule run settles FAILURE but returns PARTIAL totals for the tenants that did succeed
-      label      NO LABEL (the count exists only inside the error string)
-      new lane   objects{outcome="processed_with_failures"} is the analogous succeeded-with-losses class — but Python
-                 settles it SUCCESS where Go settles FAILURE
-
-  workflow.go:275
-      source     workflow.GetLogger(ctx).Error("Failed to get tenant",
-      class      an EXPLICITLY REQUESTED tenant is dropped from the run entirely — never dispatched, never counted as
-                 failed
-      label      LOG ONLY
-      new lane   objects{outcome="skipped_unknown_tenant"} (object_processor.py:91) — the metered equivalent
-
-  tenant_workflow.go:91
-      source     logger.Warn("CheckTenantEventDrivenFlag failed — proceeding with scheduled scan",
-      class      flag evaluation FAILED -> fail OPEN, the scheduled scan proceeds and the schedule keeps owning the
-                 tenant
-      label      LOG ONLY
-      new lane   INVERTED POLARITY: object_processor.py:96-102 passes raise_on_error=True, so an LD error FAILS the
-                 object and it redelivers. Go fails open toward the schedule, Python fails closed toward retry — same
-                 condition, opposite settlement.
-
-  tenant_workflow.go:96
-      source     logger.Info("ScannerTenantWorkflow no-op: scannerScheduleDisabled is ON for tenant",
-      class      NO-OP, scannerScheduleDisabled ON — the event-driven lane owns this tenant; zero-value output
-                 settles SUCCESS
-      label      LOG ONLY (no metric)
-      new lane   objects{outcome="skipped_flag_off"} (object_processor.py:104) + dropped_bytes — the mirror-image
-                 class, and Python METERS it. Together the two are the cutover switch.
-
-  tenant_workflow.go:130
-      source     logger.Info("No S3 files for tenant in window",
-      class      SUCCESS, no files in window — the tenant scan settles having done nothing
-      label      LOG ONLY (and it logs LESS than its parent at workflow.go:113 — no window bounds)
-      new lane   NONE — no empty-window class exists in a push-driven lane. GEN-1-ONLY CLASS.
-
-  tenant_workflow.go:208
-      source     workflow.GetLogger(ctx).Info("IssueAndRiskBridgeWorkflow already running for this scan — skipping duplic
-      class      duplicate bridge dispatch treated as an idempotent no-op; the parent settles SUCCESS
-      label      LOG ONLY
-      new lane   no metered equivalent — Python relies on with_db_retry idempotency and re-ingest markers, not on a
-                 workflow-ID collision
-
-  post_inventory.go:58
-      source     logger.Warn("best-effort scanner inventory chunk cleanup activity failed",
-      class      best-effort S3 cleanup FAILED -> warn only, the chunk is leaked, the tenant scan still settles
-                 SUCCESS
-      label      LOG ONLY
-      new lane   no cleanup-failure counter — the Python lane streams from S3 and writes no intermediate chunks, so
-                 the class does not exist there
-
-  post_inventory.go:204
-      source     if err := workflow.ExecuteChildWorkflow(dacCtx, desktopAgentCreatorWorkflowName, dacInput).Get(dacCtx, &
-      class      THE INLINE DAC CHILD FAILED -> log-and-continue (no return). allCreatedAssetIDs is never extended
-                 and UpdatedAssets never incremented, so the tenant scan settles SUCCESS with the agent inventory
-                 silently missing — and because allCreatedAssetIDs stays empty it ALSO suppresses the Issue/Risk
-                 bridge at :232, so the scan settles SUCCESS with no assets, no issues and no risk, returning counts
-                 byte-identical to a legitimately-empty scan
-      label      NO LABEL for the settlement (a logger.Error at :212 records the child failure; nothing records how
-                 the SCAN settled)
-      new lane   objects{outcome="processed_with_failures"} + agent_slices_dropped (object_processor.py:150-159).
-                 THIS IS THE PARITY WIN: the new lane exists so 'the lane reported success' can never again mean
-                 'every row landed'.
-
-  post_inventory.go:232
-      source     if len(allCreatedAssetIDs) > 0 {
-      class      no assets created -> the Issue/Risk bridge is silently NOT dispatched; the tenant settles SUCCESS.
-                 Reachable both legitimately (nothing to do) and pathologically (via :204), and the two are
-                 indistinguishable
-      label      NO LABEL — completely silent: no log, no metric
-      new lane   no direct equivalent; every Python object settles under an explicit objects{outcome} label, so no
-                 unlabelled fall-through exists
-
-  post_inventory.go:240
-      source     return ScannerTenantOutput{
-      class      the SINGLE terminal SUCCESS exit for the whole lane — reached by clean success, by the :204 silent
-                 partial, by the empty-inventory fall-through and by the :232 bridge skip, all four indistinguishable
-                 in the output
-      label      NO LABEL
-      new lane   Python splits this one Go exit into processed vs processed_with_failures
-
-  issue_risk_bridge_workflow.go:71
-      source     logger.Error("Issue detection failed in bridge after retries — skipping risk calc",
-      class      issue detection FAILED after 3 retries -> risk calc silently skipped -> the bridge returns nil and
-                 settles SUCCESS. Because the bridge is an ABANDON child, this failure never reaches the tenant scan
-                 either — it is invisible at every level above
-      label      NO LABEL for the settlement
-      new lane   steps{outcome="error"} (metrics.py:177, telemetry/steps.py) meters exactly this
-                 one-step-failed-unit-continued class
-
-  activities.go:187
-      source     logger.Warn("scannerSubagentsIngestEnabled evaluation failed — defaulting to false (subagents discarded)
-      class      sub-feature fails CLOSED — subagents discarded for the whole activity, the scan continues
-      label      LOG ONLY
-      new lane   EXACT PARITY BY DESIGN: object_processor.py:117-123 uses raise_on_error=False, default=False with a
-                 comment saying it mirrors this Go behaviour
-
-  activities.go:225
-      source     logger.Error("Activity output exceeds size cap — likely schema regression",
-      class      NON-RETRYABLE failure, activity output over the 3MB cap
-      label      TYPED DISCRIMINATOR: error type "ActivityOutputTooLarge" (activities.go:73) — one of only two
-                 machine-readable settlement labels in the entire gen-1 package
-      new lane   none — no Temporal history boundary in the Python lane, so no size-cap class
-
-  activities.go:624
-      source     logger.Info("No scanner payloads found in file", zap.String("s3Key", fr.Key))
-      class      the file contains no scanner-source payloads -> skipped, and filesProcessed is NOT incremented, so
-                 it is invisible in the final counts
-      label      LOG ONLY
-      new lane   records{result="wrong_source"} (message_handler.py:152) — direct equivalent, metered
-
-  activities.go:1324
-      source     if payload.SourceType == ScannerSource {
-      class      every NON-scanner payload in the file is silently discarded, per payload — no count, no log. Only
-                 the all-empty case surfaces at all (activities.go:624)
-      label      NO LABEL
-      new lane   records{result="wrong_source"}, metered PER RECORD — a clear gen-2 improvement
-
-  activities.go:834
-      source     logger.Error("Failed to collect coding agent data",
-      class      per-agent failure -> that agent's slice is abandoned, other payloads continue, the tenant scan
-                 settles SUCCESS
-      label      LOG ONLY
-      new lane   agent_slices_dropped + objects{outcome="processed_with_failures"} — the deliberate, documented
-                 equivalent
-
-  object_workflow.go:70
-      source     return ScannerObjectOutput{}, temporal.NewNonRetryableApplicationError(
-      class      non-retryable validation failure, the object is dropped permanently (DORMANT at this commit —
-                 registered, never dispatched)
-      label      TYPED DISCRIMINATOR: error type "InvalidScannerObjectInput" (object_workflow.go:16)
-      new lane   records{result="parse_err"} + parse_errors (message_handler.py:98)
-
-### 19 gen-1 settlement exits, every anchor re-grepped at head
-
-## TWO GEN-1-ONLY CLASSES (the demand's reverse direction, ledgered in at6-06 in both directions):
-##   the empty-window no-ops at workflow.go:113 and tenant_workflow.go:130. The event-driven lane is
-##   push-based, so "nothing arrived in this window" is unobservable by construction rather than a
-##   metered outcome. These are classes only gen-1 can reach, and they do not survive the cutover.
+## THIS SECTION MAKES NO COMPLETENESS CLAIM. A round-29 revision said "all of them are enumerated here"
+## after listing six and the round-28 gate then found three more; the claim was withdrawn then and is not
+## revived now. What is claimed is bounded and checkable: these are the nine unlabelled exits found by
+## sweeping the ingestion lane AND the queue layer beneath it, each with a cite that resolves at head.
 ##
-## ONE GENUINE POLARITY DIVERGENCE: on a LaunchDarkly evaluation error gen-1 FAILS OPEN and runs the scan
-##   (tenant_workflow.go:91), while the new lane FAILS CLOSED and errors the object (raise_on_error=True,
-##   object_processor.py:96-102). Same condition, opposite settlement. Ledgered in at6-06.
+## THE STRUCTURAL REASON THERE ARE SO MANY, stated once: the queue layer has no settlement dimension at
+## all. QueueConsumerLabels (consumer_pool.py:26-29) is an empty Labels class and the only instrument the
+## pool declares is a label-free processing_duration histogram (consumer_pool.py:35) — so EVERY settlement
+## class in this lane is emitted by the handler, and any exit that bypasses the handler is unlabelled by
+## construction. (That histogram is also the instrument whose two emissions came back ERROR-unresolved in
+## §3 before the generator was taught to walk consumer_pool.py as a registry.)
 ##
-## AND THE ONE THE NEW LANE EXISTS TO CLOSE: post_inventory.go:204 settles a tenant scan SUCCESS with the
-##   agent inventory missing AND the issue/risk bridge suppressed, emitting no settlement label at all,
-##   returning counts byte-identical to a legitimately-empty scan. objects{outcome="processed_with_failures"}
-##   plus agent_slices_dropped is the new lane's direct, documented answer to exactly that class.
+##  (1) consumer/message_handler.py:124   `await client.complete_message(msg)`
+##      The body PARSED, produced ZERO records, and `_empty_is_poison` is FALSE (the guard at :102) — the
+##      AWS path, where an empty parse is only ever an s3:TestEvent. No records{result}, no
+##      objects{outcome}, no poison counter, no dead-letter: the message is ACKED with no metric of any
+##      kind. On AZURE the same shape is NOT silent — empty_is_poison is true there, so it dead-letters as
+##      no_ingestible_object. AWS-only, and this PR does not change it.
+##
+##  (2) ingestion/object_processor.py:88   `tenant = await get_tenant_by_uuid_cached(...)`
+##      The tenant lookup runs BEFORE the try that meters `failed` (which opens at :137). If the database
+##      is unreachable the exception propagates out of process() with NO objects{outcome} label at all —
+##      the message is correctly not acked and the broker redelivers, but nothing counts it. Not
+##      hypothetical: a round-26 verification hit exactly this path when Postgres was evicted, and the only
+##      visible trace was the DLQ growing.
+##
+##  (3) ingestion/object_processor.py:96-101   `get_bool_feature_flag_for_tenant(..., raise_on_error=True)`
+##      Same position — outside the :137 try. A LaunchDarkly evaluation error raises with no label. The
+##      fail-CLOSED behaviour is deliberate; the settlement itself is unlabelled.
+##      (Its sibling at :117-122 passes raise_on_error=False and so cannot produce this exit — that one
+##      degrades to "discard subagents" and the object still settles under a label.)
+##
+##  (4) the broker-side park: Service Bus `MaxDeliveryCountExceeded`
+##      When a message exhausts max_delivery_count the BROKER dead-letters it. No application code runs,
+##      so no poison_messages{reason} and no dead_letters counter move — the app-side series say nothing
+##      happened. This file's own DLQ peek in §8 prints that very string. It is the most consequential of
+##      the nine: the round-26 outage parked ~28 real objects this way, invisible to every app metric.
+##      Tracked as PRDCT-12070 (durable retry).
+##
+##  (5) consumer/message_handler.py:117   the `for record in records:` loop
+##      A TRANSIENT failure inside a record raises out of handle() by design so the message is not acked
+##      and the broker redelivers. Correct behaviour, no label: nothing meters the attempt that failed.
+##
+##  (6) ingestion/gateway_writers.py:416   `logger.exception("gateway alert fan-out failed (non-fatal)")`
+##      and ingestion/gateway_alerts.py:93,96 — the two early `return 0, 0` paths (no alert contexts, or no
+##      alert queue configured). On the GATEWAY lane these are logged and swallowed with no
+##      session_alerts{outcome} sample; the scanner lane's equivalent DOES meter skipped_no_queue
+##      (writers.py:650). A lane-asymmetric unlabelled exit, reported here rather than smoothed.
+##
+##  (7) common_core/services/queue/consumer_pool.py:180-187   poll error -> backoff + `continue`
+##      Whatever the broker already handed out in the failed batch is settled by neither ack nor abandon.
+##      On Service Bus receive_messages starts a per-message lock-renewal task BEFORE it finishes building
+##      the return list (asb.py:182-184), so a raise partway discards the whole batch INCLUDING messages
+##      already locked and already renewing. The lock lapses, the broker redelivers, and delivery_count
+##      climbs toward the DLQ — with no label, because the exception never reaches the handler that owns
+##      every records{} and objects{} sample. Reachable in normal operation (broker blip, throttle,
+##      credential refresh).
+##
+##  (8) common_core/services/queue/consumer_pool.py:202-217 and :225-235   handler exception -> abandon
+##      The pool's two abandon backstops — batch mode at :216 and per-message mode at :235 — both route
+##      into `_abandon_batch_best_effort` (:331), whose own failure path is `logger.debug("Abandon backstop
+##      skipped a message (likely already settled)")` at :339. So there are two unlabelled exits stacked
+##      here: the abandon itself, and the abandon that FAILS and is swallowed at debug level. This is the
+##      primary failure path of the whole lane and where gaps (2), (3) and (5) above land: the handler's
+##      own labelling was aborted mid-flight, so the pool settles the message with no class recorded.
+##      CHANGED SINCE THE PREVIOUS REVISION, and it matters: this is now MAIN's implementation, not this
+##      PR's. The round-46 owner ruling dropped this PR's abandon/pool design as superseded, so the exit is
+##      inventoried as a property of the shipped queue layer rather than of anything this PR adds.
+##
+##  (9) common_core/services/queue/asb.py:216-221   lock renewal failed -> stop renewing, silently
+##      `except Exception: logger.exception("Failed to renew message lock, stopping renewal"); return`.
+##      The lock is now on a countdown. When it lapses the broker REDELIVERS WHILE THIS WORKER IS STILL
+##      PROCESSING — a sibling worker can take the same message, and this worker's eventual
+##      complete_message/abandon_message then fails against a lock it no longer holds, surfacing as (8).
+##      It is a background task entirely outside the handler, so no metric exists for renewal loss. This is
+##      the one exit that can produce DUPLICATE CONCURRENT PROCESSING of a message, and it is invisible.
 
-=================== DEMO — the two classes the round-25 gate found unclosed, DRIVEN FOR REAL ===================
+## GAP REPORTED, NOT INVENTED: WriteOutcome "unchanged" is declared at metrics.py:20 and emitted by no
+## writer:
+      $ grep -rn 'outcome="unchanged"' backend_python/src/endpoint_asset_ingestion | wc -l
+      0
+
+## AND THE RETIRED CLASS, proven absent at head rather than asserted:
+      $ grep -rn 'unusable_event_subject' backend_python/src | wc -l
+      0
+
+=================== 5. THE GEN-1 UNION HALF — OWNER-ACCEPTED GAP, RECORDED AND NOT EXECUTED ===================
+## at6's required_evidence for this file reads, verbatim from test_plan.json: "the single writer's
+## settlement-class inventory (label values + call-site cites, both transports; THE GEN-1-UNION HALF
+## RECORDED AS OWNER-ACCEPTED GAP WITH THE RULING QUOTE, NOT EXECUTED)". So the union is a recorded gap
+## here, not a derivation.
+##
+## WHAT THE PREVIOUS REVISION DID INSTEAD, and why it is withdrawn rather than refreshed. It carried a
+## 19-row section titled "THE OTHER LANE — GEN-1's OWN SETTLEMENT EXITS (the union half)", derived under
+## the PRE-RULING scope where at6 was a gen-1-comparison parity AT. Two things are wrong with keeping it:
+##
+##   (a) ITS "new lane" COLUMN CITES CLASSES THAT DO NOT EXIST AT HEAD. Four of its nineteen rows
+##       (workflow.go:194, post_inventory.go:204, post_inventory.go:240, activities.go:834) resolve the
+##       gen-1 exit onto `objects{outcome="processed_with_failures"}` and/or `agent_slices_dropped`. Both
+##       are 0 hits at head (§1a). The rows would have to be rewritten to say the new lane has no
+##       equivalent — which is the accepted gap, stated below, and not a table.
+##
+##   (b) TWO OF ITS LINES ARE PARITY CLAIMS, WHICH at6's `guard` MAKES A FAIL. post_inventory.go:204's row
+##       said "THIS IS THE PARITY WIN: the new lane exists so 'the lane reported success' can never again
+##       mean 'every row landed'", and the section footer said "AND THE ONE THE NEW LANE EXISTS TO CLOSE
+##       … objects{outcome=processed_with_failures} plus agent_slices_dropped is the new lane's direct,
+##       documented answer to exactly that class." at6's guard: "ANY claim — in evidence, ledger, or PR
+##       body — that gen-1 parity holds or that C13 is proven = FAIL." Those claims are withdrawn.
+##
+## No gen-1 comparison lane is run for this AT and no parity claim is made anywhere in this file. Gen-1's
+## untouched-and-still-running status is at11's subject, not this file's.
+
+=================== 6. THE RULING, VERBATIM ===================
+## From test_plan.json -> owner_ruling_r45.ruling_verbatim (the ticket owner, Iddo). Quoted in full so the
+## scope this file obeys is readable without the plan to hand.
+
+    SCOPE CORRECTION from the owner (Iddo) — overrides earlier direction. PRDCT-11935 is Azure ENABLEMENT ONLY. It is not a bug-fix PR. Do not fix pre-existing AWS-lane bugs here.
+    
+    REVERT the old-lane parity work from onyx#12329, keeping the Azure transport work intact:
+    - ingestion/writers.py — seeded connectors via build_seeded_connector_servers, the scanner_version stamp, and _meter_session_alerts
+    - ingestion/extract.py — _extension_name_from_mcpb and its helpers
+    - python_temporal_worker/integrations/desktop_agent_creator/scanner_version.py plus the workflow.py change that moved it: leave resolve_scanner_version_for_agent where it is on main
+    - ingestion/object_processor.py — the processed_with_failures split and agent_slices_dropped
+    - ingestion/pipeline.py — failed_agent_slices / InventoryWriteResult plumbing; restore write_inventory returning list[int]
+    - metrics.py PARTIAL — drop the new 'processed_with_failures' outcome value, AgentSlicesDroppedLabels and the agent_slices_dropped counter. KEEP the SQS->queue HELP-text rewording; that one is Azure-correct.
+    - tests: test_writers.py, test_extract.py, test_object_processor.py, test_session_alert_failure_is_metered.py
+    
+    KEEP everything that makes the Azure lane work the way the AWS one does: transport_guard.py and its validators, AssetIngestionASBConfig, the service.py cloud branch, blob dispatch in event_parser.py, _system_properties in asb.py, abandon_message on client.py and consumer_pool.py, event_time.py, the sibling consumers' dead-Azure-branch deletion plus assert_cloud_supported, the helm ASB stanzas, azure-storage-blob, ADR 0067, the monitoring doc, and their tests.
+    
+    Then update the PR body: C13 is NO LONGER claimed as proven. State plainly that the new lane diverges from gen-1 — it does not write seeded Claude connectors, does not derive mcpb extension provenance, and does not stamp scanner_version — that this is out of scope for this ticket, and that it is tracked separately. The owner will rule C13 as an accepted gap. Do not re-add the parity fixes and do not open a separate PR for them yourself.
+    
+    After the revert, verify the PR changes no behaviour that runs on an AWS cell, and say so explicitly in the PR body.
+
+=================== 7. EVERY CITE IN THIS FILE, RE-OPENED AT HEAD AND PRINTED ===================
+## THE VERIFICATION COMMAND, and what it guarantees:
+##     $ python3 /tmp/prdct11935/r50/at6docs/verify-cites-r50.py
+## For each (file, line, marker) it opens the file at head, reads that line, and asserts the marker is in
+## it. Any miss prints FAIL and the script exits non-zero. It caught SIX of this round's own draft cites
+## as off-by-one before this file was written (object_processor.py 118->117, 123->122, 152->153;
+## asb.py 181->182, 220->221; mcp_writer.py 1033->1032) — which is the point: a cite that is not
+## mechanically checked is a cite that drifts. The metric call sites in §3 are verified by the OTHER
+## generator, which re-reads each emission line and reports CITE FAILURES separately (it reported 0).
+##
+## Run output, verbatim:
+
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:40
+         |class ObjectIngestionOutcome(StrEnum):
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:43
+         |    PROCESSED = "processed"
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:44
+         |    SKIPPED_FLAG_OFF = "skipped_flag_off"
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:45
+         |    SKIPPED_UNKNOWN_TENANT = "skipped_unknown_tenant"
+OK   backend_python/src/endpoint_asset_ingestion/metrics.py:130
+         |class ObjectLabels(Labels):
+OK   backend_python/src/endpoint_asset_ingestion/metrics.py:134
+         |    outcome: Literal["processed", "skipped_flag_off", "skipped_unknown_tenant", "failed"] = "processed"
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:88
+         |        tenant = await get_tenant_by_uuid_cached(ref.tenant_uuid, self._db_engine)
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:96
+         |            enabled = get_bool_feature_flag_for_tenant(
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:101
+         |                raise_on_error=True,
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:117
+         |        subagents_enabled = get_bool_feature_flag_for_tenant(
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:122
+         |            raise_on_error=False,
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:137
+         |            try:
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:143
+         |            except Exception:
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:153
+         |        return ObjectIngestionOutcome.PROCESSED
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:99
+         |            await client.complete_message(msg)
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:102
+         |        if not records and self._empty_is_poison:
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:109
+         |            await self._park_poison(client, msg, reason=reason, poison_reason="no_ingestible_object")
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:117
+         |            for record in records:
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:121
+         |            await self._park_poison(client, msg, reason=str(poison), poison_reason="unparseable")
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:124
+         |        await client.complete_message(msg)
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:134
+         |            await client.dead_letter_message(msg, reason=reason)
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:141
+         |            await client.complete_message(msg)
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:147
+         |            logger.warning("skipping record: unknown tenant", s3_key=record.key, source=record.source)
+OK   backend_python/src/common_core/services/queue/client.py:77
+         |    async def complete_message(self, msg: ReceivedMessage) -> None:
+OK   backend_python/src/common_core/services/queue/client.py:85
+         |    async def dead_letter_message(self, msg: ReceivedMessage, reason: str) -> None:
+OK   backend_python/src/common_core/services/queue/client.py:96
+         |    async def abandon_message(self, msg: ReceivedMessage) -> None:
+OK   backend_python/src/common_core/services/queue/asb.py:239
+         |    async def complete_message(self, msg: ReceivedMessage) -> None:
+OK   backend_python/src/common_core/services/queue/asb.py:244
+         |        logger.info("Completed message", message_id=msg.id)
+OK   backend_python/src/common_core/services/queue/asb.py:246
+         |    async def dead_letter_message(self, msg: ReceivedMessage, reason: str) -> None:
+OK   backend_python/src/common_core/services/queue/asb.py:251
+         |        logger.info("Dead-lettered message", message_id=msg.id, reason=reason)
+OK   backend_python/src/common_core/services/queue/asb.py:253
+         |    async def abandon_message(self, msg: ReceivedMessage) -> None:
+OK   backend_python/src/common_core/services/queue/asb.py:48
+         |def _system_properties(asb_msg: Any) -> dict[str, str]:
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:26
+         |class QueueConsumerLabels(Labels):
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:35
+         |    processing_duration = Histogram(
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:180
+         |            except Exception:
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:182
+         |                    "Worker poll error, backing off",
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:187
+         |                continue
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:202
+         |                except Exception:
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:216
+         |                    await self._abandon_batch_best_effort(client, received)
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:225
+         |                except Exception:
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:235
+         |                    await self._abandon_batch_best_effort(client, [msg])
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:331
+         |    async def _abandon_batch_best_effort(self, client: QueueClient, messages: list[ReceivedMessage]) -> None:
+OK   backend_python/src/common_core/services/queue/consumer_pool.py:339
+         |                logger.debug("Abandon backstop skipped a message (likely already settled)", message_id=msg.id)
+OK   backend_python/src/common_core/services/queue/asb.py:182
+         |            renewal_task = asyncio.create_task(self._renew_lock_loop(asb_msg))
+OK   backend_python/src/common_core/services/queue/asb.py:217
+         |                    logger.exception(
+OK   backend_python/src/common_core/services/queue/asb.py:218
+         |                        "Failed to renew message lock, stopping renewal",
+OK   backend_python/src/common_core/services/queue/asb.py:221
+         |                    return
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:416
+         |        logger.exception("gateway alert fan-out failed (non-fatal)", s3_key=deps.s3_key)
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/gateway_alerts.py:93
+         |        return 0, 0
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/gateway_alerts.py:96
+         |        return 0, 0
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:296
+         |        metrics.records_written.inc(RecordsWrittenLabels(step=STEP_AGENT_IDENTITY, table="assets", tenant_schema=deps.tenant_schema, outcome="created"))
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:1032
+         |        RecordsWrittenLabels(step="mcp_upsert", table="assets", tenant_schema=tenant_schema, outcome="created" if app_def.is_new else "matched")
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:1140
+         |        metrics.agents_reingest_skipped.add(len(skipped_identities), AgentReingestSkippedLabels(tenant_schema=deps.tenant_schema))
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:1547
+         |        metrics.mcp_servers_reingest_skipped.add(len(reingest_skipped), McpReingestSkippedLabels(tenant_schema=tenant_schema, lane="agent"))
+OK   backend_python/src/endpoint_asset_ingestion/metrics.py:20
+         |WriteOutcome = Literal["created", "matched", "unchanged"]
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:145
+         |                raise
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py:108
+         |                    metrics.dropped_bytes.add(ref.object_size_bytes, DroppedBytesLabels(tenant_schema=tenant_schema))
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:97
+         |            metrics.parse_errors.inc()
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:132
+         |        metrics.poison_messages.inc(PoisonLabels(reason=poison_reason))
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:135
+         |            metrics.dead_letters.inc()  # monotonic app-side poison counter — only after the message is actually in the DLQ
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:148
+         |            metrics.records.inc(RecordLabels(result="unknown_tenant"))
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:152
+         |            metrics.records.inc(RecordLabels(result="wrong_source"))
+OK   backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:173
+         |        metrics.records.inc(RecordLabels(result="ok"))
+OK   backend_python/src/endpoint_asset_ingestion/metrics.py:124
+         |class RecordLabels(Labels):
+OK   backend_python/src/endpoint_asset_ingestion/metrics.py:201
+         |    """Per-write outcome labels (created vs matched vs unchanged), attributed to the step + table."""
+OK   backend_python/src/endpoint_asset_ingestion/metrics.py:236
+         |class SessionAlertLabels(Labels):
+OK   backend_python/src/endpoint_asset_ingestion/metrics.py:269
+         |class AgentSkippedLabels(Labels):
+OK   backend_python/src/endpoint_asset_ingestion/metrics.py:325
+         |class McpReingestSkippedLabels(Labels):
+OK   backend_python/src/endpoint_asset_ingestion/metrics.py:522
+         |    session_alerts = Counter(
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:1031
+         |    metrics.records_written.inc(
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:638
+         |        metrics.records_written.add(
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:643
+         |        metrics.records_written.add(
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:648
+         |        metrics.session_alerts.add(session_result.alerts_published, SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="published"))
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:650
+         |        metrics.session_alerts.inc(SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="skipped_no_queue"))
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:1149
+         |        metrics.agents_skipped.add(inventory.skipped_empty_name_agents, AgentSkippedLabels(tenant_schema=deps.tenant_schema, reason="empty_name"))
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:418
+         |        metrics.session_alerts.add(alerts_published, SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="published"))
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:420
+         |            metrics.session_alerts.add(alerts_failed, SessionAlertLabels(tenant_schema=deps.tenant_schema, outcome="publish_failed"))
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/gateway_writers.py:378
+         |        metrics.mcp_servers_reingest_skipped.add(len(reingest_skipped), McpReingestSkippedLabels(tenant_schema=deps.tenant_schema, lane="gateway"))
+OK   backend_python/src/endpoint_asset_ingestion/ingestion/pipeline.py:166
+         |            metrics.lines.add(count, LinesLabels(tenant_schema=deps.tenant_schema, kind=kind))
+
+# anchors checked: 79 · FAILURES: 0
+
+=================== 8. PRESERVED LIVE MEASUREMENT — two settlement classes DRIVEN on the real lane ===================
+## PROVENANCE, stated because this file's header stamp and this measurement's capture time differ. This
+## section was captured on 2026-08-21T09:18-09:19Z against the running lab consumer on branch a2486bb33f.
+## It is kept VERBATIM because it is a real measurement — real Event Grid bodies on the real lab queue,
+## real counters scraped off the pods' own /metrics, real consumer log lines and a real $DeadLetterQueue
+## receive. Re-deriving the inventory does not invalidate a settlement that was observed.
+##
+## WHAT IN IT IS STILL TRUE AT HEAD, and what to read with care:
+##   · The classes demonstrated — records{result="unknown_tenant"}, poison_messages{reason="unparseable"},
+##     dead_letters — ALL EXIST AT HEAD, at message_handler.py:148, :132 and :135 respectively (§7). The
+##     demonstration is of current classes.
+##   · session_alerts{outcome="published"} appears in the counter snapshots. That value also still exists
+##     at head (writers.py:648). Note it is `published`, not the reverted `publish_failed`.
+##   · The `lineno=` fields inside the quoted log lines (asb.py dead_letter_message lineno=288,
+##     complete_message lineno=266) are what the POD's code printed at capture time on that branch. At
+##     head those functions are at asb.py:246 and :239. The log text is not edited to match — it is a
+##     transcript, and rewriting a transcript to fit a later head is the defect this round is fixing.
+
+--- the capture, verbatim ---
 Both were placed on the REAL lab queue as real Event Grid BlobCreated bodies (built from the captured
 envelope in at1-03) and settled by the running shipping consumer. Counters read off the pods' own
 /metrics endpoint either side, summed across replicas.
@@ -606,7 +759,18 @@ envelope in at1-03) and settled by the running shipping consumer. Counters read 
       DeadLetterReason "scanner object has 2 non-blank line(s), none parseable as a JSON record — unprocessable"
       subject .../tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/r28-unparseable-20260821091834.log
 
-=================== ROUND 37 — THE ENUMERATOR HAD ITS OWN BLIND SPOT (verify r32, F3) ===================
+
+=================== 9. PRESERVED LIVE MEASUREMENT — the second-registry classes, read off both lanes ===================
+## PROVENANCE: captured in an earlier round on branch a2486bb33f. Kept verbatim for the same reason as §8 —
+## the /metrics values are real scrapes. READ WITH THIS CORRECTION ATTACHED: the section's counts
+## ("before (round 34): 36 instruments … after (round 37): 40 instruments · 25 IN") describe the
+## PRE-REVERT branch. At the shipped head the same generator reports 40 instruments · 32 Labels ·
+## 58 emissions · 24 IN (§3). The 25 -> 24 delta is `agent_slices_dropped`, which no longer exists.
+## The four instruments this section adds — assets_ingested, connectors_suppressed,
+## reingest_edges_restored, reingest_skip_evaluations — ALL still exist at head and all four appear in the
+## §3 IN table with cite-verified call sites.
+
+--- the capture, verbatim ---
 ## Verify r32 finding F3 named ONE missing class: `mcp_connectors_suppressed_total{lane}`, emitted by the
 ## new lane at mcp_writer.py:673 (lane="scanner") and by gen-1 at mcp_asset_creation/workflow.py:926
 ## (lane="workflow"), absent from every at6-* artifact.
