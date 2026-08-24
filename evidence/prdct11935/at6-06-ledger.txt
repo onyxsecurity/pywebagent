@@ -1,7 +1,39 @@
 # PRDCT-11935 at6-06 — the closure table, the transport-divergence ledger, and the OWNER-ACCEPTED GAP
-# FILE LAST WRITTEN 2026-08-23T20:25:43Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-24T00:44:00Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T19:42:28Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T00:44:00Z
+#
+# ROUND-50 CORRECTION BANNER — three false statements fixed, no measurement removed.
+# The round-48 header below correctly reframed sections A/B/C for the owner ruling, but the HISTORICAL
+# half of this file was left carrying two dispositions that claim REVERTED capabilities as delivered by
+# this PR. Both are corrected in place, each marked with what it said, what is true at head, and the grep
+# that shows it. A third statement asserted a measurement this file does not hold. Nothing else changed.
+#
+#   1. L-1 (seeded Claude connectors) said "DISPOSITION: **FIXED IN THIS PR**, and the fix is proven on
+#      the real system, not asserted." The round-45 ruling REVERTED it.
+#        $ grep -rn 'build_seeded_connector_servers' backend_python/src/endpoint_asset_ingestion | wc -l
+#        0
+#      Now framed as the OWNER-ACCEPTED GAP, in the voice sections A/B/C use. Its measured identity table
+#      is KEPT and re-labelled as a superseded pre-revert capture, not deleted.
+#
+#   2. L-4 (mcpb extension provenance) said "DISPOSITION: **FIXED IN THIS PR (round 21).**" The round-45
+#      ruling REVERTED it.
+#        $ grep -rn '_extension_name_from_mcpb' backend_python/src | wc -l
+#        0
+#      Now framed as the OWNER-ACCEPTED GAP. Its root-cause analysis stands — it describes the head's
+#      CURRENT behaviour — only the disposition changes.
+#
+#   3. Section B closed with "LOSSES IN THIS LEDGER: none … the dumps are byte-identical". That asserted
+#      a changed-line count produced by at6-07 / at6-04b / at6-04c, which this file does not itself hold.
+#      Restated to point at those three artifacts and to keep at6's FAIL guard intact whatever they report.
+#
+#   Section C was additionally RE-CLOSED against the re-derived evidence/at6-01-inventory.txt (that file
+#   had invented two settlement families; it is rewritten this round from the head source labels with all
+#   79 of its cites machine-verified). Two classes the old table omitted — record-level `unknown_tenant`
+#   and `ok` — are now rows.
+#
+# NOT CHANGED BY THIS ROUND: every other measurement, diff, counter reading and root-cause analysis in
+# this file. This was a correction of false statements and one over-claimed dependency, not a rewrite.
 #
 # ROUND-48 HEADER. Everything below the "=== HISTORICAL LEDGER" marker is the ledger as earlier rounds
 # built it, kept because its measurements are real. What changed is the FRAME: the round-45 owner ruling
@@ -24,31 +56,76 @@
 === B. THE TRANSPORT-DIVERGENCE LEDGER — the claim that DOES survive, re-measured on this head ===
     One writer image, two transports, one payload. Per content class:
 
-      class            AWS lane (SQS/S3)      Azure lane (ASB/Blob)   diff        artifact
-      created          prdct11935_ta          prdct11935_tb           0 lines     at6-07
-      matched          prdct11935_ta          prdct11935_tb           0 lines     at6-04b
-      reingest-skip    prdct11935_ta          prdct11935_tb           0 lines     at6-04c
+      class            AWS lane (SQS/S3)      Azure lane (ASB/Blob)   changed-line count is reported by
+      created          prdct11935_ta          prdct11935_tb           at6-07  (sha printed inside it)
+      matched          prdct11935_ta          prdct11935_tb           at6-04b (sha printed inside it)
+      reingest-skip    prdct11935_ta          prdct11935_tb           at6-04c (sha printed inside it)
 
-    LOSSES IN THIS LEDGER: none. Not "none material" — the dumps are byte-identical, sha printed in each
-    artifact. Instrument note, because the previous round reported 43 changed lines here: gen-1 was
-    quiesced for the WHOLE three-class sequence rather than per-leg, and both tenants are now read inside
-    ONE repeatable-read snapshot after a measured quiet check. The 43 lines were 11 gen-1-created rows
-    plus two sequential dumps straddling a live write, not a transport difference.
+    WHAT THIS LEDGER'S "no losses" LINE RESTS ON — stated as a dependency, not as a number (CORRECTED
+    ROUND 50). This section previously read: `LOSSES IN THIS LEDGER: none. Not "none material" — the dumps
+    are byte-identical, sha printed in each artifact.` That sentence asserted a measurement THIS FILE DOES
+    NOT HOLD. The three changed-line counts are produced by at6-07, at6-04b and at6-04c, each of which
+    prints its own head sha and its own count; this ledger only points at them. Restated as the
+    conditional it actually is:
+      · This ledger records NO transport-caused loss OF ITS OWN. Every loss enumerated in the historical
+        half below is a gen-1-vs-new-writer difference, and that whole half is the owner-accepted gap of
+        section A — not a transport finding.
+      · Whether the three transport legs are clean is decided BY THE THREE ARTIFACTS. Read the
+        changed-line count and the sha out of at6-07, at6-04b and at6-04c themselves. at6's guard is
+        explicit and this file does not soften it: "Any non-empty transport diff (any class) = FAIL —
+        transport-caused loss has no exception."
+      · If any of the three reports a non-zero diff, THAT is the finding, and this section's table is
+        superseded by it. Nothing here should be read as pre-empting that number.
+    Instrument note, kept because it explains a real earlier discrepancy: a previous round reported 43
+    changed lines here. gen-1 was quiesced for the WHOLE three-class sequence rather than per-leg, and
+    both tenants are now read inside ONE repeatable-read snapshot after a measured quiet check. The 43
+    lines were 11 gen-1-created rows plus two sequential dumps straddling a live write, not a transport
+    difference.
 
 === C. THE CLOSURE TABLE — every settlement class the single writer can reach ===
-      class                     status this round                                    where
-      processed (created)       DEMONSTRATED both transports, 0-diff                 at6-07
-      matched                   DEMONSTRATED both transports, 0-diff                 at6-04b
-      reingest-skip             DEMONSTRATED both transports, 0-diff                 at6-04c
-      skipped_unknown_tenant    DEMONSTRATED live, real Kong consumer, 0 rows        at6-05
-      skipped_flag_off          DEMONSTRATED live, real LD SDK, 0 rows               at6-05
-      parse_err                 DEMONSTRATED live, junk on the real queue, acked     at6-05
-      failed -> redelivered     DEMONSTRATED live, real DB fault + real abandon      at6-05
-      unparseable -> DLQ        cross-referenced, live $DeadLetterQueue receive      at3
-      wrong_source              PRE-DECLARED NOT-RUN + at9 SQL-rule negative guard   at6-05 / at9-03
-      poison-ack-fallback       PRE-DECLARED NOT-RUN (plan's own wording) + cite     at6-05
-    Nothing in this table is "assumed from code" except the two rows the plan itself pre-declares, and
-    both carry a call-site cite and a measured guard rather than a promise.
+    RE-CLOSED ROUND 50 against the re-derived evidence/at6-01-inventory.txt. Two things changed. (a) The
+    inventory this table closes against was itself re-derived from the head source labels, because the
+    revision it previously closed against had invented two settlement families that do not exist at head
+    (`processed_with_failures` and the writers.py `_meter_session_alerts` session-alert family — both 0
+    hits at head, greps in at6-01 §1). NEITHER EVER APPEARED AS A ROW IN THIS TABLE, so no row is removed
+    here; what changes is that the table now closes against an inventory whose every cite resolves.
+    (b) TWO CLASSES WERE MISSING. The re-derived inventory carries record-level `unknown_tenant`
+    (message_handler.py:148) as a class DISTINCT from object-level `skipped_unknown_tenant`
+    (object_processor.py:91), and carries `ok` (message_handler.py:173). Both are added below rather than
+    left to ride silently inside another row — at6's forbidden list bars dropping a class silently just as
+    it bars inventing one.
+
+      class                       status this round                                     where
+      processed (created)         DEMONSTRATED on both transports; count per artifact   at6-07
+      matched                     DEMONSTRATED on both transports; count per artifact   at6-04b
+      reingest-skip               DEMONSTRATED on both transports; count per artifact   at6-04c
+      ok (RECORD level)           DEMONSTRATED on both transports — every created and    at6-07 / at6-04b
+                                  matched leg drives records{result="ok"} to reach the
+                                  writer at all; it is the success precondition of the
+                                  two rows above, not a separate drive
+      skipped_unknown_tenant      DEMONSTRATED live, real Kong consumer, 0 rows          at6-05
+        (OBJECT level, object_processor.py:91)
+      unknown_tenant              DEMONSTRATED live — malformed tenant segment in the    at6-01 §8
+        (RECORD level,            key, skipped before any fetch, message ACKED. The
+         message_handler.py:148)  counter series did not exist and moved 0 -> 1, and
+                                  the ACK is quoted from the consumer's own log.
+      skipped_flag_off            DEMONSTRATED live, real LD SDK, 0 rows                 at6-05
+      parse_err                   DEMONSTRATED live, junk on the real queue, acked       at6-05
+      failed -> redelivered       DEMONSTRATED live, real DB fault + real abandon        at6-05
+      unparseable -> DLQ          cross-referenced, live $DeadLetterQueue receive        at3 / at6-01 §8
+      wrong_source                PRE-DECLARED NOT-RUN + at9 SQL-rule negative guard     at6-05 / at9-03
+      poison-ack-fallback         PRE-DECLARED NOT-RUN (plan's own wording) + cite       at6-05
+        (message_handler.py:141)
+
+    THE CLOSURE STATEMENT, made true rather than asserted. Every settlement class the single writer can
+    reach — as enumerated from the CODE LABELS in at6-01 §2, whose 79 cites are machine-verified at head —
+    has a row above. The two rows that are not driven are the two the plan itself PRE-DECLARES as
+    not-run, each with a call-site cite and a measured guard rather than a promise; no row was decided
+    not-run at run time. Nothing in this table is "assumed from code" except those two.
+    One thing this statement deliberately does NOT assert: the changed-line COUNT on the three transport
+    rows. That number lives in at6-07 / at6-04b / at6-04c and is read from there — see the dependency
+    note in section B. "DEMONSTRATED on both transports" here means the leg was driven on both; whether
+    it came back clean is the artifact's to report.
 
 === HISTORICAL LEDGER (earlier rounds; read it with section A attached) ===
 
@@ -293,15 +370,38 @@ Azure transport this PR adds has anything to do with it), and states its disposi
       object bytes, downstream of the transport seam (consumer/event_parser.py:41-45 normalises SQS and
       Event Grid onto one S3Record; ingestion/pipeline.py:97-99 fetches through the one ObjectStore
       protocol at pipeline.py:47-52). The Azure transport this PR adds has nothing to do with it.
-      DISPOSITION: **FIXED IN THIS PR**, and the fix is proven on the real system, not asserted.
-      Commit: "Seed Claude connector MCP servers in the in-process asset writer" — the MCP step now merges
-      build_seeded_connector_servers(agent.app_name) into its server list BEFORE the emptiness guard and
-      gives the seeded entries the same per-agent/device/tenant model_copy as real servers, so both lanes
-      converge on one app-definition id per connector. The shared builder is CALLED, never copied.
-      Tests (TDD, failing first): a claude-code agent seeds the allowlist alongside its real servers, a
-      codex agent seeds none, and a claude-code agent with an EMPTY mcp_servers list still seeds — that
-      last one is the case the old emptiness guard silently dropped.
-      Proof on the stack, after the fix, same payload into both lanes:
+      DISPOSITION: OWNER-ACCEPTED GAP. NOT fixed in this PR — the fix was REVERTED out of it.
+      CORRECTED ROUND 50. This line read "**FIXED IN THIS PR**, and the fix is proven on the real system,
+      not asserted", followed by the commit "Seed Claude connector MCP servers in the in-process asset
+      writer", its three TDD tests, and the after-the-fix identity table below. That claim was true of the
+      branch it was written on and is FALSE of the shipped head: the round-45 owner ruling put
+      `ingestion/writers.py — seeded connectors via build_seeded_connector_servers` on its REVERT list, and
+      the capability is gone. The owner's words, quoted in section A and in full in at6-01 §6: "State
+      plainly that the new lane diverges from gen-1 — IT DOES NOT WRITE SEEDED CLAUDE CONNECTORS … that
+      this is out of scope for this ticket, and that it is tracked separately. The owner will rule C13 as
+      an accepted gap." So this is an accepted gap, not a defect and not a fix.
+      PROVEN AT HEAD, not asserted — the new lane holds no reference to the seeder:
+        $ grep -rn 'build_seeded_connector_servers' backend_python/src/endpoint_asset_ingestion | wc -l
+        0
+        $ grep -rn 'seeded_connector' backend_python/src/endpoint_asset_ingestion | wc -l
+        0
+      The symbol still exists, but ONLY in the gen-1 package — which is precisely what makes this a
+      divergence rather than a regression, and gen-1 is untouched (at11's subject):
+        $ grep -rn 'build_seeded_connector_servers' backend_python/src
+        backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/connector_seed.py:37:def build_seeded_connector_servers(
+        backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/workflow.py:34:        build_seeded_connector_servers,
+        backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/workflow.py:726:                        seeded_connector_servers = build_seeded_connector_servers(agent_data.app_name, full_catalog=not seed_allowlist_only)
+      TRACKED SEPARATELY: PRDCT-12061 (86bbhqxe8) carries this capability with the other reverted items;
+      live fetch in evidence/at10-06-tracker-fetch.txt.
+      TRANSPORT RELEVANCE: none. As the transport-independence note above already establishes, the seeding
+      decision is keyed only on agent.app_name, downstream of the transport seam. Its absence is identical
+      on the AWS and Azure transports, so it is not a transport-caused loss and does not belong in section
+      B's ledger.
+      THE MEASUREMENT BELOW IS KEPT, RE-LABELLED. It is a real capture — it was taken on the stack, on the
+      branch that still carried the seeder, and it showed the four connector identities matching. It is
+      retained as the historical record of what the reverted commit did, and it is NOT evidence about the
+      shipped head. Read it as: "this is what the capability produced before it was reverted."
+      Superseded capture, same payload into both lanes, on the pre-revert branch:
         lane|name|unique_identifier
         ta(gen-1)          |Gmail          |gmailmcp.googleapis.com/mcp/v1::unknown
         tb(azure new lane) |Gmail          |gmailmcp.googleapis.com/mcp/v1::unknown
@@ -488,19 +588,34 @@ Azure transport this PR adds has anything to do with it), and states its disposi
       transport seams (consumer/event_parser.py:41-45, ingestion/pipeline.py:47-52,97-99). It reproduces on
       the AWS transport identically, and the AWS-vs-Azure leg in PART 4 shows 0 changed lines, which includes
       this edge.
-      DISPOSITION: **FIXED IN THIS PR (round 21).** The round-20 gate required the residual losses closed
-      or the direction rule re-scoped, and this is the one of the three that can land here on its own
-      terms: it changes no identity, no row count and no edge — only the descriptor inside an existing
-      edge's metadata — so it carries none of L-2's migration blast radius. The Go derivation is mirrored
-      in ingestion/extract.py's _convert_mcp_server via _extension_name_from_mcpb: when
-      scanner_supplied.app_id starts with "mcpb:", extension_name takes scanner_supplied.display_name,
-      then the "ext:"-stripped server name's last path segment, then the bundle id — the same candidate
-      ORDER as extensionNameFromMCPBServer, and the same rule that a blank candidate is skipped. An
-      explicit per-server extensionName still wins, so a future scanner that emits one is not overridden.
-      Covered by three unit tests. NOT re-observed live on the fresh-tenant pair (at6-09) for an honest
-      reason: the MCPB bundle whose edge carried this descriptor was uninstalled by an earlier round's
-      lifecycle leg, so no extension-sourced edge exists on this machine to re-measure. The derivation is
-      proven by test and by mirror-equivalence with the Go original, not by a live edge.
+      DISPOSITION: OWNER-ACCEPTED GAP. NOT fixed in this PR — the fix was REVERTED out of it.
+      CORRECTED ROUND 50. This line read "**FIXED IN THIS PR (round 21).**" and went on to describe the Go
+      derivation as mirrored in ingestion/extract.py's _convert_mcp_server via `_extension_name_from_mcpb`,
+      covered by three unit tests. That was true of the branch it was written on and is FALSE of the
+      shipped head: the round-45 owner ruling put `ingestion/extract.py — _extension_name_from_mcpb and its
+      helpers` on its REVERT list, and the helper and its tests are gone. The owner's words, quoted in
+      section A and in full in at6-01 §6: "State plainly that the new lane diverges from gen-1 — … DOES
+      NOT DERIVE MCPB EXTENSION PROVENANCE … that this is out of scope for this ticket, and that it is
+      tracked separately. The owner will rule C13 as an accepted gap."
+      PROVEN AT HEAD, not asserted — the symbol exists nowhere in the tree, in either lane:
+        $ grep -rn '_extension_name_from_mcpb' backend_python/src | wc -l
+        0
+        $ grep -rn 'mcpb' backend_python/src/endpoint_asset_ingestion | wc -l
+        0
+      So the behaviour described in the paragraphs ABOVE this disposition — extract.py:268 reading a
+      per-server `extensionName` key that the scanner's payload does not carry, every extension-sourced
+      edge therefore falling through to "direct" — is the CURRENT behaviour of the shipped head, not a
+      defect that was subsequently closed. That analysis stands; only its disposition changes.
+      TRACKED SEPARATELY: PRDCT-12061 (86bbhqxe8), with the other reverted items; live fetch in
+      evidence/at10-06-tracker-fetch.txt.
+      TRANSPORT RELEVANCE: none, for the reason the transport-independence note above already gives —
+      extract.py runs on already-parsed object bytes, downstream of both transport seams. The gap is
+      identical on the AWS and Azure transports, so it is not a transport-caused loss and does not belong
+      in section B's ledger.
+      A NOTE ON THE OLD CLAIM'S OWN HEDGE, kept because it was honest and is now moot: the previous text
+      recorded that the fix was "NOT re-observed live on the fresh-tenant pair (at6-09)" because the MCPB
+      bundle whose edge carried the descriptor had been uninstalled by an earlier lifecycle leg. That
+      caveat is superseded — there is no derivation at head to observe.
 
 --- 2c. REMODEL — both lanes carry the fact, shaped differently (no loss in either direction)
  D-4  mcp-remote bridge: gen-1 wrote ONE asset typed Remote|Http with a SELF-referential McpToMcp edge;
