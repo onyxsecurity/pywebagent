@@ -1,3 +1,46 @@
+################################################################################################
+#  RETAINED AS HISTORY — NOT EVIDENCE FOR THIS PR.  READ THIS BEFORE ANY LINE BELOW.
+#  FILE LAST WRITTEN 2026-08-24T00:50:06Z   (banner added by the round-50 evidence-honesty sweep)
+#  THIS FILE IS NOW ACCURATE AGAINST onyx head 2b60fdc4df25188104e737e6311087681355eff8
+#  ONLY IN THE SENSE STATED HERE: everything below it is a faithful record of a real measurement
+#  that really happened, of a capability THIS PR NO LONGER CONTAINS.
+#
+#  WHAT IT PROVED, AND ON WHAT.  A live drive of the object outcome `processed_with_failures` and
+#  its companion counter `asset_ingestion_agent_slices_dropped_total` on the real Azure lane:
+#      branch  a2486bb33f835af24f5850e4f4c5eb2e8b02afb9   (SUPERSEDED — a pre-revert commit)
+#      image   localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
+#      pod     eai-azure-66d8f8595d-8bh9j     captured 2026-08-21T12:07:38Z   tenant onyx_security
+#  The induction, the counters, and the control leg below are all REAL. Nothing in them is retracted
+#  as a measurement. They are retained precisely so the revert is auditable rather than invisible.
+#
+#  WHY IT IS NO LONGER EVIDENCE.  The capability it measured was REVERTED OUT OF THIS PR BY THE
+#  ROUND-45 OWNER RULING. The `processed_with_failures` outcome value, the per-agent-slice abandon
+#  split that produced it, and the `agent_slices_dropped` counter were all removed; `object_processor.py`
+#  and `metrics.py` are byte-identical to `main` on the shipped head. THE CLASS DOES NOT EXIST AT HEAD.
+#
+#  THE GREP, AT HEAD:
+#      $ cd ~/onyx && git rev-parse HEAD
+#      2b60fdc4df25188104e737e6311087681355eff8
+#      $ grep -rn 'processed_with_failures' backend_python/src backend | wc -l
+#      0
+#      $ grep -rn 'agent_slices_dropped'    backend_python/src backend | wc -l
+#      0
+#      $ git diff 822abd2356..2b60fdc4df | grep -c 'processed_with_failures'
+#      0
+#      $ git diff 822abd2356..2b60fdc4df | grep -c 'agent_slices_dropped'
+#      0
+#  What head DOES declare is four object outcomes, not five:
+#      ObjectLabels.outcome = ['processed','skipped_flag_off','skipped_unknown_tenant','failed']
+#      (backend_python/src/endpoint_asset_ingestion/metrics.py:130)
+#
+#  CONSEQUENCES FOR ANYONE READING THE BUNDLE.  Do NOT cite this file to close d-c13-4 or any other
+#  demand: the closure row it used to close (evidence/at6-19-closure-table.md row 1) is now WITHDRAWN,
+#  and the re-derived settlement inventory (evidence/at6-01-inventory.txt §1(a), §3) proves the class
+#  absent at head with the same greps. Also note the header line immediately below is the file's
+#  ORIGINAL header and its first line — "the class THIS PR introduces" — is FALSE at head; it is left
+#  unaltered, under this banner, so the original claim stays legible rather than being quietly rewritten.
+################################################################################################
+
 # PRDCT-11935 at6-15 — processed_with_failures DRIVEN on the real lane (the class THIS PR introduces)
 # FILE LAST WRITTEN 2026-08-21T12:37:38Z
 # onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-8bh9j
