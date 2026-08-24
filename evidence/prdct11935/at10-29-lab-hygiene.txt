@@ -1,0 +1,77 @@
+# PRDCT-11935 at10-29 — LAB HYGIENE at PR time: the stale verifier litter reaped, with a before/after
+# FILE LAST WRITTEN 2026-08-24T06:09:46Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T06:09:46Z
+#
+# Verify round 42 PASSED and flagged two non-blocking cleanups. This is the receipt for them. Nothing
+# here touches the PR's code, its evidence, or any object the proven path depends on: every deletion
+# below was checked against env_setup.md (the env owner's own inventory) and against the live cluster
+# first, and the authored topology is re-listed afterwards to show it survived intact.
+
+=================== 1. SERVICE BUS — 8 STALE VERIFIER SUBSCRIPTIONS, REAPED ===================
+    before 2026-08-24T06:08:24Z: 13 subscriptions on topic byoc-events, holding 12658 messages
+    after  2026-08-24T06:09:46Z: 5 subscriptions
+
+    DELETED (each a leftover of an earlier verifier round; two were catch-all taps that had been
+    silently accreting messages for days):
+      vr28-at2               msgs      0   forwardTo vr28-at2-eai
+      vr28-flagoff           msgs      0   forwardTo vr28-flagoff-q
+      vr28-tap               msgs      0   forwardTo vr28-tap
+      vr28sub-g2r-mcpgw      msgs      0   forwardTo vr28sub-g2r-mcpgw
+      vr28sub-g2r-scanner    msgs      0   forwardTo vr28sub-g2r-scanner
+      vr28v-tap-all          msgs   6802   forwardTo (none — accreting in the subscription itself)
+      vr28v-tap-scanner      msgs   5856   forwardTo (none — accreting in the subscription itself)
+      vr39a-flagoff          msgs      0   forwardTo vr39a-flagoff-q
+
+    KEPT — the authored topology, verified present after the reap:
+      only-mcp-scanner       msgs      0   forwardTo endpoint-asset-ingestion-prdct11935
+      to-ingestion           msgs      0   forwardTo ingestion-prdct11935
+      to-mcp-gateway-events  msgs      0   forwardTo mcp-gateway-events-prdct11935
+      to-scanner-events      msgs      0   forwardTo scanner-events-prdct11935
+      to-sensor-events       msgs      0   forwardTo sensor-events-prdct11935
+
+=================== 2. SERVICE BUS — 4 ORPHAN QUEUES, REAPED ===================
+    A queue was deleted only if NO live Kubernetes object referenced it. The check that decided it:
+      $ kubectl -n onyxd get cm,deploy -o yaml > /tmp/k8s.yaml   # 704,760 bytes
+      $ for q in <candidates>; do grep -c -- "$q" /tmp/k8s.yaml; done
+    Ten of the fourteen round-litter queues came back REFERENCED (by scaled-to-0 clones and their
+    ConfigMaps from rounds 26/28/29/33/39) and were therefore LEFT ALONE. The four with zero
+    references were deleted:
+      vr28-tap               held   1836 messages, created 2026-08-21T16:12:36Z
+      vr28v-negrole          held      0 messages, created 2026-08-21T16:25:57Z
+      vr29sub-tap            held    421 messages, created 2026-08-21T20:12:49Z
+      vr33-tap               held   1981 messages, created 2026-08-22T07:28:13Z
+    queues: 20 -> 16
+
+=================== 3. THE RECORDINGS SCRATCH — MEASURED, AND THE BRIEF CORRECTED ===================
+    The cleanup note described '2.9GB evidence/recordings scratch (149 .scratch-* dirs)'. Measured,
+    those are two different things and only one of them is scratch:
+      · 150 .scratch-* directories, EVERY ONE EMPTY (`find -type d -empty` matched all 150),
+        600 KB in total — Playwright per-run temp dirs left behind by the harness. DELETED.
+      · 2.9 GB of .trace.zip / .webm — 34 real browser recordings, i.e. EVIDENCE, not scratch.
+        NOT deleted. Several belong to verify's own rounds, at7-49-recordings-index.txt indexes
+        them, and evidence/recordings/at7.{trace.zip,webm} is the pair at7's assertion_class pins.
+        Deleting evidence to make collection cheaper is not a trade this phase gets to make; the
+        size is stated here instead so whoever owns retention can decide with the number in hand.
+      scratch dirs: 150 -> 0    ·    recordings: 34 files, 2.9 GB, untouched
+      pinned pair intact: at7.trace.zip 63,796,559 B · at7.webm 7,714,391 B
+
+=================== 4. THE LANE STILL WORKS ===================
+    $ DEEP=1 azure-lane-liveness.sh      (run after the reap, exit 0)
+      OK   SAS expiry 2026-08-24T19:05Z (775m left)
+      OK   vector pod onyx-onyxd-vector-0 Ready
+      OK   vector last 15m: no auth/drop errors
+      OK   deep PUT through the cm's SAS -> 201
+      LANE: GREEN
+    $ kubectl -n onyxd get deploy eai-azure endpoint-asset-ingestion
+      eai-azure 1/1 · endpoint-asset-ingestion 1/1
+
+=================== 5. DISCLOSED, NOT SILENTLY CHANGED ===================
+    · deploy/eai-azure-r39a is still 1/1. It is a round-39 verifier clone consuming its OWN queue
+      (vr39a-flagoff-q), never the shared one, so it is not a competing consumer on the lane — but
+      the subscription that fed that queue is now gone, so it will simply idle. Left running rather
+      than changed on the eve of the PR gate; noted so nobody reads it as live lane traffic.
+    · Every scaled-to-0 clone and ConfigMap from earlier rounds was left exactly as found. Four of
+      them (both *-azure-prefix consumers, eai-at11-base, eai-at11-head) are named in env_setup.md
+      as part of the proven path, and two more (eai-aws-refuse-asb, eai-azure-refuse-s3) are cited
+      in the gate's own report.
