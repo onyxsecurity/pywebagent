@@ -1,88 +1,225 @@
-# PRDCT-11935 at11-02 — the AWS lane on the MERGE-BASE writer image
-# FILE LAST WRITTEN 2026-08-23T17:32:37Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 2b60fdc4df25188104e737e6311087681355eff8
-# captured 2026-08-23T17:30:56Z
+# PRDCT-11935 at11-02 — the AWS lane on the MERGE-BASE writer image, driven and measured by the ENGINEER
+# CAPTURED 2026-08-24T01:01:46Z .. 2026-08-24T01:07:46Z (two consecutive runs).  Written 2026-08-24T01:12Z.
+# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade  ·  head 2b60fdc4df25188104e737e6311087681355eff8
 #
-# THE CONTROL. Both legs run the AWS lane — ONYX__CLOUD unset (aws), SQS notification + S3 GetObject on
-# the lab's LocalStack — against the SAME ConfigMap (endpoint-asset-ingestion, which has no cloud key and
-# no ASB stanza, i.e. exactly an AWS cell's shape). The ONLY thing that moves between the two legs is the
-# writer image. A different tenant per leg, so neither leg can see the other's rows.
+# WHAT REPLACED THE PREVIOUS REVISION, AND WHY.  The revision of this file dated 2026-08-23T17:32Z was
+# taken on a SHARED lane: both legs took turns on the one `endpoint-asset-ingestion` deployment, whose
+# image was swapped between legs and whose SQS queue was purged before each leg.  That is not
+# independently reproducible (it mutates shared state and the writer consumed other tenants' traffic
+# mid-capture), and its at11-04 reported a RAW 8-line base-vs-head delta defended by a normalised
+# 0-line comparison.  Both problems are now GONE, and this capture is the replacement:
+#   * each leg owns its OWN full lane end to end — its own Kong consumer, its own vector route, its own
+#     bucket, its own queue, its own writer deployment, its own tenant schema.  Nothing is swapped and
+#     nothing shared is mutated, so the two legs run CONCURRENTLY and uncontended.
+#   * the replay is SETTLE-GATED SEQUENTIAL, so object arrival order is forced identical on both legs.
+#     That REMOVES (does not normalise away) the sole nondeterminism the old capture measured — the
+#     last-object-wins ordering of `metadata.sources` in `replace_scan_connection_sources`, a
+#     pre-existing arrival-order dependence this PR does not touch.
+#   The RAW base-vs-head diff is now 0 changed lines.  The old normalised-0 defence is SUPERSEDED and is
+#   NOT the proof any more; see at11-04 section 5.
 #
-# THE INPUT. A real onyx-scanner run was executed and its HTTP request bodies recorded verbatim; the 8
-# bodies it POSTed with source_type=mcp-scanner are replayed, byte-for-byte and in order, through the REAL
-# Kong front door with the leg's own key-auth consumer. Recording and replaying rather than scanning twice
-# is deliberate: two live scans differ in scan_run_id and timestamps, and a base-vs-head diff is only
-# meaningful when the input is identical. Nothing is hand-seeded — Kong, vector, S3, the bucket
-# notification, SQS and the writer all run for real.
-#   payload set sha256 (sha of the 8 file shas): 557a61736ea096c10ae6703f8e0cca995b8c2f699dc7b2a0047b9db47c45c6cd
-#
-# RE-DRIVEN AT THE FINAL HEAD. This round merged main twice and then executed a second owner ruling that
-# removed the queue-layer work; both images were rebuilt and both legs re-run after all of it. The head
-# image was built at 35127c77fd and the head then moved once for a TEST-ONLY commit — `git diff --name-only
-# 35127c77fd..2b60fdc4df25188104e737e6311087681355eff8` is one file under backend_python/tests/, and the prod Dockerfile
-# copies only pyproject.toml, uv.lock and ./src, so every shipping byte here is the head's.
+# NO MOCKS ANYWHERE.  Kong (real key-auth consumer), vector, LocalStack S3, the bucket notification, SQS
+# and the writer all run for real.  Nothing is hand-seeded.  Every wait in the harness is bounded.
 
-### LEG=base image=r45c-base tenant=11935f18-0000-4000-8000-000000000101 schema=prdct11935_v18t1  started 2026-08-23T17:14:41Z
---- reset the tenant so this is a genuine first-ingest
-SET
-   schema_reset   | assets | mcp_servers | skills | subagents | installs | ingestion_state 
-------------------+--------+-------------+--------+-----------+----------+-----------------
- prdct11935_v18t1 |      0 |           0 |      0 |         0 |        0 |               0
-(1 row)
+== THE LANE THIS LEG OWNS (structural isolation — nothing is shared with the other leg) ==
+   base: Kong consumer ingestion@11935f18-0000-4000-8000-000000000101 -> vector route at11_route.base
+         -> s3://at11-base -> sqs at11-base (+ at11-base-dlq) -> deploy eai-at11-base -> schema prdct11935_v18t1
+   head: Kong consumer ingestion@11935f18-0000-4000-8000-000000000102 -> vector route at11_route.head
+         -> s3://at11-head -> sqs at11-head (+ at11-head-dlq) -> deploy eai-at11-head -> schema prdct11935_v18t2
+   The shared `endpoint-asset-ingestion` deployment, the shared `ingestion` bucket and the shared queue
+   are NOT part of either lane and were not touched.  Proven by measurement in the negative section.
 
---- purge the AWS notification queue so only this leg's object can reach the writer
-    queue depth after purge: 0
---- deploy the writer at r45c-base (same ConfigMap for both legs; only the image moves)
-deployment.apps/endpoint-asset-ingestion scaled
-deployment "endpoint-asset-ingestion" successfully rolled out
-    newest replicaset=endpoint-asset-ingestion-7f78f9c76c
-    pod=endpoint-asset-ingestion-7f78f9c76c-hm6bb
-    image actually running: localhost:5001/onyx/endpoint-asset-ingestion:r45c-base
-    imageID (digest):       localhost:5001/onyx/endpoint-asset-ingestion@sha256:d65c32ca8d147bc8c876243e1d8669d2b782fd97693046ffb397e4c833953bd2
-    boot lines:
-      [2m2026-08-23T16:55:13.298038Z[0m [[32m[1minfo     [0m] [1mstarted custom-data embedding [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.custom_data_downstreams[0m][0m [36masset_id[0m=[35m23[0m [36mfilename[0m=[35mcustom_data_downstreams.py[0m [36mfunc_name[0m=[35mstart_custom_data_embedding[0m [36mlineno[0m=[35m47[0m [36ms3_key[0m=[35m'tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787504106-8b0d21b7-10ec-4a21-aa01-3e9ea589664c.log'[0m [36mspan_id[0m=[35md8461a78e3b68da8[0m [36mtenant_uuid[0m=[35m61750f27-8fbd-42a4-80cf-4191cfb2371a[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m6c101cc86a8819c486e0625ffd99ddf2[0m [36mworkflow_id[0m=[35mcustom-data-embedding-onyx_security-23-585f2ea858aab7803a866e24a051151e[0m
-      [2m2026-08-23T16:55:14.967553Z[0m [[32m[1minfo     [0m] [1mstarted MCP downstream        [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.mcp_downstreams[0m][0m [36mfilename[0m=[35mmcp_downstreams.py[0m [36mfunc_name[0m=[35m_start[0m [36mlineno[0m=[35m50[0m [36ms3_key[0m=[35m'tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787504106-8b0d21b7-10ec-4a21-aa01-3e9ea589664c.log'[0m [36mspan_id[0m=[35m821b4add245776d9[0m [36mtenant_uuid[0m=[35m61750f27-8fbd-42a4-80cf-4191cfb2371a[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m6c101cc86a8819c486e0625ffd99ddf2[0m [36mworkflow[0m=[35mMcpCveScanWorkflow[0m [36mworkflow_id[0m=[35mmcp-cve-scan-onyx_security-585f2ea858aab7803a866e24a051151e[0m
-      [2m2026-08-23T16:55:14.976340Z[0m [[32m[1minfo     [0m] [1mstarted issue+risk bridge     [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.writers[0m][0m [36masset_count[0m=[35m1[0m [36mfilename[0m=[35mwriters.py[0m [36mfunc_name[0m=[35m_posture_trigger[0m [36mlineno[0m=[35m698[0m [36ms3_key[0m=[35m'tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787504106-8b0d21b7-10ec-4a21-aa01-3e9ea589664c.log'[0m [36mspan_id[0m=[35m62d27c1817af156c[0m [36mtenant_uuid[0m=[35m61750f27-8fbd-42a4-80cf-4191cfb2371a[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m6c101cc86a8819c486e0625ffd99ddf2[0m [36mworkflow_id[0m=[35mscanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-585f2ea858aab7803a866e24a051151e-bridge[0m
-      [2m2026-08-23T16:55:14.981800Z[0m [[32m[1minfo     [0m] [1mstarted MCP downstream        [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.mcp_downstreams[0m][0m [36mfilename[0m=[35mmcp_downstreams.py[0m [36mfunc_name[0m=[35m_start[0m [36mlineno[0m=[35m50[0m [36ms3_key[0m=[35m'tenant=11935a00-0000-4000-8000-000000000a01/source=mcp-scanner/date=2026-08-23/parity-1787504106-131e020c-dd08-4e73-b147-257ebb333906.log'[0m [36mspan_id[0m=[35m36552dd767270bf7[0m [36mtenant_uuid[0m=[35m11935a00-0000-4000-8000-000000000a01[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m2caf2d01f7178664040a77865eaf45e7[0m [36mworkflow[0m=[35mMcpCveScanWorkflow[0m [36mworkflow_id[0m=[35mmcp-cve-scan-prdct11935_ta-c80f066d7f9fda5f5e1fd8231e14ba5b[0m
-      [2m2026-08-23T16:55:14.983575Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mlineno[0m=[35m239[0m [36mmessage_id[0m=[35m98586b16-2762-423b-8d3b-1699c1f192d7[0m [36mspan_id[0m=[35m821b4add245776d9[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m6c101cc86a8819c486e0625ffd99ddf2[0m
-      [2m2026-08-23T16:55:14.988492Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mlineno[0m=[35m239[0m [36mmessage_id[0m=[35m5bfb3dbd-e028-4b27-9a36-836690d62c3c[0m [36mspan_id[0m=[35m0d2175d5b997d6e0[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m241c9ece8077884b2757ecd60a6daac2[0m
-      [2m2026-08-23T16:55:14.992219Z[0m [[32m[1minfo     [0m] [1mstarted issue+risk bridge     [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.writers[0m][0m [36masset_count[0m=[35m1[0m [36mfilename[0m=[35mwriters.py[0m [36mfunc_name[0m=[35m_posture_trigger[0m [36mlineno[0m=[35m698[0m [36ms3_key[0m=[35m'tenant=11935a00-0000-4000-8000-000000000a01/source=mcp-scanner/date=2026-08-23/parity-1787504106-131e020c-dd08-4e73-b147-257ebb333906.log'[0m [36mspan_id[0m=[35mdd45d32214a12054[0m [36mtenant_uuid[0m=[35m11935a00-0000-4000-8000-000000000a01[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m2caf2d01f7178664040a77865eaf45e7[0m [36mworkflow_id[0m=[35mscanner-object-11935a00-0000-4000-8000-000000000a01-c80f066d7f9fda5f5e1fd8231e14ba5b-bridge[0m
-      [2m2026-08-23T16:55:15.011369Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mlineno[0m=[35m239[0m [36mmessage_id[0m=[35m37303c76-764b-40b3-96e0-b34c0f85c987[0m [36mspan_id[0m=[35m36552dd767270bf7[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m2caf2d01f7178664040a77865eaf45e7[0m
-      [2m2026-08-23T16:55:15.022346Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mlineno[0m=[35m239[0m [36mmessage_id[0m=[35m2436bcdb-bb97-4e5a-8d50-1482edc7298d[0m [36mspan_id[0m=[35m5edfa2647fcfd8d4[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m718ff3b9c5e626c25046168aa353c613[0m
-      [2m2026-08-23T16:55:15.081688Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mlineno[0m=[35m239[0m [36mmessage_id[0m=[35m22f7365c-2d10-4c77-9bec-801b42ce39c3[0m [36mspan_id[0m=[35m4e26644c66e1e2e6[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35mbfcd2a1d8c604d419895686dbf62ad66[0m
-      [2m2026-08-23T16:55:15.163918Z[0m [[32m[1minfo     [0m] [1mCompleted message             [0m [[0m[1m[34mcommon_core.services.queue.sqs[0m][0m [36mfilename[0m=[35msqs.py[0m [36mfunc_name[0m=[35mcomplete_message[0m [36mlineno[0m=[35m239[0m [36mmessage_id[0m=[35m286b2c80-21a5-46ad-91ef-8dcf1d75d1f4[0m [36mspan_id[0m=[35m425cb7c66bf793d9[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m28e62cfd48e25e1f8bf7c13c6263432e[0m
-      [2m2026-08-23T16:55:15.240580Z[0m [[32m[1minfo     [0m] [1mstarted custom-data embedding [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.custom_data_downstreams[0m][0m [36masset_id[0m=[35m10727[0m [36mfilename[0m=[35mcustom_data_downstreams.py[0m [36mfunc_name[0m=[35mstart_custom_data_embedding[0m [36mlineno[0m=[35m47[0m [36ms3_key[0m=[35m'tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787504111-054bdadd-66a2-423e-9713-c11ef562f4f0.log'[0m [36mspan_id[0m=[35ma6bb18db8a315b44[0m [36mtenant_uuid[0m=[35m61750f27-8fbd-42a4-80cf-4191cfb2371a[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35me0d7e6390b2abcb57276fb242ac28190[0m [36mworkflow_id[0m=[35mcustom-data-embedding-onyx_security-10727-28ada29041c2122ed3e7d1ba893d4322[0m
---- REPLAY the real scan through the Kong front door (key-auth, consumer ingestion@11935f18-0000-4000-8000-000000000101)
-    the 8 source_type=mcp-scanner bodies a real onyx-scanner run posted, captured verbatim and
-    replayed byte-for-byte on BOTH legs so the only variable is the writer image:
-      01.json  641547 bytes  sha256=7cf73811c84c536d  -> HTTP 200
-      02.json  5554 bytes  sha256=ce124716645ae09b  -> HTTP 200
-      03.json  23813 bytes  sha256=9be9c15a91431140  -> HTTP 200
-      04.json  5990 bytes  sha256=9a9cc75e099c8c86  -> HTTP 200
-      05.json  1055077 bytes  sha256=db5e4a45a7c6c1d6  -> HTTP 200
-      06.json  66889 bytes  sha256=dbaef22a2eac9cb5  -> HTTP 200
-      07.json  1132513 bytes  sha256=bc530037f250b9b2  -> HTTP 200
-      08.json  803997 bytes  sha256=7931bc4688678611  -> HTTP 200
-    all posts issued between 2026-08-23T17:14:45Z and 2026-08-23T17:14:54Z
---- the object vector wrote, in LocalStack S3 under this tenant's prefix (bounded wait)
-      2026-08-23 17:14:51      66232 tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-23/1787505291-126ce0f5-9591-4fa3-96e1-415200154f56.log
-      2026-08-23 17:14:53    1123871 tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-23/1787505293-eddcb039-987b-47ed-b670-ec9ae480888a.log
-      2026-08-23 17:14:54     804165 tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-23/1787505294-183ecc9b-1ff6-49a1-814d-af17e8a7d5c1.log
---- bounded settle: the queue must DRAIN (0 visible) and the counts must then hold steady
-    17:15:21 queue_visible=2 inflight=4  assets|conns|state = 325|321|21
-    17:15:33 queue_visible=0 inflight=0  assets|conns|state = 342|338|21
-    17:15:55 queue_visible=0 inflight=0  assets|conns|state = 342|338|21
-    17:16:06 queue_visible=0 inflight=0  assets|conns|state = 342|338|21
-    17:16:36 queue_visible=0 inflight=0  assets|conns|state = 342|338|21
-    SETTLED (queue drained and counts steady)
---- what the writer logged for this object
-      [2m2026-08-23T17:15:24.402678Z[0m [[32m[1minfo     [0m] [1mingested scanner object       [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.object_processor[0m][0m [36mfilename[0m=[35mobject_processor.py[0m [36mfunc_name[0m=[35mprocess[0m [36mlineno[0m=[35m152[0m [36ms3_key[0m=[35m'tenant=11935a00-0000-4000-8000-000000000a01/source=mcp-scanner/date=2026-08-23/parity-1787505291-cd1d5ce0-4974-4744-a02d-a32bbc68d1e3.log'[0m [36mspan_id[0m=[35m09b23d290e2c041c[0m [36mtenant_schema[0m=[35mprdct11935_ta[0m [36mtenant_uuid[0m=[35m11935a00-0000-4000-8000-000000000a01[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m167b0400dedf0761585ccd39bf86fdeb[0m
-      [2m2026-08-23T17:15:24.402903Z[0m [[32m[1minfo     [0m] [1masset_ingestion_record_handled[0m [[0m[1m[34mendpoint_asset_ingestion.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name[0m=[35m_handle_record[0m [36mlineno[0m=[35m135[0m [36mobject_age_seconds[0m=[35m27.899788[0m [36moutcome[0m=[35mprocessed[0m [36ms3_key[0m=[35m'tenant=11935a00-0000-4000-8000-000000000a01/source=mcp-scanner/date=2026-08-23/parity-1787505291-cd1d5ce0-4974-4744-a02d-a32bbc68d1e3.log'[0m [36mspan_id[0m=[35m09b23d290e2c041c[0m [36mtenant_uuid[0m=[35m11935a00-0000-4000-8000-000000000a01[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m167b0400dedf0761585ccd39bf86fdeb[0m
-      [2m2026-08-23T17:15:24.683924Z[0m [[32m[1minfo     [0m] [1mingested scanner object       [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.object_processor[0m][0m [36mfilename[0m=[35mobject_processor.py[0m [36mfunc_name[0m=[35mprocess[0m [36mlineno[0m=[35m152[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-23/1787505291-126ce0f5-9591-4fa3-96e1-415200154f56.log'[0m [36mspan_id[0m=[35m2528e48b45759480[0m [36mtenant_schema[0m=[35mprdct11935_v18t1[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000101[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m96291571a3ff043b23c580b89c87a3fa[0m
-      [2m2026-08-23T17:15:24.684164Z[0m [[32m[1minfo     [0m] [1masset_ingestion_record_handled[0m [[0m[1m[34mendpoint_asset_ingestion.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name[0m=[35m_handle_record[0m [36mlineno[0m=[35m135[0m [36mobject_age_seconds[0m=[35m32.468819[0m [36moutcome[0m=[35mprocessed[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-23/1787505291-126ce0f5-9591-4fa3-96e1-415200154f56.log'[0m [36mspan_id[0m=[35m2528e48b45759480[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000101[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m96291571a3ff043b23c580b89c87a3fa[0m
-      [2m2026-08-23T17:15:24.729384Z[0m [[32m[1minfo     [0m] [1mingested scanner object       [0m [[0m[1m[34mendpoint_asset_ingestion.ingestion.object_processor[0m][0m [36mfilename[0m=[35mobject_processor.py[0m [36mfunc_name[0m=[35mprocess[0m [36mlineno[0m=[35m152[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-23/1787505293-eddcb039-987b-47ed-b670-ec9ae480888a.log'[0m [36mspan_id[0m=[35m0e7a0d35c418f290[0m [36mtenant_schema[0m=[35mprdct11935_v18t1[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000101[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m2bfea40ba97ef1c330f348c18ab83800[0m
-      [2m2026-08-23T17:15:24.729559Z[0m [[32m[1minfo     [0m] [1masset_ingestion_record_handled[0m [[0m[1m[34mendpoint_asset_ingestion.consumer.message_handler[0m][0m [36mfilename[0m=[35mmessage_handler.py[0m [36mfunc_name[0m=[35m_handle_record[0m [36mlineno[0m=[35m135[0m [36mobject_age_seconds[0m=[35m31.653451[0m [36moutcome[0m=[35mprocessed[0m [36ms3_key[0m=[35m'tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-23/1787505293-eddcb039-987b-47ed-b670-ec9ae480888a.log'[0m [36mspan_id[0m=[35m0e7a0d35c418f290[0m [36mtenant_uuid[0m=[35m11935f18-0000-4000-8000-000000000101[0m [36mtrace_flags[0m=[35m01[0m [36mtrace_id[0m=[35m2bfea40ba97ef1c330f348c18ab83800[0m
---- normalized tenant dump
-    wrote /tmp/prdct11935/r45/dump-base.txt (1080 lines)
-### LEG=base finished 2026-08-23T17:16:38Z
+== THE IMAGE UNDER MEASUREMENT ON THIS LEG — read live off the RUNNING pod, not assumed ==
+   deployment:        eai-at11-base          (container name: endpoint-asset-ingestion, replicas 1)
+   pod:               eai-at11-base-7f4bb6b468-x8khs
+   image:             localhost:5001/onyx/endpoint-asset-ingestion:r45c-base
+   imageID (digest):  localhost:5001/onyx/endpoint-asset-ingestion@sha256:d65c32ca8d147bc8c876243e1d8669d2b782fd97693046ffb397e4c833953bd2
+   tenant:            11935f18-0000-4000-8000-000000000101      schema: prdct11935_v18t1
+   Printed identically at the top of BOTH runs (f1 and f2) — the leg never moved image mid-pair.
+   The base leg is pinned to the MERGE-BASE image and was never re-pointed by me: digest d65c32ca... is exactly the digest at11-02 has carried since it was built at the merge-base.
+
+== FRONT DOOR — health and guard, bounded, measured at the start of BOTH runs ==
+   $ timeout 15 curl -s -o /dev/null -w '%{http_code}' -X POST http://ingest-onyx:8080/mcp-scanner \
+       -H 'content-type: application/json' -d '{}'
+   401          <- required 401; printed 401 at the head of run f1 AND run f2
+   Full guard response, captured verbatim on the same front door:
+   HTTP/1.1 401 Unauthorized
+      Date: Mon, 24 Aug 2026 01:08:59 GMT
+      Connection: keep-alive
+      Content-Length: 36
+      X-Kong-Response-Latency: 1
+      Server: kong/3.9.3
+      X-Kong-Request-Id: 0d9a60626c28fc2bfa2e58512248a918
+   
+      --- response body (verbatim) ---
+      {"error": "Authentication required"}
+   Every write below goes through this same Kong front door with the leg's own key-auth consumer.
+   No port-forward, no kubectl-exec curl, no synthesized consumer header, no minted JWT.
+
+== THE INPUT (identical on both legs, byte for byte) ==
+   A real onyx-scanner run was executed and its HTTP request bodies recorded verbatim.  The 8 bodies it
+   POSTed with source_type=mcp-scanner are replayed byte-for-byte, in the SAME order 01..08, on BOTH
+   legs.  Recording and replaying rather than scanning twice is deliberate: two live scans differ in
+   scan_run_id and timestamps, and a base-vs-head diff is only meaningful when the input is identical.
+   sha256 of each replayed body (identical set on both legs, both runs):
+      7cf73811c84c536dc449bcd33c0863c735fed936167686b9796fa7cb62fff828  01.json   641547 bytes
+      ce124716645ae09bcfb997f9c23afa98816389d3d01c1b80832d7aa0746e041a  02.json     5554 bytes
+      9be9c15a91431140a720fcc63dfc6be45210e6585938de7edd0b978390183d12  03.json    23813 bytes
+      9a9cc75e099c8c860271b229347cefff95cdad74c95d59e74a8a7a31418d8600  04.json     5990 bytes
+      db5e4a45a7c6c1d6506440144f9abd05d086f4b03eec774f00da53e0ea54f7b7  05.json  1055077 bytes
+      dbaef22a2eac9cb5b4007b343bb5ba7c39e13457149553ba1548f80f98a7ec3e  06.json    66889 bytes
+      bc530037f250b9b2fbdfa0c38802ed78a95c1d4fdebb4ee09a630cbfd7760feb  07.json  1132513 bytes
+      7931bc468867861158ae0e53f0e5c4cb4c89847a9b2ade2ca71bb58ccaba4cbd  08.json   803997 bytes
+
+== RUN f1 — the 8 bodies through Kong on this leg, settle-gated and sequential ==
+   nonce r50-at11-leg2-f1-20260824T010146Z-3a79f367 · window opened 2026-08-24T01:01:59Z
+   leg=base pod=eai-at11-base-7f4bb6b468-x8khs bucket_baseline=83 processed_baseline=0
+     01.json -> HTTP 200
+       settled: objects=1/1 queue(vis+inflight)=0 processed=1/1
+     02.json -> HTTP 200
+       settled: objects=2/2 queue(vis+inflight)=0 processed=2/2
+     03.json -> HTTP 200
+       settled: objects=3/3 queue(vis+inflight)=0 processed=3/3
+     04.json -> HTTP 200
+       settled: objects=4/4 queue(vis+inflight)=0 processed=4/4
+     05.json -> HTTP 200
+       settled: objects=5/5 queue(vis+inflight)=0 processed=5/5
+     06.json -> HTTP 200
+       settled: objects=6/6 queue(vis+inflight)=0 processed=6/6
+     07.json -> HTTP 200
+       settled: objects=7/7 queue(vis+inflight)=0 processed=7/7
+     08.json -> HTTP 200
+       settled: objects=8/8 queue(vis+inflight)=0 processed=8/8
+   leg=base log-follower alive at end: yes
+   leg=base EXACT: objects_delta=8 processed_delta=8 dlq=0 pod_stable=yes
+   leg=base settled-state: 342|338|21 (assets|connections|dedup)
+
+== RUN f2 — the SAME 8 bodies, immediately consecutive (f2 began the moment f1 finished) ==
+   nonce r50-at11-leg2-f2-20260824T010443Z-8302cbd2 · window opened 2026-08-24T01:04:55Z
+   leg=base pod=eai-at11-base-7f4bb6b468-x8khs bucket_baseline=91 processed_baseline=0
+     01.json -> HTTP 200
+       settled: objects=1/1 queue(vis+inflight)=0 processed=1/1
+     02.json -> HTTP 200
+       settled: objects=2/2 queue(vis+inflight)=0 processed=2/2
+     03.json -> HTTP 200
+       settled: objects=3/3 queue(vis+inflight)=0 processed=3/3
+     04.json -> HTTP 200
+       settled: objects=4/4 queue(vis+inflight)=0 processed=4/4
+     05.json -> HTTP 200
+       settled: objects=5/5 queue(vis+inflight)=0 processed=5/5
+     06.json -> HTTP 200
+       settled: objects=6/6 queue(vis+inflight)=0 processed=6/6
+     07.json -> HTTP 200
+       settled: objects=7/7 queue(vis+inflight)=0 processed=7/7
+     08.json -> HTTP 200
+       settled: objects=8/8 queue(vis+inflight)=0 processed=8/8
+   leg=base log-follower alive at end: yes
+   leg=base EXACT: objects_delta=8 processed_delta=8 dlq=0 pod_stable=yes
+   leg=base settled-state: 342|338|21 (assets|connections|dedup)
+
+   Reading of the above, stated plainly:
+     * Kong HTTP status for every one of the 8 bodies, in BOTH runs: 200.  16/16 posts = 200.
+     * objects_delta=8 — exactly the 8 objects vector wrote into this leg's own bucket, no more.
+     * processed_delta=8 — the writer logged exactly 8 `outcome=processed`.
+     * dlq=0 — this leg's DLQ took nothing, in either run.
+     * pod_stable=yes — the same pod served the whole run; no restart could have masked anything.
+     * settled-state 342|338|21 (assets|connections|dedup) — identical in both runs on this leg.
+
+== THE FULL KONG RESPONSE ON THIS LEG (status line, headers and body, verbatim) ==
+   Captured AFTER both runs' comparison dumps were taken, so it cannot have influenced the comparison.
+   consumer ingestion@11935f18-0000-4000-8000-000000000101 · POST http://ingest-onyx:8080/mcp-scanner · body=02.json ==
+      HTTP/1.1 200 OK
+      Content-Length: 0
+      Connection: keep-alive
+      date: Mon, 24 Aug 2026 01:08:58 GMT
+      Server: kong/3.9.3
+      X-Tenant-ID: 11935f18-0000-4000-8000-000000000101
+      X-Kong-Upstream-Latency: 1007
+      X-Kong-Proxy-Latency: 1
+      Via: 1.1 kong/3.9.3
+      X-Kong-Request-Id: ceb8ea026d536267e26dd7693ae62e72
+   
+      --- response body (verbatim) ---
+   Note X-Tenant-ID in the response: Kong resolved this leg's key-auth consumer to 11935f18-0000-4000-8000-000000000101 —
+   independent confirmation that the leg key maps to the leg tenant and not to the other leg's.
+
+== WHAT THE WRITER LOGGED — the `outcome=processed` records, and the lineno that proves the image ==
+   f1: 8 lines with outcome=processed, every one at lineno=135
+   f2: 8 lines with outcome=processed, every one at lineno=135
+   (counted over the leg pod's own log, ANSI-stripped; the raw pod log is colourised and a plain grep
+   counts 0.)
+   `_handle_record` sits at message_handler.py lineno=135 on the merge-base image and lineno=171 on the
+   head image.  That single number is a live, mechanical proof that the two legs are running provably
+   DIFFERENT builds of the same file — not the same image twice under two names.  This leg logs
+   lineno=135.
+   First and last processed record of each run, quoted verbatim:
+     [f1 first] 2026-08-24T01:02:21.217132Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=135 object_age_seconds=9.573557 outcome=processed s3_key='tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-24/1787533326-e0365cdd-7e34-43a7-9248-bfa40e8307ab.log' span_id=0595f68360a2a4c5 tenant_uuid=11935f18-0000-4000-8000-000000000101 trace_flags=01 trace_id=b7ed6ef6fe04c1940c1ba3fb805cf968
+     [f1 last ] 2026-08-24T01:04:02.691477Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=135 object_age_seconds=0.011805 outcome=processed s3_key='tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-24/1787533442-00e56f15-07e7-4874-bcf6-323a91d42a06.log' span_id=b45131c09e7f1d3b tenant_uuid=11935f18-0000-4000-8000-000000000101 trace_flags=01 trace_id=3cfa6f2f541ad47e35db6dfb2feff870
+     [f2 first] 2026-08-24T01:05:27.679189Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=135 object_age_seconds=19.279755 outcome=processed s3_key='tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-24/1787533502-7a25670d-a742-4c70-b19f-20b5b948bab4.log' span_id=265e40378b51fc4c tenant_uuid=11935f18-0000-4000-8000-000000000101 trace_flags=01 trace_id=cdc4cff91e8e83b9d0edb912567e3dc0
+     [f2 last ] 2026-08-24T01:07:10.303249Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=135 object_age_seconds=0.007205 outcome=processed s3_key='tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-24/1787533630-cc995db1-b994-4f76-b2c0-68967d6d0fe8.log' span_id=e6deb8b40963c504 tenant_uuid=11935f18-0000-4000-8000-000000000101 trace_flags=01 trace_id=e3a976fedb9597fd124b2df730a155e7
+
+== THE TENANT-DB DUMP (this leg's writer-owned graph) ==
+   Produced by lane-dump-writer.sh over prdct11935_v18t1 — ten queries covering the whole writer-owned graph:
+   assets by class; every asset row's full identity/state; mcp servers; mcp tools; skills; subagents;
+   usage sessions; scanner installations; asset connections including metadata.sources; and the dedup
+   state.  Row ids and timestamps are excluded by construction — two independent writers cannot match
+   them.  `issue_instances` is NOT in this dump; it is reported separately (at11-04 section 6).
+   f1  prdct11935_v18t1: 1074 lines   sha256 bfab55dfb10901c1c42c35c878cb53955b9ec2e9eeb3e69495a9ef7dde113224
+   f2  prdct11935_v18t1: 1074 lines   sha256 bfab55dfb10901c1c42c35c878cb53955b9ec2e9eeb3e69495a9ef7dde113224
+   The two runs of this leg are BYTE-IDENTICAL (`cmp` silent).
+   Head of the dump (read from f1/base.raw, this leg's own dump):
+     --- assets by type/sub_type/status/is_deleted
+     type|sub_type|status|is_deleted|count
+     AssetTypeDesktopAgent|AssetSubTypeAIAgent||f|4
+     AssetTypeMCP|AssetSubTypeMCPServer|AssetStatusDiscovered|f|21
+     AssetTypeSkill|AssetSubTypeSkill|AssetStatusDiscovered|f|260
+     AssetTypeSubAgent|AssetSubTypeSubAgent|AssetStatusDiscovered|f|57
+     (4 rows)
+
+     --- assets (name|type|sub_type|unique_identifier|status|is_deleted|version|host_type|surface|app_definition_id|awaiting_discovery)
+     name|type|sub_type|unique_identifier|status|is_deleted|coalesce|coalesce|coalesce|coalesce|awaiting_discovery
+     Claude (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_claude::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_claude|f
+     Claude Code (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_claude-code::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_claude-code|f
+     Codex (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_codex::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_codex|f
+     Hermes Agent (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_hermes-agent::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_hermes-agent|f
+     Context7 MCP Server|AssetTypeMCP|AssetSubTypeMC
+     [... 1074 lines total; the full comparison is at11-04 ...]
+   The scanner-installation row, showing the harness masks credentials:
+     4|24|252|dev|INSTALL_SCRIPT||/tmp/onyx-scanner scan --verbose --endpoint ****** --api-key ******
+
+== NEGATIVE ISOLATION ASSERTIONS — measured at the end of EACH run (f1 | f2) ==
+   shared `ingestion` bucket, prefix tenant=...101/ :   158 | 158     (baseline 158 | 158 — UNCHANGED)
+   shared `ingestion` bucket, prefix tenant=...102/ :    57 |  57     (baseline  57 |  57 — UNCHANGED)
+   shared queue `endpoint-asset-ingestion` depth    :     0 |   0     (baseline   0 |   0 — UNCHANGED)
+   shared writer log lines naming 11935f18 in window:     0 |   0     (must be 0)
+   at11-base object keys naming the HEAD tenant     :     0 |   0     (must be 0)
+   at11-head object keys naming the BASE tenant     :     0 |   0     (must be 0)
+   base writer log lines naming the HEAD tenant     :     0 |   0     (must be 0)
+   head writer log lines naming the BASE tenant     :     0 |   0     (must be 0)
+   at11-base-dlq / at11-head-dlq depth              :     0 / 0       (must be 0)
+   All ten hold in both runs.  Nothing this leg did reached the shared lane, and neither leg saw the
+   other.
+
+== RESTORE — the box is exactly as I found it, and here is the measurement, not the assertion ==
+   at11 deployments, my as-found snapshot vs after (replicas, image, container name, pod-template
+   annotations, labels) compared field by field:
+     eai-at11-base  {'replicas': 1, 'image': '...:r45c-base', 'container': 'endpoint-asset-ingestion',
+                     'tmpl_annotations': None, 'labels': {'app': 'eai-at11-base',
+                     'prdct11935/harness': 'at11-isolation'}}                              MATCH
+     eai-at11-head  {'replicas': 1, 'image': '...:r46b-head', 'container': 'endpoint-asset-ingestion',
+                     'tmpl_annotations': None, 'labels': {'app': 'eai-at11-head',
+                     'prdct11935/harness': 'at11-isolation'}}                              MATCH
+     IDENTICAL: True
+   Shared writer deployment `endpoint-asset-ingestion`: never addressed by any command of mine.  Its
+   pod endpoint-asset-ingestion-5bcd755bd7-ltmrt started 2026-08-23T21:42:13Z with 0 restarts — 3h28m
+   before this capture and unchanged through it.  Everything it processed in my window belongs to other
+   tenants (1457 x tenant=11935a00..., 1276 x tenant=61750f27..., 4 x tenant=11935a26...) and ZERO log
+   lines name either of my two leg tenants.
+   Shared bucket and queue: 158 / 57 objects under my two tenant prefixes, identical to baseline.
+   Vector: I issued no vector command.  The live ConfigMap still carries the at11 route (5 refs) and the
+   two at11 sinks on `type: memory` buffers, with `sinks.azure_blob_ingestion` still on its own
+   `type: disk` buffer — i.e. the Azure lane's plumbing is untouched.
+   The only cluster action I took at all was: one no-op `set image` on eai-at11-head to the image it was
+   already on, and one symmetric `kubectl delete pod` of the two leg pods (ReplicaSet-recreated; no
+   deployment spec edit).  No repo file was edited.  Nothing outside /tmp/prdct11935/r50/at11/ and the
+   three at11 artifacts was written.
