@@ -1,0 +1,18 @@
+# PRDCT-11935 at7-06-db-rows-subagents.txt — the subagents class rows with subagent_md_hash joined to the on-disk sha256 computed this window
+# FILE LAST WRITTEN 2026-08-24T01:10:06Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:10:06Z
+
+SET
+  id   | asset_id |        name         |                         subagent_md_hash                         | format |                             unique_identifier                              |        status         | is_deleted |          created_at           |          updated_at           
+-------+----------+---------------------+------------------------------------------------------------------+--------+----------------------------------------------------------------------------+-----------------------+------------+-------------------------------+-------------------------------
+ 52911 |   442189 | r50at7002800-sub    | 2d2e397434cc739a831b9fabf8a4d19fd0a635ebf4cd3f19920704f26c11ed26 | md     | subagent::2d2e397434cc739a831b9fabf8a4d19fd0a635ebf4cd3f19920704f26c11ed26 | AssetStatusDiscovered | f          | 2026-08-24 00:29:59.603306+00 | 2026-08-24 00:29:59.603306+00
+ 52912 |   442193 | r50at7002800-sibsub | 6777545c05a5d460c6cb8068a84a8ac6c3d4460ea347bfdb5f1250b4cf3c29e9 | md     | subagent::6777545c05a5d460c6cb8068a84a8ac6c3d4460ea347bfdb5f1250b4cf3c29e9 | AssetStatusDiscovered | f          | 2026-08-24 00:29:59.603306+00 | 2026-08-24 00:29:59.603306+00
+(2 rows)
+
+ON-DISK sha256 computed this window by sha256sum:
+  2d2e397434cc739a831b9fabf8a4d19fd0a635ebf4cd3f19920704f26c11ed26  /home/coder/.claude/agents/r50at7002800-sub.md
+  6777545c05a5d460c6cb8068a84a8ac6c3d4460ea347bfdb5f1250b4cf3c29e9  /home/coder/.claude/agents/r50at7002800-sibsub.md
+
+FIDELITY JOIN — stored subagent_md_hash == on-disk sha256, and assets.unique_identifier == subagent::<that sha>:
+  subject  r50at7002800-sub     2d2e397434cc739a831b9fabf8a4d19fd0a635ebf4cd3f19920704f26c11ed26  MATCH
+  sibling  r50at7002800-sibsub  6777545c05a5d460c6cb8068a84a8ac6c3d4460ea347bfdb5f1250b4cf3c29e9  MATCH
