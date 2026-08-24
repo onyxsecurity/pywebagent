@@ -1,5 +1,5 @@
 # PRDCT-11935 at10-25 — does flux-fleet#2307 change what any AWS cell renders? Measured at the PR's own merge-base.
-# FILE LAST WRITTEN 2026-08-24T01:17:10Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-24T01:35:00Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · flux-fleet#2307 head a4493c1e5ac0 · captured 2026-08-24T00:38:51Z
 #
@@ -18,7 +18,10 @@ $ git diff --name-only 2c8ad2f2d4..a4493c1e5ac0        # merge-base(#2307, origi
     clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/versions.yaml
     docs/README.md
     docs/architecture/instance-override-rules.md
-    ---- 8 files: six are the TWO AZURE c02 instances, two are docs. No AWS cell path appears.
+    ---- 8 files in total, each named in the list directly above this line: six of them are the two
+         AZURE c02 instances (three files each: drop-aws-only-values.yaml, release.yaml, versions.yaml)
+         and two are docs (docs/README.md, docs/architecture/instance-override-rules.md).
+         No AWS cell path appears among the eight.
 
 =================== 2. THE THREE AWS CELLS THAT RUN THE SERVICE ===================
     clusters/ox-aws-s-use1-c01/instances/saas/onyx-app/release.yaml
