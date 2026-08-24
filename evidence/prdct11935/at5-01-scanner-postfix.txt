@@ -1,18 +1,180 @@
-# PRDCT-11935 at5-01 (POST-FIX) — scanner_event_consumer_service REFUSES cloud=azure
-# FILE LAST WRITTEN 2026-08-23T19:39:08Z
-# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/scanner-event-consumer:r46b-head · captured 2026-08-23T19:39:08Z
+# PRDCT-11935 at5 (POST-FIX) — scanner_event_consumer_service REFUSES ONYX__CLOUD=azure
+# FILE LAST WRITTEN 2026-08-24T00:51:33Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8  (clean tree: `git status --porcelain` empty at build time)
+# image BUILT BY THIS CAPTURE  ->  tag pushed: localhost:5001/onyx/scanner-event-consumer:r50at5-head
+#   digest: sha256:943a1264fbc21c709de4ccc91c1248a5ff840ede04997fd0dce70cad8d79b85f
+# captured 2026-08-24T00:51:33Z   (lab-queue window: 2026-08-24T00:28:19Z open -> 2026-08-24T00:50:03Z close)
 #
-# The pre-fix half on the frozen base shows this consumer ACCEPTING real Event Grid deliveries and
-# ACKING them with nothing dispatched — the silent consume-and-drop this ticket's footgun names.
-# RE-DRIVEN on the shipped head because the previous post-fix capture predates two owner rulings.
+# PRE-FIX half (evidence/pre-fix/at5-01-scanner-drop.txt, frozen base 67b4096f33235ff7dadd962f487d99aa913e87c5):
+#   the SAME service, the SAME ConfigMap, the SAME real lab Service Bus queue scanner-events-prdct11935 —
+#   received real Event Grid BlobCreated deliveries, ACKED every one, dispatched nothing, dead-lettered
+#   nothing. Healthy 1/1 pod, zero errors surfaced. That is the silent consume-and-drop this ticket names.
+# POST-FIX half (this file): the dead Service Bus branch is GONE and the service REFUSES to start on
+#   ONYX__CLOUD=azure. It cannot consume, therefore it cannot silently drop.
 
-## deployment scanner-event-consumer-azure-prefix   pod scanner-event-consumer-azure-prefix-7d57454887-h8vvr   state: 1/1 Running 0
-## exitCode= reason= restarts=0
-## image actually running: localhost:5001/onyx/scanner-event-consumer:prdct11935-r26
-## its declared cloud:
+################################################################################
+## 0. HOW THE IMAGE UNDER TEST WAS BUILT (this capture built it; nothing pre-existing was reused)
+################################################################################
+$ git -C /home/coder/onyx rev-parse HEAD
+2b60fdc4df25188104e737e6311087681355eff8
+$ git -C /home/coder/onyx status --porcelain | wc -l
+0
+$ docker build --network=host -f backend_python/Dockerfile.dev --build-arg EXTRAS=temporal-worker \
+      --build-arg SERVICE_CMD='...' -t localhost:5001/onyx/scanner-event-consumer:r50at5-head .   &&   docker push localhost:5001/onyx/scanner-event-consumer:r50at5-head
+   -> r50at5-head: digest: sha256:943a1264fbc21c709de4ccc91c1248a5ff840ede04997fd0dce70cad8d79b85f
+
+## image provenance — the built image's /app/src IS the head tree
+$ git archive 2b60fdc4df25188104e737e6311087681355eff8 backend_python/src | tar -x -C $O/headsrc   # then sha256sum every file
+$ kubectl -n onyxd exec <aws-mode pod on the same digest> -- sh -c 'cd /app/src && find . -type f ! -path "*/__pycache__/*" ! -name "*.pyc" -print0 | sort -z | xargs -0 sha256sum'
+$ diff <(LC_ALL=C sort -k2 head-src-manifest.txt) <(LC_ALL=C sort -k2 img-src.txt)
+   0a1
+   > e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./__init__.py
+   242a244,248
+   > 141becca871eb771ce525df57a51ec09aed509b8a0f07bb26ecba3c32e6f87dc  ./backend_python.egg-info/PKG-INFO
+   > 7945da2b11979e9d399330f408231af50e414c850ea0f341f3fba6f2c2269578  ./backend_python.egg-info/SOURCES.txt
+   > 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b  ./backend_python.egg-info/dependency_links.txt
+   > d0ffbbc638c62a9e69fc28df8d64469e0c09d96b67834f4a411381e41b080afa  ./backend_python.egg-info/requires.txt
+   > a0d9d2a2c095a51c78c671ba99cabcb035576f7fe92934e29c5de7aba8086e2b  ./backend_python.egg-info/top_level.txt
+   => ALL 6385 files tracked at 2b60fdc4df25188104e737e6311087681355eff8:backend_python/src are byte-identical in the image.
+      The only 6 extra paths are produced by the Dockerfile itself, not by any source drift:
+        ./__init__.py                     <- Dockerfile.dev: 'RUN mkdir -p ./src && touch ./src/__init__.py' (pre-uv-sync stub)
+        ./backend_python.egg-info/*       <- the editable install performed by 'uv sync'
+
+################################################################################
+## 1. THE POD THAT ACTUALLY REFUSES — production entrypoint (backend_python/Dockerfile:202/210 shape:
+##    uvicorn ... --workers 1, no --reload). Values read LIVE from this pod's own spec/status.
+################################################################################
+$ kubectl -n onyxd get pod r50at5-scanner-azure-prod-585fc5c9bb-r8kf2 -o jsonpath='{.status.containerStatuses[0]}'
+## deployment r50at5-scanner-azure-prod   pod r50at5-scanner-azure-prod-585fc5c9bb-r8kf2   state: 0/1 CrashLoopBackOff
+## exitCode=3 reason=Error restarts=5 ready=False
+## image actually running: localhost:5001/onyx/scanner-event-consumer:r50at5-head
+## imageID actually running: localhost:5001/onyx/scanner-event-consumer@sha256:943a1264fbc21c709de4ccc91c1248a5ff840ede04997fd0dce70cad8d79b85f
+## CONSISTENT-WITH-REFUSAL CHECK: exitCode==3 AND CrashLoopBackOff AND 0/1 -> PASS
+## (imageID above must equal the digest this capture pushed: sha256:943a1264fbc21c709de4ccc91c1248a5ff840ede04997fd0dce70cad8d79b85f)
+
+$ kubectl -n onyxd get pod r50at5-scanner-azure-prod-585fc5c9bb-r8kf2 -o jsonpath='{.spec.volumes[?(@.name=="config")].configMap.name}'  ->  r50at5-scanner-azure
+$ kubectl -n onyxd get cm r50at5-scanner-azure -o jsonpath='{.data.config\.yaml}'   # its declared cloud + the real lab queue it was pointed at
      cloud: azure
-## the refusal, verbatim:
-       Value error, scanner_event_consumer_service: ONYX__CLOUD=azure is not supported by this service (it implements aws only). Refusing to start rather than consuming a queue it 
-     cannot process. The Azure scanner-object lane is owned by endpoint_asset_ingestion (ONYX__CLOUD=azure), which parses Event Grid BlobCreated events off Service Bus and writes t
-     he assets in-process. [type=value_error, input_value={'cloud': 'azure', 'blob'...04b-a928-644f5a21ed12'}}, input_type=dict]
-         For further information visit https://errors.pydantic.dev/2.12/v/value_error
+       fully_qualified_namespace: prdct11935bus.servicebus.windows.net
+       queue_name: scanner-events-prdct11935
+
+## SYMMETRY WITH THE PRE-FIX HALF: this ConfigMap is BYTE-IDENTICAL to the one the pre-fix capture ran
+$ diff <(kubectl -n onyxd get cm r50at5-scanner-azure -o jsonpath='{.data.config\.yaml}') <(kubectl -n onyxd get cm scanner-event-consumer-azure-prefix -o jsonpath='{.data.config\.yaml}') && echo IDENTICAL
+     IDENTICAL to cm/scanner-event-consumer-azure-prefix (the pre-fix deployment's ConfigMap)
+     sha256(config.yaml) = b48b9ff922bc937c91e43220d258136453821c689d6871ee9fbf85229bc10955
+
+## the refusal, VERBATIM from THIS pod's own log:
+$ kubectl -n onyxd logs r50at5-scanner-azure-prod-585fc5c9bb-r8kf2 --tail=400 | grep -a 'Value error' 
+  Value error, scanner_event_consumer_service: ONYX__CLOUD=azure is not supported by this service (it implements aws only). Refusing to start rather than consuming a queue it cannot process. The Azure scanner-object lane is owned by endpoint_asset_ingestion (ONYX__CLOUD=azure), which parses Event Grid BlobCreated events off Service Bus and writes the assets in-process. [type=value_error, input_value={'cloud': 'azure', 'blob'...04b-a928-644f5a21ed12'}}, input_type=dict]
+$ kubectl -n onyxd logs r50at5-scanner-azure-prod-585fc5c9bb-r8kf2 --tail=400 | grep -aE 'ValidationError|Application startup failed'
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ScannerEventConsumerConfig
+ERROR:    Application startup failed. Exiting.
+
+################################################################################
+## 2. THE SAME REFUSAL UNDER THE TILT/DEV ENTRYPOINT (uvicorn --reload) — the EXACT command the
+##    pre-fix half ran, so the before/after is the same flow. DISCLOSURE: under --reload the pod
+##    stays 'Running' because uvicorn's reload SUPERVISOR does not propagate its child's startup
+##    failure; the app is dead inside. The app-level outcome is identical (refusal, no consumer).
+################################################################################
+## deployment r50at5-scanner-azure   pod r50at5-scanner-azure-6fd9474575-9k8zm   state: 1/1 Running
+## exitCode= reason= restarts=0 ready=True
+## image actually running: localhost:5001/onyx/scanner-event-consumer:r50at5-head
+## imageID actually running: localhost:5001/onyx/scanner-event-consumer@sha256:943a1264fbc21c709de4ccc91c1248a5ff840ede04997fd0dce70cad8d79b85f
+  Value error, scanner_event_consumer_service: ONYX__CLOUD=azure is not supported by this service (it implements aws only). Refusing to start rather than consuming a queue it cannot process. The Azure scanner-object lane is owned by endpoint_asset_ingestion (ONYX__CLOUD=azure), which parses Event Grid BlobCreated events off Service Bus and writes the assets in-process. [type=value_error, input_value={'cloud': 'azure', 'blob'...04b-a928-644f5a21ed12'}}, input_type=dict]
+ERROR:    Application startup failed. Exiting.
+
+################################################################################
+## 3. GUARD — the silent-drop signature is GONE. Zero on the refusing pods; the pre-fix pod has it.
+################################################################################
+$ kubectl -n onyxd logs <pod> --tail=400 | grep -ac 'ASB client connected'   /   'Completed message'
+  POST-FIX r50at5-scanner-azure-prod-585fc5c9bb-r8kf2 ASB client connected = 0   Completed message = 0
+  POST-FIX r50at5-scanner-azure-6fd9474575-9k8zm ASB client connected = 0   Completed message = 0
+$ grep -ac 'ASB client connected' $AGENT_FACTORY_ARTIFACTS/evidence/pre-fix/at5-01-scanner-drop.txt   # and 'Completed message'
+  PRE-FIX  at5-01-scanner-drop.txt            ASB client connected = 6   Completed message = 10
+  (the PRE-FIX 'Completed message' count includes 1 occurrence inside that file's own header prose;
+   the log body itself carries 9 real acks.)
+
+## the real lab queue only GREW across the window — nothing was consumed-and-vanished
+$ python sb.py counts scanner-events-prdct11935    (before / after)
+  BEFORE  scanner-events-prdct11935: active=6660 dead_letter=0 scheduled=0 transfer_dlq=0 total=6660
+  AFTER   scanner-events-prdct11935: active=6693 dead_letter=0 scheduled=0 transfer_dlq=0 total=6693
+$ python sb.py peek 1 scanner-events-prdct11935    (oldest message: same id, delivery_count still 0 => never delivered to a consumer)
+  BEFORE  "message_id": "e5a094ee-83ec-4cc7-9b07-02cec4470f09",
+  BEFORE  "delivery_count": 0,
+  AFTER   "message_id": "e5a094ee-83ec-4cc7-9b07-02cec4470f09",
+  AFTER   "delivery_count": 0,
+$ python sb.py peek-dlq 5 scanner-events-prdct11935
+  scanner-events-prdct11935/$DeadLetterQueue: # peeked 0 message(s) on scanner-events-prdct11935/$DeadLetterQueue at 2026-08-24T00:50:10.077418+00:00
+
+################################################################################
+## 4. THE OTHER HALF OF THE ASSERTION — AWS mode STILL BOOTS 1/1 on the SAME head build.
+##    Same image, same digest; only ONYX__CLOUD flips azure->aws. Pointed at a DEDICATED LocalStack
+##    queue so this leg cannot touch the shared lane.
+################################################################################
+## deployment r50at5-scanner-aws-prod   pod r50at5-scanner-aws-prod-5ddd4d6978-mr6s7   state: 1/1 Running
+## exitCode= reason= restarts=0 ready=True
+## image actually running: localhost:5001/onyx/scanner-event-consumer:r50at5-head
+## imageID actually running: localhost:5001/onyx/scanner-event-consumer@sha256:943a1264fbc21c709de4ccc91c1248a5ff840ede04997fd0dce70cad8d79b85f
+     [2m2026-08-24T00:46:03.310984Z[0m [[32m[1minfo     [0m] [1mStarting Scanner Event Consumer Service[0m [[0m[1m[34mscanner_event_consumer_service.service[0m][0m [36mcloud[0m=[35maws[0m [36mfilename[0m=[35mservice.py[0m [36mfunc_name[0m=[35mstart[0m [36mlineno[0m=[35m46[0m
+     [2m2026-08-24T00:46:05.474955Z[0m [[32m[1minfo     [0m] [1mScanner event worker pool started[0m [[0m[1m[34mscanner_event_consumer_service.service[0m][0m [36mcloud[0m=[35maws[0m [36mfilename[0m=[35mservice.py[0m [36mfunc_name[0m=[35mstart[0m [36mlineno[0m=[35m78[0m
+     [2m2026-08-24T00:46:05.475256Z[0m [[32m[1minfo     [0m] [1mStarting consumer pool        [0m [[0m[1m[34mcommon_core.services.queue.consumer_pool[0m][0m [36mconcurrency[0m=[35m5[0m [36mfactory_mode[0m=[35mFalse[0m [36mfilename[0m=[35mconsumer_pool.py[0m [36mfunc_name[0m=[35mrun[0m [36mlineno[0m=[35m141[0m [36mmax_messages[0m=[35m10[0m
+## deployment r50at5-scanner-aws   pod r50at5-scanner-aws-b9c7669df-qkbpk   state: 1/1 Running
+## exitCode= reason= restarts=0 ready=True
+## image actually running: localhost:5001/onyx/scanner-event-consumer:r50at5-head
+## imageID actually running: localhost:5001/onyx/scanner-event-consumer@sha256:943a1264fbc21c709de4ccc91c1248a5ff840ede04997fd0dce70cad8d79b85f
+     [2m2026-08-24T00:46:00.543427Z[0m [[32m[1minfo     [0m] [1mStarting Scanner Event Consumer Service[0m [[0m[1m[34mscanner_event_consumer_service.service[0m][0m [36mcloud[0m=[35maws[0m [36mfilename[0m=[35mservice.py[0m [36mfunc_name[0m=[35mstart[0m [36mlineno[0m=[35m46[0m
+     [2m2026-08-24T00:46:01.901255Z[0m [[32m[1minfo     [0m] [1mScanner event worker pool started[0m [[0m[1m[34mscanner_event_consumer_service.service[0m][0m [36mcloud[0m=[35maws[0m [36mfilename[0m=[35mservice.py[0m [36mfunc_name[0m=[35mstart[0m [36mlineno[0m=[35m78[0m
+     [2m2026-08-24T00:46:01.901587Z[0m [[32m[1minfo     [0m] [1mStarting consumer pool        [0m [[0m[1m[34mcommon_core.services.queue.consumer_pool[0m][0m [36mconcurrency[0m=[35m5[0m [36mfactory_mode[0m=[35mFalse[0m [36mfilename[0m=[35mconsumer_pool.py[0m [36mfunc_name[0m=[35mrun[0m [36mlineno[0m=[35m141[0m [36mmax_messages[0m=[35m10[0m
+     cloud: aws
+       queue_url: http://localstack:4566/000000000000/r50at5-scanner-events
+
+################################################################################
+## 5. THE DELETION ITSELF — the Azure/Service-Bus branch is gone from this service on head
+################################################################################
+$ git -C /home/coder/onyx diff --stat origin/main 2b60fdc4df25188104e737e6311087681355eff8 -- backend_python/src/scanner_event_consumer_service
+ .../src/scanner_event_consumer_service/config.py   | 49 +++++++++----------
+ .../src/scanner_event_consumer_service/service.py  | 57 +++++-----------------
+ 2 files changed, 36 insertions(+), 70 deletions(-)
+$ grep -rn 'asb\|ServiceBus\|azure' backend_python/src/scanner_event_consumer_service --include=*.py -i | wc -l
+1
+$ sed -n '/_validate_cloud_supported/,/return self/p' backend_python/src/scanner_event_consumer_service/config.py
+    def _validate_cloud_supported(self) -> "ScannerEventConsumerConfig":
+        """Refuse to boot on a cloud this service has no lane for.
+
+        The Azure branch this service used to carry was a working-looking dead path: the Service Bus
+        body is an Event Grid event, the S3-notification parser returned no records for it, and the
+        handler acked — healthy pod, zero errors, 100% of messages dropped. The branch is gone; this
+        makes its absence a startup refusal instead of a silent drop, and names what owns that lane.
+        """
+        assert_cloud_supported(
+            self.cloud,
+            service="scanner_event_consumer_service",
+            supported=CloudProvider.AWS,
+            alternative=(
+                "The Azure scanner-object lane is owned by endpoint_asset_ingestion (ONYX__CLOUD=azure), "
+                "which parses Event Grid BlobCreated events off Service Bus and writes the assets in-process."
+            ),
+        )
+        return self
+
+################################################################################
+## 6. DISCLOSURE — one transient overlap with the shared AWS lane, corrected within 4 minutes
+################################################################################
+When first deployed at 00:32Z the AWS-mode CONTROL clones (section 4) inherited the shared Tilt
+config and therefore polled the SHARED LocalStack queues scanner-events / mcp-gateway-events. Between
+00:35:47Z and 00:37:39Z they received 4 messages there (2 "skipping record: unknown tenant" +
+2 "scanner_event_received"), each logged and acked exactly as the shared consumer does — both run the
+SAME head build, and the flag-gated dispatch is OFF, so `tctl workflow list --query
+"WorkflowType='ScannerObjectWorkflow'"` returns EMPTY on either path: no work was performed, diverted
+or lost. At 00:39:16Z the AWS controls were scaled to 0; dedicated queues r50at5-scanner-events /
+r50at5-mcpgw-events were created in LocalStack, the controls were re-pointed at them and rescaled.
+Every number in section 4 above is from the ISOLATED-queue pods. The AZURE refusal legs — the subject
+of this artifact — never touched a shared queue: they never started a consumer at all.
+
+## 6b. WHY THIS FILE WAS RE-CAPTURED ONCE MORE
+A first pass of this capture read the refusing pod while its container was mid-restart, so
+`.state.waiting` was momentarily empty and the state line degraded to "0/1 Running" while exitCode was
+already 3. That is precisely the misleading pod line this re-capture exists to eliminate, so the reader
+was hardened to poll (bounded, 150s) for a SETTLED `.state.waiting.reason` before recording, the clones
+were redeployed, and every value above was read from a pod stably in CrashLoopBackOff. The
+CONSISTENT-WITH-REFUSAL line is a machine check over the three recorded fields, not prose.
