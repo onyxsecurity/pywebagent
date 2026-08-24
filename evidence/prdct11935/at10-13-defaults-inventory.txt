@@ -1,0 +1,772 @@
+# PRDCT-11935 at10-13 — C15 DEFAULTS INVENTORY, RE-DERIVED AT CURRENT HEAD
+# FILE LAST WRITTEN 2026-08-24T00:57:56Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · flux-fleet#2307 head a4493c1e5ac0 · infrastructure#1575 MERGED at da993d1ae2eb · captured 2026-08-24T00:57:56Z
+#
+# ############################################################################################
+# # SWEPT, NOT RE-STAMPED. This file was RE-DERIVED row by row at the head above, AFTER two  #
+# # owner rulings REMOVED CAPABILITY from this PR. It is not the 2026-08-22 measurement with #
+# # a new date on it: 17 rows that the previous version asserted in the present tense are    #
+# # now WITHDRAWN, 41 cites were wrong and are corrected, and 39 defaults the previous       #
+# # version never listed are added. If you are diffing against the older file, expect it.    #
+# ############################################################################################
+#
+# This REPLACES the 2026-08-22 measurement (taken on onyx a2486bb33f / flux b0d3e1cfb /
+# infrastructure 8498355f0131). Every cite below was OPENED at the head named above; the
+# verification command is printed with each assertion. Nothing here is recalled.
+#
+# WHY IT WAS REDONE. Since the first measurement two OWNER RULINGS removed work from this PR:
+#   ROUND-45 (Iddo) — "PRDCT-11935 is Azure ENABLEMENT ONLY ... REVERT the old-lane parity work"
+#     (writers.py, extract.py, object_processor.py, pipeline.py, metrics.py PARTIAL, scanner_version.py)
+#   ROUND-46 (Iddo) — "main has landed an overlapping implementation of abandon_message. Drop yours
+#     as superseded." (client.py, sqs.py, consumer_pool.py, asb.py's abandon_message; pacing DEFERRED)
+# A row describing reverted code is worse than a missing row, so every row was re-classified.
+#
+# ============================ COUNTS ============================
+#   ROWS TOTAL, as numbered by the original inventory .......... 101
+#     (the original is billed as "102 items" in the PR body and in its own comment. It is not.
+#      The numbering RUNS 1..102 BUT SKIPS #28 — there is no row #28. Verified:
+#        for i in $(seq 1 102); do grep -qE "^\s+#$i " <inventory> || echo $i; done   ->  28
+#      The PR body's "102 of them" should read 101.)
+#
+#     HOLDS ..... 62      re-verified at head, cite and before->after both still correct
+#     MOVED ..... 22      same change, new cite (given below)
+#     WITHDRAWN . 17      reverted/dropped by an owner ruling; absence proven with a grep returning 0
+#     NEW ....... 39      a default this change alters that the inventory NEVER listed
+#
+#   Per repo (the 101 numbered rows):
+#     onyx        #1-#47 + #73-#77 = 51 rows :  29 HOLDS · 5 MOVED · 17 WITHDRAWN
+#     infrastruct #48-#72          = 25 rows :  11 HOLDS · 14 MOVED · 0 WITHDRAWN
+#     flux-fleet  #78-#102         = 25 rows :  22 HOLDS · 3 MOVED · 0 WITHDRAWN
+#
+#   Un-numbered items the inventory also carries, re-derived here (22 more, outside the 101):
+#     sub-rows #10a/#10b/#10c ........ 2 HOLDS · 1 MOVED
+#     lettered blocks 4e, 4f ......... 2 MOVED
+#     the #57 saas override cite ..... 1 MOVED
+#     the 3 log-string changes ....... 3 MOVED
+#     the 13 "chart defaults that now
+#       BIND on the Azure cells" ..... 1 HOLDS · 12 MOVED
+#   Grand total addressable: 123 items — 65 HOLDS · 41 MOVED · 17 WITHDRAWN, + 39 NEW.
+#
+# GATING VOCABULARY (unchanged from the first measurement)
+#   global            reachable on every cell running the code, regardless of cloud/flag/enabled
+#   azure-gated       only when ONYX__CLOUD=azure
+#   lane-gated(cell)  only where endpoint-asset-ingestion.enabled: true
+#   infra-gated       only when the named Terraform create_* variable is true
+#
+# TICKET AUTHORISATION — HOW TO READ THE "auth" COLUMN
+#   [T1..T7]  the ticket authorises this; the quote is in section 8.
+#   [OWNER]   NO TICKET AUTHORISATION — a judgement call this run made. Stated, not invented.
+#   The PR body already says "I am not approving this table." The [OWNER] marks are the honest
+#   half of that sentence.
+
+=========================================================================================================
+1. WITHDRAWN — 17 rows describing code that is NO LONGER IN THIS PR
+   Every one proven absent, not merely unfound. Base command:
+     MB=822abd2356f02c10f1d35901dd3c5feef43d8ade   # git merge-base origin/main HEAD
+     git diff --numstat $MB HEAD -- <file>   # 0 lines  =>  file untouched by the PR
+=========================================================================================================
+  ALL NINE reverted files carry ZERO hunks vs the merge-base, and the five load-bearing ones are
+  BYTE-IDENTICAL to origin/main (git diff --quiet origin/main HEAD -- <file> exits 0):
+      ingestion/writers.py · ingestion/extract.py · ingestion/object_processor.py · ingestion/pipeline.py
+      common_core/services/queue/client.py · sqs.py · consumer_pool.py
+      common_core/config.py · python_temporal_worker/.../desktop_agent_creator/scanner_version.py
+
+  ROUND-45 OWNER RULING ("REVERT the old-lane parity work") — 10 rows
+   #13  ingestion/extract.py:150  _MCPB_APP_ID_PREFIX "mcpb:"
+        grep -c '_MCPB_APP_ID_PREFIX' backend_python/src -r        -> 0 files
+   #14  ingestion/extract.py:151  _EXTENSION_SERVER_NAME_PREFIX "ext:"
+        grep -c '_EXTENSION_SERVER_NAME_PREFIX' backend_python/src -r -> 0 files
+   #37  ingestion/writers.py:482  seeded Claude connectors before the emptiness guard
+        git grep -l 'build_seeded_connector_servers' HEAD -- backend_python/src
+          -> ONLY python_temporal_worker/.../connector_seed.py and .../workflow.py (both gen-1, on main,
+             untouched: grep -c 'connector_seed' onyx.diff -> 0). writers.py never calls it.
+   #38  ingestion/writers.py:497  scanner_version per-scan fallback     (writers.py absent from diff)
+   #39  ingestion/pipeline.py:76  ObjectIngestResult.failed_agent_slices 0
+        grep -c 'failed_agent_slices' backend_python/src -r          -> 0 files
+   #40  ingestion/writers.py:958  InventoryWriteResult.dropped_agent_slices 0
+        grep -c 'InventoryWriteResult' onyx.diff                     -> 0
+   #41  ingestion/object_processor.py:157  outcome="processed_with_failures"
+        grep -c 'processed_with_failures' backend_python/src -r      -> 0 files
+   #42  metrics.py:138  ObjectLabels.outcome literal widened
+        metrics.py:134 at head is UNCHANGED from base:
+          outcome: Literal["processed","skipped_flag_off","skipped_unknown_tenant","failed"] = "processed"
+   #43  metrics.py:273,:494  AgentSlicesDroppedLabels + asset_ingestion_agent_slices_dropped_total
+        grep -c 'AgentSlicesDroppedLabels\|agent_slices_dropped' .../metrics.py -> 0
+   #44  ingestion/writers.py:677-690  _meter_session_alerts publish_failed
+        grep -c '_meter_session_alerts' backend_python/src -r        -> 0 files
+   #45  ingestion/extract.py:309  extension_name via the mcpb: prefix
+        grep -c '_extension_name_from_mcpb' backend_python/src -r    -> 0 files
+
+  ROUND-46 OWNER RULING ("Drop yours as superseded" — main landed abandon_message first) — 7 rows
+   #19  consumer_pool.py:174-199  pool releases the message when the handler raises
+        git diff --numstat $MB HEAD -- .../queue/consumer_pool.py   -> 0 lines
+        NOTE the behaviour EXISTS at head — it is MAIN'S, present already at the merge-base
+        (git show $MB:.../consumer_pool.py | grep -n abandon_message -> 70:, 335:). Not this PR's default.
+   #20  sqs.py:234-242  SQSQueueClient.abandon_message -> False, no API call
+        git diff --numstat $MB HEAD -- .../queue/sqs.py             -> 0 lines  (base already has it at :247)
+   #21  asb.py:268-281  ASBQueueClient.abandon_message
+        the asb.py hunk in this PR is ONLY _system_properties (+25 lines);
+        awk '/^diff --git/{f=$3} /abandon_message/{print f}' onyx.diff
+          -> ONLY tests/common_core/services/test_asb_settlement.py.  Base already has it at asb.py:228.
+   #22  client.py:85-100  abandon_message added to the QueueClient protocol
+        git diff --numstat $MB HEAD -- .../queue/client.py          -> 0 lines  (base already has it at :96)
+        The r46 "CRITICAL TRAP" is CLEAN: exactly ONE abandon_message definition survives in each of
+        asb.py and client.py, and no code in this PR depends on a bool return.
+   #23  asb.py:217-237  _renewal_delay max(min(interval, remaining/2), 1.0)
+        grep -c '_renewal_delay' .../queue/asb.py -> 0 ; grep -c '_renewal_delay' onyx.diff -> 0
+   #25  asb.py:119,181-182  _send_lock serialising send_messages
+        grep -c '_send_lock' .../queue/asb.py -> 0 ; grep -c '_send_lock' onyx.diff -> 0
+   #20/#21's pacing half (error_backoff_seconds sleep on immediate redelivery) is DEFERRED, NOT DROPPED
+        per r46 — "accepted as a follow-up and is tracked separately". It is absent from this PR.
+
+  *** THE TWO MOST MISLEADING ROWS IN THE WHOLE INVENTORY — SAID PLAINLY ***
+  #37 advertises "BLAST RADIUS: **GLOBAL (BOTH CLOUDS)**" and #42 advertises "**GLOBAL** — any
+  dashboard or monitor filtering outcome="processed" silently UNDER-COUNTS from the first deploy, on
+  both clouds, with no flag to gate it." A reviewer reading either one believes this PR changes what
+  EVERY CELL METERS and what every Claude Code install writes.
+  IT DOES NOT. Both were reverted by the round-45 owner ruling.
+    - No dashboard or monitor is affected: metrics.py:134 at head is byte-identical to base and still
+      reads Literal["processed","skipped_flag_off","skipped_unknown_tenant","failed"]; grep -c
+      'processed_with_failures' over backend_python/src returns 0 files, and 0 in the PR diff.
+    - No Claude Code install writes anything new: writers.py is byte-identical to origin/main
+      (git diff --quiet origin/main HEAD -- .../ingestion/writers.py exits 0); the three remaining
+      build_seeded_connector_servers references are ALL in gen-1's
+      python_temporal_worker/integrations/desktop_agent_creator/, none in the new lane, and 0 in the
+      PR diff. A Claude Code install with zero configured MCP servers still creates none.
+  Neither row describes a default this PR alters. Leaving them asserted overstates the blast radius
+  of the change by the widest margin of anything in the file.
+
+  A FALSE POSITIVE IN THE OTHER DIRECTION — DO NOT WITHDRAW error_backoff_seconds (#7).
+  It is easy to sweep away with the r46 pacing drop. It survives and is unrelated:
+    config.py:80   error_backoff_seconds: int = Field(default=5, ge=1,
+                                                      description="Seconds to wait after a poll error")
+    service.py:247 (ASB pool) and service.py:264 (AWS pool) both pass config.error_backoff_seconds
+    consumer_pool.py:61 "- On poll errors, waits error_backoff_seconds before retrying"
+  This is the PRE-EXISTING POLL-ERROR backoff — consumer_pool.py is byte-identical to origin/main —
+  not the abandon/redelivery pacing the round-46 ruling deferred. #7 stays HOLDS.
+
+  CONSEQUENCE FOR THE PR BODY. Three of these are already struck in the C15 table (19+21, 41+42, 37).
+  The other FOURTEEN were never struck and are still asserted in the linked comment. Rows 13, 14, 38,
+  39, 40, 43, 44, 45, 20, 22, 23, 25 must be struck too, or the comment keeps claiming defaults this
+  PR does not change.
+
+=========================================================================================================
+2. MOVED — 41 items whose change survives but whose cite was wrong at head
+   Verification form: sed -n 'N,Mp' <file>  (onyx/flux at branch head; infrastructure via
+   `git show origin/main:<path>` because #1575 is MERGED and origin/main is authoritative there).
+=========================================================================================================
+ ONYX (5 numbered + 1 sub-row + 3 log strings)
+   #15   config.py:189-224            -> config.py:189-225   (+ transport_guard.py:22-84, unchanged)
+         189 @model_validator(mode="after") · 190 def _validate_transport_matches_cloud(...) · 225 return self
+   #18   scanner .../config.py:79-93  -> :78-96   (def at :79, call :87-95, return :96)
+         mcp_gateway .../config.py:83-97 -> :82-106 (def at :83, call :93-105, return :106)
+         helper now at transport_guard.py:87
+   #24   asb.py:48-66,204             -> asb.py:48-67, applied at asb.py:192
+         48 def _system_properties(asb_msg) · 61 _sys_ApproximateReceiveCount = str(delivery_count+1)
+         65 _sys_SentTimestamp = str(int(enqueued_at.timestamp()*1000)) · 192 properties.update(...)
+         CROSS-SERVICE READ SITES ALSO MOVED:
+           alert_processor_service/consumer/message_handler.py:105 (_APPROX_RECEIVE_COUNT_PROPERTY)
+           and :110 (_SENT_TIMESTAMP_PROPERTY); the NOW-FALSE comment is at :67-68 (was :66-68).
+   #46   event_time.py:19-30          -> common_core/services/ingestion_events/event_time.py:16 (def),
+         :29 (the log line). The file is NEW (git diff --name-status shows `A`).
+         29: logger.warning("unparseable ingestion-event eventTime", event_time=raw)
+         Both old private helpers are gone: grep -c '_parse_event_time' ingestion_events/*.py -> 0
+   #47   pyproject.toml:134           -> backend_python/pyproject.toml:140
+         "azure-storage-blob>=12.27.1",   · uv.lock delta is exactly 2 added lines; no version
+         resolution changed (the package was already locked transitively).
+   #10b  common_core/config.py:303-320 -> THE CITE RESOLVES (validator at :305) BUT THE ROW IS WRONG.
+         See section 3 — this is the single most important correction in the file.
+   log   message_handler.py:90  -> :82   "redelivered SQS message" -> "redelivered queue message"
+   log   message_handler.py:113 -> :96   "failed to parse S3 event message"
+                                          -> "failed to parse object-created event message"
+   log   metric DESCRIPTIONS metrics.py:395,439,483,487,539 -> :381, :425-426, :469-470, :474, :518
+         (metric NAMES unchanged; r45 explicitly KEPT this rewording — confirmed present at head)
+   #32   sub-cite: the AWS path is service.py:263, not :265 (the ASB :246 hard-coded 1 HOLDS)
+   #34   sub-cite: AWS aliasing confirmed at service.py:269
+
+ INFRASTRUCTURE (14 numbered + 4e + 4f + the #57 override) — the whole service_bus.tf block shifted ~+92
+   #48  service_bus.tf:199      -> :291    lock_duration "PT5M"
+   #49  service_bus.tf:200      -> :292    max_delivery_count 5      *** SEE SECTION 3, CLAIM NOW FALSE ***
+   #50  service_bus.tf:201      -> :293    dead_lettering_on_message_expiration true
+   #51  service_bus.tf:202      -> :294    default_message_ttl "P14D"
+   #52  service_bus.tf:193-203  -> :285-321  the six unset attributes (all six grep to 0 in the block)
+        the companion "$DeadLetterQueue is the whole DLQ config" note :186-191 -> :279-283
+   #53  service_bus.tf:213-222  -> :331-340  subscription, max_delivery_count 3, ttl P14D, forward_to
+   #54  service_bus.tf:224-230  -> :342-348  rule only-mcp-scanner, sql_filter sys.Label LIKE '%source=mcp-scanner/%'
+   #57  variables.tf:133-138    -> :133-137  (block ends :137; default [] at :136)
+   #63  blob_events_to_servicebus/main.tf:39-79 -> :35-79  retry_policy NOT SET (grep -c -> 0)
+   #67  workload_identity.tf:102-108 -> :104-110  Service Bus Data Receiver, scoped to the queue
+   #68  workload_identity.tf:117-123 -> :119-125  Service Bus Data Sender, alert-processing queue
+   #69  workload_identity.tf:127-133 -> :129-135  Storage Blob Data Reader, customer_storage_account_id
+   #70  event_grid.tf:45-52     -> :46-52   Service Bus Data Sender on the byoc-events TOPIC
+   4e   fluxcd_config.tf:114-117 -> :113-116  the two conditionally-published SSM keys
+        the file's own warning is at :93-99, verbatim:
+          "Flux resolves an unprovided ${...} to the EMPTY STRING and reconciles successfully, so an
+           instance whose flux release enables the lane while create_endpoint_asset_ingestion_queue is
+           off does NOT fail the Kustomization — it renders an empty queue name, and the failure
+           surfaces at the pod as the transport guard's refusal to start (CrashLoopBackOff). That is
+           why the apply ORDER matters: infrastructure first, then the flux toggle."
+   4f   saas/main.tf:113        -> :110    create_byoc_events_topic false -> true
+        centerpoint/main.tf:92 already had create_byoc_events_topic = true PRE-EXISTING and unchanged —
+        the inventory was right to scope 4f to saas only.
+   #57-override  saas/main.tf:135 -> :130   ingestion_event_grid_subject_contains = ["source=mcp-scanner/"]
+
+ FLUX-FLEET (3)
+   #89  versions.yaml:76-78 tag "1.1.874"  ->  versions.yaml:82-84 tag "1.1.877"
+        *** THE VALUE CHANGED TOO, not just the line. The last flux commit ("Merge main; carry the
+        lane's pin forward with the fleet bump") advanced the pin. Both instances. ***
+   #100 the drop-file cite "drop-aws-only-values.yaml:44,46" -> :90-91 and :92-93
+        (the base-overlay cites :92-100 still HOLD)
+   #102 the drop-file cite "drop-aws-only-values.yaml:52-53" -> :99-100
+        (the base-overlay cite :24-30 still HOLDS; the deliberate-non-removal note :54-59 -> :101-106)
+
+ THE 13 "CHART DEFAULTS THAT NOW BIND" (infra/helm/onyx-app/values.yaml) — 12 of 13 drifted; NO value changed
+   enabled 2393 HOLDS false | concurrency 2455->2456 =5 | max_messages 2456->2457 =10
+   error_backoff_seconds 2457->2458 =5 | visibility_timeout/wait_time 2470-2471->2469/2470 =600/20
+   asset_ingestion_s3.aws_region 2489->2485 ="us-east-1" | replicaCount 2537->2538 =1
+   limits.memory/requests.cpu/requests.memory 2543-2548->2546/2548/2549 =1Gi/0.05/256Mi
+   autoscaling.enabled 2550->2552 =false | externalAutoscaling enabled/min/max 2554-2559->2557/2558/2559
+     =false/1/5 | fallback failureThreshold/replicas 2560-2562->2561/2562 =3/1
+   trigger queueLength 2569->2570 ="10" (trigger type still aws-sqs-queue at :2564, replaced wholesale
+     by flux-fleet on Azure) | podDisruptionBudget enabled/maxUnavailable 2577-2579->2578-2580 =false/"40%"
+
+=========================================================================================================
+3. ROWS WHOSE CITE SURVIVES BUT WHOSE CLAIM IS FALSE AT HEAD
+   These are the dangerous ones: they read as verified and are not. Both are in the PR body's
+   high-blast-radius table, so both are visible to the board today.
+=========================================================================================================
+ #10b — "reject_cleartext_endpoint ... GLOBAL — a NEW BOOT-TIME REFUSAL reachable on AWS cells too"
+        THIS IS WRONG. The validator is NOT introduced by this PR. It pre-exists on origin/main.
+          git log -S 'reject_cleartext_endpoint' --oneline -- backend_python/src/common_core/config.py
+            -> c32bad53cc  PRDCT-10739 | Rework sensor policy UI ... (+ S3-backed versions API) (#11812)
+          git merge-base --is-ancestor c32bad53cc 822abd2356f0   -> YES (already on the merge-base)
+          git diff 822abd2356f0 HEAD -- backend_python/src/common_core/config.py   -> 0 lines
+        WHAT THIS PR ACTUALLY CHANGES, and the correct row:
+          backend_python/src/endpoint_asset_ingestion/config.py:55
+            before (at merge-base :50):  class AssetIngestionS3Config(BaseCustomSettings):
+            after  (at head      :55):   class AssetIngestionS3Config(S3Config):
+          The inheritance brings the PRE-EXISTING validator (common_core/config.py:305) to bear on
+          asset_ingestion_s3.endpoint for THIS ONE SERVICE, which previously declared
+          `endpoint: str | None = None` with no validator.
+        CORRECTED BLAST RADIUS: endpoint-asset-ingestion only — NOT global, NOT "AWS cells too".
+        The chart default is endpoint: "" (values.yaml:2486), which passes the validator, so no cell
+        is affected unless it sets a cleartext non-local endpoint.
+        auth: [OWNER] — the ticket asks for create_storage_client (T-extra), not for this inheritance.
+
+ #49 — "max_delivery_count 5 ... DEVIATES — every sibling queue/subscription uses 3"
+        THE DEVIATION CLAIM IS NOW STALE. It was true at infrastructure 8498355f0131 (2026-08-22).
+        It is not true on origin/main today. A sibling landed with 5 BEFORE #1575's squash:
+          git show origin/main:modules/onyx/cell-azure-instance/service_bus.tf | grep -n max_delivery_count
+            -> 23:3  59:3  73:3  100:5  189:3  209:3  256:3  292:5  335:3
+          :100 is azurerm_servicebus_queue.posture_issue_verdicts, documented at :88 with the SAME
+          rationale this row gives:  "# max_delivery_count 5 mirrors the SQS redrive maxReceiveCount"
+          (landed by 2b733114 PRDCT-12048, 2026-08-23 09:20 — merged BEFORE #1575 squashed at 12:11)
+        CORRECTED: the endpoint-asset-ingestion queue is 1 of 2 queues on 5; the other seven entities
+        use 3. It is a minority convention with a written precedent, not a lone deviation.
+        auth: [OWNER] — see section 8, U1. The ticket names the knob and states no number.
+
+ #71 — two sub-claims are wrong (the cited line itself is exact).
+        main.tf:70  "endpoint-asset-ingestion" = var.create_endpoint_asset_ingestion_queue   [correct]
+        (a) line 70 sits inside local.default_workload_identities (opens :56), NOT
+            effective_workload_identities (opens :97).
+        (b) "its four siblings at :59-65" — there are NINE hard-true siblings on origin/main:
+            :57-64 (backend, temporal-general-worker, temporal-python-worker, ingestion-vector,
+            extension-stats-consumer, alert-processor, extension, sensor-service) plus entity-writer :71.
+        The gating CONTRAST holds; the count does not.
+
+ THE "102 items" HEADLINE — the inventory contains 101 numbered rows. #28 does not exist.
+        for i in $(seq 1 102); do grep -qE "^\s+#$i " <inventory> || echo $i; done   ->  28
+        The PR body says "102 of them" twice and the comment title says "the FULL 102-item
+        measurement". Both should read 101.
+
+=========================================================================================================
+4. HOLDS — 65 items re-verified at head, cite and before->after both still correct
+   Each was opened with sed -n 'N,Mp' <file> at the head named in the banner.
+=========================================================================================================
+ ONYX config model (endpoint_asset_ingestion/config.py)                                   auth
+  #1  :64   class AssetIngestionASBConfig(BaseCustomSettings)  — new, built on EVERY boot   [T2]
+  #2  :73   fully_qualified_namespace  ""                                                   [T2]
+  #3  :74   queue_name                 ""                                                   [T2]
+  #4  :75   connection_string          None (SecretStr)                                     [T2]
+  #5  :76   max_wait_time_seconds      20   (int, NO bound)                                 [OWNER]
+  #6  :79   lock_renewal_interval_seconds 30                                                [OWNER]
+  #7  :80   error_backoff_seconds      5    (ge=1)                                          [OWNER]
+  #8  :153  asset_ingestion_asb  default_factory — GLOBAL field, empty values               [T2]
+  #9  :167  alert_processing_asb default_factory=ASBProducerConfig (asb.py:35-37)           [T2]
+  #10 :55   AssetIngestionS3Config now inherits S3Config  (see #10b in section 3)           [OWNER]
+  #10a common_core/config.py:287  bucket_name "" (newly inherited, unused by this service)  [OWNER]
+  #10c aws_region/endpoint/access_key_id/secret_access_key — values identical either side   [n/a]
+  #11 scanner_event_consumer_service/config.py   ScannerEventConsumerASBConfig DELETED      [T6]
+        grep -c 'ScannerEventConsumerASBConfig\|scanner_events_asb' .../config.py  -> 0
+  #12 mcp_gateway_event_consumer_service/config.py  McpGatewayEventConsumerASBConfig DELETED [T6]
+        grep -c 'McpGatewayEventConsumerASBConfig\|mcp_gateway_events_asb' .../config.py -> 0
+
+ ONYX transport guard + parsers + service
+  #16 transport_guard.py:32   required: bool = True   (call site config.py:223 passes required=False)  [T4]
+  #17 transport_guard.py:30,31  azure_endpoint "" / azure_endpoint_env ""                   [T4]
+  #26 consumer/event_parser.py:43-47  parser_for_cloud — blob parser iff cloud is AZURE     [T3]
+  #27 consumer/event_parser.py:50-65  empty_parse_is_poison — True on Azure, False on AWS   [OWNER/U8]
+  #29 consumer/message_handler.py:60  parse kwarg default = parse_object_created_message    [T3]
+  #30 consumer/message_handler.py:61  empty_is_poison kwarg default = False                 [T3]
+  #31 consumer/message_handler.py:102-141  poison settlement + complete_message fallback :126-141 [OWNER/U8]
+  #32 service.py:246  ASB pool max_messages = 1 HARD-CODED (AWS path :263 keeps config.max_messages) [T5]
+  #33 service.py:232-253  client_factory :249, one ASBQueueClient per worker, readiness client :251 [T2]
+  #34 service.py:105, :294-296, :323-325  _health_client backs readiness (AWS aliases at :269) [OWNER]
+  #35 service.py:129-133  create_storage_client(...) replaces the hard S3Client              [T-extra]
+  #36 service.py:156-173  Azure branch :156, AWS :164, unconfigured stays a WARNING :170     [OWNER]
+
+ ONYX helm charts
+  #73 infra/helm/onyx-app/values.yaml:2479-2481  alert_processing_asb  "" / ""               [T2]
+  #74 infra/helm/onyx-app/values.yaml:2492-2494  asset_ingestion_asb   "" / ""               [T2]
+  #75 scanner_events_asb REMOVED        grep -c -> 0                                         [T6]
+  #76 mcp_gateway_events_asb REMOVED    grep -c -> 0                                         [T6]
+  #77 both REMOVED from the legacy monolith infra/helm/onyx/values.yaml   grep -c -> 0       [T6]
+      NOTE onyx/values.yaml is -6/+0: the legacy chart got NO endpoint-asset-ingestion ASB stanza,
+      so an Azure render off the monolith chart has no asb keys at all.
+
+ INFRASTRUCTURE (cites via `git show origin/main:<path>`)
+  #55 cell-azure-instance/variables.tf:121-125  create_endpoint_asset_ingestion_queue false (:124) [T2]
+  #56 variables.tf:127-131  create_ingestion_event_grid false (:130)                          [T3]
+  #58 blob_events_to_servicebus/variables.tf:26-38  servicebus_topic_id "" (:29) + regex validation :31-37 [T3]
+  #59 blob.../variables.tf:40-44  create_event_subscription true (:43) — callers must opt OUT  [T3]
+  #60 blob.../variables.tf:46-50  included_event_types ["Microsoft.Storage.BlobCreated"] (:49) [T3]
+  #61 blob.../variables.tf:52-56  tags {} (:55)                                                [T3]
+  #62 blob.../variables.tf:58-67  subject_contains [] (:61) + validation length <= 25 (:63-66)  [T3]
+  #64 blob.../main.tf:35-79  storage_blob_dead_letter_destination NOT SET   grep -c -> 0       [OWNER]
+  #65 blob.../main.tf:35-79  event_delivery_schema NOT SET                  grep -c -> 0       [OWNER]
+  #66 blob.../main.tf:21-33  System Topic identity SystemAssigned (:28-30)                     [T3]
+  #72 scripts/lint-exceptions.json:48-52  naming_module true, required_variables true           [OWNER]
+
+ FLUX-FLEET  (saas and centerpoint are BYTE-IDENTICAL at identical line numbers — verified:
+   diff <(git show HEAD:.../saas/onyx-app/release.yaml | sed -n '29,67p') <(... centerpoint ...) -> identical
+   and the two drop-aws-only-values.yaml files are identical in full)
+  #78 release.yaml:30   enabled false -> true            <== THE MASTER GATE                    [T1]
+  #79 release.yaml:33   cloud unset (chart default aws) -> azure                                [T2]
+  #80 release.yaml:34-36 blob.account_url / container_name -> ${...}                            [T3]
+  #81 release.yaml:37-39 asset_ingestion_asb.{namespace,queue_name} -> ${...}                   [T2]
+  #82 release.yaml:40-42 alert_processing_asb.{namespace,queue_name} -> ${...}                  [T2]
+  #83 release.yaml:43-45 asset_ingestion_s3.aws_region/endpoint -> '' / '' (BLANKED, not removed) [T-extra]
+  #84 release.yaml:50-51 nodeSelector kubernetes.io/arch amd64  (chart {})                      [OWNER]
+  #85 release.yaml:52-53 podLabels azure.workload.identity/use 'true'                           [T-extra]
+  #86 release.yaml:54    envFrom []  (base overlay had aws-credentials-env)                     [T-extra]
+  #87 release.yaml:55-59 serviceAccount annotation azure.workload.identity/client-id            [T-extra]
+  #88 release.yaml:60-67 externalAutoscaling.triggers azure-servicebus + keda-trigger-auth-servicebus,
+                         messageCount '10'   (a LIST => REPLACED WHOLESALE)      [T1 type only / U7 value]
+  #90 versions.yaml:9    "All 15 service keys" -> "All 16 service keys"                         [OWNER]
+  #91 base overlay :116  externalAutoscaling.enabled true            (chart false)              [pre-existing]
+  #92 base overlay :117  minReplicaCount 1                           (same as chart)            [pre-existing]
+  #93 base overlay :118  maxReplicaCount 20                          (chart 5)                  [pre-existing]
+  #94 base overlay :121-124 fallback static / failureThreshold 3 / replicas 5  (chart 1)        [pre-existing]
+  #95 base overlay :32-34 requests cpu 500m, memory 512Mi            (chart 0.05 / 256Mi)       [pre-existing]
+  #96 base overlay :40-41 limits.memory 1Gi                          (same as chart)            [pre-existing]
+  #97 base overlay :74-76 concurrency 5, max_messages 10, error_backoff_seconds 5               [pre-existing]
+  #98 base overlay :42-68 env secretKeyRefs (DB user/password, LD SDK key, MCP gateway key)     [pre-existing]
+  #99 base overlay :89-91 releases_kvs.{writer_role_arn,kvs_arn} "${...:=}" => EMPTY on Azure   [pre-existing]
+  #101 base overlay :104-105 asset_ingestion_s3.aws_region (blanked in release.yaml, see #83)   [pre-existing]
+  #91-#101 are in apps/onyx-app/services/endpoint-asset-ingestion.yaml, UNCHANGED by this branch —
+  previously INERT on Azure because enabled:false, LIVE the moment #78 ships.
+
+=========================================================================================================
+5. NEW — 39 defaults this change alters that the inventory NEVER listed
+   Hunted deliberately across every file in all three diffs. Ordered by materiality.
+=========================================================================================================
+ ** MATERIAL — these change behaviour or can refuse a deploy **
+
+ NEW-1  infrastructure  modules/onyx/cell-azure-instance/service_bus.tf:312-320
+        A NEW lifecycle PRECONDITION on the queue — a plan-time refusal that did not exist when the
+        inventory was measured (8498355f0131 has no lifecycle block on this resource at all).
+          condition = var.create_byoc_events_topic && ((var.create_ingestion_event_grid &&
+                      var.customer_storage_account_id != "") || var.customer_event_grid_topic_principal_id != "")
+        Turns create_endpoint_asset_ingestion_queue from an unconditional toggle into one that is
+        REFUSED AT PLAN unless a LOCAL or EXTERNAL Event Grid producer exists. This is the "second
+        guard" the merge commit describes. Blast radius: any future caller of cell-azure-instance.
+        auth: [OWNER] — added in review, not asked for by the ticket.
+
+ NEW-2  infrastructure  modules/onyx/cell-azure-instance/variables.tf:382-386 (PRE-EXISTING variable,
+        NEW role).  customer_event_grid_topic_principal_id, default "". Not a new variable — but
+        NEW-1 promotes its empty-string default into a plan-time gate that decides whether the queue
+        can be built at all. A default with no row anywhere in the inventory now controls a create.
+        auth: [OWNER]
+
+ NEW-3  onyx  backend_python/src/endpoint_asset_ingestion/service.py:129-133 (via
+        common_core/services/storage_factory.py:67-68)
+        A SECOND NEW BOOT REFUSAL, distinct from the transport guard and never inventoried:
+          ValueError("BlobStorageConfig with account_url is required when cloud_provider is azure")
+        Reached by replacing the hard S3Client with create_storage_client. Belt-and-braces (the base
+        Config validator at common_core/config.py:813-817 already refuses a blob-less azure config),
+        but it is a new failure mode for this service on the Azure path.
+        auth: [T-extra] the ticket asks for create_storage_client; it does not ask for a refusal.
+
+ NEW-4  onyx  backend_python/src/endpoint_asset_ingestion/consumer/message_handler.py:109
+        A NEW METRIC LABEL VALUE, invisible in the metrics.py diff:
+          asset_ingestion_poison_messages_total{reason="no_ingestible_object"}
+        PoisonLabels.reason is a plain `str` (default "unparseable"), not a Literal, so no metrics.py
+        edit was needed and the new value never appears in a diff. Azure-gated. It also newly
+        increments asset_ingestion_dead_letters_total for Event Grid lifecycle events, which on AWS
+        were acked silently.  auth: [OWNER] — see U8.
+
+ NEW-5  onyx  backend_python/src/common_core/services/queue/asb.py:27
+        max_messages on the Azure lane is pinned in TWO independent places, not one.
+        AssetIngestionASBConfig.to_asb_config() never passes max_messages, so it falls to the generic
+        ASBConfig default `max_messages: int = 1`. Row #32 records only the pool-side :246. Neither
+        is driven by config.max_messages. auth: [T5] for the value, [OWNER] for the duplication.
+
+ NEW-6  onyx  scanner_event_consumer_service/service.py:35 and
+        mcp_gateway_event_consumer_service/service.py:34 — `_health_client` ATTRIBUTE DELETED
+        (grep -c '_health_client' <both files> -> 0 / 0). The two siblings lose the per-worker
+        factory + dedicated readiness client AND their own max_messages=1. NET DEFAULT CHANGE: their
+        pool max_messages goes from "1 on Azure / config.max_messages on AWS" to "always
+        config.max_messages (10)". The inventory recorded the deletion of their CONFIG (#11/#12) but
+        never this behavioural default. auth: [T6] covers the deletion, not this consequence.
+
+ NEW-7  onyx  backend_python/src/endpoint_asset_ingestion/service.py:158-172
+        A LOG-STRING CHANGE of the same class as #46, not listed in the log-string block:
+          before: "No alert_processing_sqs.queue_url configured — sessions alert fan-out is disabled
+                   (rows still written)"
+          after : "No alert-processing queue configured for this cloud — ..." plus a new
+                  cloud=<value> field; the success line gains transport="servicebus"|"sqs".
+        Any log-based alert keyed on the old string breaks. auth: [OWNER]
+
+ NEW-8  onyx  backend_python/src/endpoint_asset_ingestion/service.py:253-257 and :270
+        NEW BOOT-LOG CONTRACT — two INFO lines that did not exist:
+          "azure ingestion transport selected"  (queue_name, namespace,
+                                                 auth="connection_string"|"workload_identity")
+          "aws ingestion transport selected"    (queue_url)
+        auth: [OWNER]
+
+ NEW-9  onyx  docs/decisions/0069-the-declared-cloud-decides-the-ingestion-transport.md (NEW FILE)
+        + docs/decisions/README.md:110
+        THE ADR IS 0069, NOT 0067. The inventory and BOTH owner rulings say "ADR 0067". 0067 is an
+        unrelated pre-existing ADR ("A build publishes into the registry its environment pulls from")
+        and 0068 is also taken, so the r46 contingency ("if another PR has taken it, renumber yours to
+        the next free number") was correctly executed onto the free 0069 slot. Verified: the README
+        hunk adds exactly ONE row, in numeric order, no conflict markers.
+        *** ANY REMAINING REFERENCE TO "ADR 0067" FOR THIS WORK IS WRONG. ***
+
+ NEW-10 flux-fleet  release.yaml:46-47  database.host -> ${rds_endpoint}
+ NEW-11 flux-fleet  release.yaml:48-49  temporal_server.namespace -> ${temporal_namespace}
+ NEW-12 flux-fleet  release.yaml:56-57  serviceAccount.create true / name endpoint-asset-ingestion
+        The inventory jumps from #83 (:43-45) straight to #84 (:50-51), and #87 covers only :55-59 —
+        so lines 46-49 and 56-57 were NEVER ACCOUNTED FOR. All three restate the base overlay
+        (:107, :112, :22-23) and are therefore low-risk, but they are unlisted values in the diff.
+        auth: [OWNER]
+
+ NEW-13 flux-fleet  docs/architecture/instance-override-rules.md:195-217 — A DOCUMENTED INVARIANT
+        CHANGED. before: "{endpoint-asset-ingestion,endpoint-gateway-ingestion,scanner-event-consumer,
+        mcp-gateway-event-consumer}.enabled: false — keep all FOUR"; after: the same rule over THREE
+        services, with endpoint-asset-ingestion promoted to the documented exception. auth: [T1]
+
+ NEW-14 infrastructure  modules/azure/blob_events_to_servicebus/versions.tf:1-10 (NEW FILE)
+        DEPENDENCY PINS ARE DEFAULTS: required_version ">= 1.0" (:2); azurerm "~> 4.0" (:7).
+        The inventory mentions "~> 4.0" only as prose inside #52 — it never listed the file that
+        FIXES the provider defaults #52/#63/#65 are undetermined against. auth: [OWNER]
+
+ NEW-15 infrastructure  modules/azure/blob_events_to_servicebus/main.tf:73-78 — a THIRD new
+        validation: precondition var.servicebus_topic_id != "" when create_event_subscription is
+        true. auth: [OWNER]
+
+ ** LOWER MATERIALITY — literals, outputs, naming, fixtures **
+
+ NEW-16 infra blob.../main.tf:26        topic_type = "Microsoft.Storage.StorageAccounts"
+ NEW-17 infra blob.../main.tf:67-71     delivery_property header_name "Label", type "Dynamic",
+                                        source_field "subject"  (the subject->Label bridge)     [T3]
+ NEW-18 infra blob.../main.tf:54-61     dynamic advanced_filter, for_each length(subject_contains)>0,
+                                        string_contains key = "subject"
+ NEW-19 infra blob.../outputs.tf:16-19  event_subscription_id -> NULL when create_event_subscription false
+ NEW-20 infra cell-azure-instance/outputs.tf:45-48  endpoint_asset_ingestion_queue_name -> null when off
+ NEW-21 infra cell-azure-instance/outputs.tf:50-53  endpoint_asset_ingestion_queue_id   -> null
+ NEW-22 infra cell-azure-instance/outputs.tf:72-75  ingestion_event_grid_system_topic_id -> null
+ NEW-23 infra cell-azure-instance/outputs.tf:77-80  ingestion_event_grid_principal_id    -> null
+ NEW-24 infra cell-azure-instance/event_grid.tf:19-20  naming defaults
+                                        "${var.tenant}-ingestion" / "${var.tenant}-events"
+ NEW-25 infra cell-azure-instance/event_grid.tf:32-33  create_event_subscription =
+                                        create_service_bus && create_byoc_events_topic ;
+                                        servicebus_topic_id fallback "" (a real default)
+ NEW-26 infra cell-azure-instance/event_grid.tf:16  module count gate =
+                                        create_ingestion_event_grid && customer_storage_account_id != ""
+ NEW-27 infra environments/.../saas/main.tf:121        create_endpoint_asset_ingestion_queue false->true
+ NEW-28 infra environments/.../saas/main.tf:129        create_ingestion_event_grid           false->true
+ NEW-29 infra environments/.../centerpoint/main.tf:111 create_endpoint_asset_ingestion_queue false->true
+        (#55/#56 named these only in prose; none carried a cite)                              [T1/T3]
+ NEW-30 infra modules/byoc/azure/data-plane/storage.tf:87  create_event_subscription =
+                                        var.onyx_servicebus_topic_id != ""
+ NEW-31 infra modules/byoc/azure/data-plane/moved.tf:21-29  the two `moved` blocks RELOCATED out of
+        storage.tf (inventory cited storage.tf:67-97) into a dedicated moved.tf; the module call is
+        now storage.tf:70-90.  grep -c azurerm_eventgrid_system_topic storage.tf -> 0
+ NEW-32 infra modules/byoc/azure/data-plane/outputs.tf:54,59  rewired to module outputs (no value change)
+ NEW-33 infra blob.../tests/blob_events_to_servicebus.tftest.hcl:16-24  NEW test-harness defaults:
+        mock_provider "azurerm" {} + a shared variables{} block inherited by all 6 runs, 2 of which
+        are expect_failures on the two variable validations
+ NEW-34 infra blob.../README.md:28-39 + cell-azure-instance/README.md:155,191,222-223 — the
+        terraform-docs "Default" column, i.e. the defaults' PUBLISHED surface, regenerated for all
+        6 new variables and 4 new outputs
+ NEW-35 onyx  endpoint_asset_ingestion/config.py:55 (via S3Config) — ONYX__ASSET_INGESTION_S3__BUCKET_NAME
+        becomes an ACCEPTED, SILENTLY-IGNORED setting defaulting to "". New env surface with no chart
+        key behind it; the docstring at config.py:57-60 says it is inherited-but-unused.
+ NEW-36 onyx  common_core/services/ingestion_events/__init__.py — parse_event_time is NOT exported
+        (__all__ = S3Record, extract_source, extract_tenant_uuid, parse_blob_event_message,
+        parse_s3_event_message). The new shared module is import-by-path only; the __init__.py change
+        in the diff is docstring-only.
+ NEW-37 onyx  docs/architecture/services.md:50-52 and :80-109 — the service table now marks
+        endpoint-asset-ingestion's two gen-2 siblings "**AWS only** — refuses to start under
+        ONYX__CLOUD=azure", documenting the #18 refusal, plus a new "The lane on Azure cells" section.
+ NEW-38 onyx  docs/monitoring/endpoint-asset-ingestion-alerts.md:+91..+122 — NO threshold or numeric
+        default changed. Monitors 2/3/4 are declared verbatim-applicable on Azure; monitor 1's Azure
+        equivalent is NAMED (DeadletteredMessages on Microsoft.ServiceBus/namespaces,
+        EntityName="endpoint-asset-ingestion") and EXPLICITLY NOT ARMED. Recorded so the file is not
+        mistaken for a threshold change — and so the unarmed DLQ monitor is a known deploy-day gap.
+ NEW-39 flux-fleet  docs/architecture/instance-override-rules.md:3 "Status: Evergreen — last verified
+        2026-08-20" + docs/README.md:72 new index row.
+
+=========================================================================================================
+6. THE FOUR UNDETERMINED DEFAULTS — NOW DETERMINED (three of four), MEASURED NOT GUESSED
+   The original inventory flagged four items (section 6, (a)-(d)) as undetermined. Three are now
+   answered from the real source. The fourth is stated as undeterminable, with the command and its
+   verbatim output.
+=========================================================================================================
+ PINNED PROVIDER — the thing all of (a) is measured against
+   azurerm "~> 4.0" at modules/onyx/cell-azure-instance/versions.tf:7,
+                       modules/azure/blob_events_to_servicebus/versions.tf:7,
+                       .../c02/instances/{saas,centerpoint}/versions.tf:7
+   NO LOCK FILE IS COMMITTED — .terraform.lock.hcl is gitignored (.gitignore:41;
+   `git ls-files | grep terraform.lock.hcl` -> 0 results). Locally resolved version is 4.81.0
+   (.../c02/instances/saas/.terraform.lock.hcl:29-30). So 4.81.0 is what a `terraform init` on this
+   box resolved on 2026-08-19; it is NOT proof of the patch version production applied.
+
+ (a) THE PROVIDER-APPLIED VALUES — MEASURED BY A REAL APPLY, NOT READ OFF A DOC
+   METHOD: a real `terraform apply` with azurerm 4.81.0 against a Standard-SKU Service Bus namespace
+   in the Azure lab (prdct11935bus / prdct11935-rg, sub b3f77526), using the BYTE-IDENTICAL argument
+   set from service_bus.tf (only lock_duration / max_delivery_count /
+   dead_lettering_on_message_expiration / default_message_ttl set), plus an Event Grid system-topic
+   subscription with the module's exact argument set. Production's namespace is also Standard
+   (service_bus.tf:11). Read back with `az servicebus queue show` and
+   `az eventgrid system-topic event-subscription show`. Both resources destroyed after read-back.
+
+   ROW #52 — the unset azurerm_servicebus_queue attributes
+     attribute                       applied value                          which layer applies it
+     max_size_in_megabytes           5120  (5 GB)                           AZURE SERVICE (Optional+Computed,
+                                                                            varies by sku) — servicebus_queue_resource.go:146-152
+     auto_delete_on_idle             P10675199DT2H48M5.4775807S             AZURE SERVICE (TimeSpan.Max =
+                                       (= never auto-delete)                 never) — provider omits when
+                                                                            empty, resource.go:65-71,273-275
+     requires_session                false                                  TERRAFORM PROVIDER Default:false
+                                                                            — resource.go:161-166
+     requires_duplicate_detection    false                                  TERRAFORM PROVIDER Default:false
+                                                                            — resource.go:154-159
+     partitioning_enabled            false                                  TERRAFORM PROVIDER Default:false
+                                                                            — resource.go:106-111
+     batched_operations_enabled      true                                   TERRAFORM PROVIDER Default:true
+                                                                            — resource.go:94-98
+     (also measured, not in #52) express_enabled false ; max_message_size_in_kilobytes 256 (Standard cap)
+
+     *** TWO CORRECTIONS TO ROW #52 AS WRITTEN ***
+       1. `enable_partitioning` and `enable_batched_operations` DO NOT EXIST in azurerm 4.x. They were
+          renamed `partitioning_enabled` / `batched_operations_enabled`. Verified against the pinned
+          binary's own schema (`terraform providers schema -json`). Row #52 names 4.x-invalid attributes.
+       2. The queue's max size is 5120 MB, not unbounded — a real deploy-day default, now stated.
+
+   ROWS #63 / #64 / #65 — the unset Event Grid attributes
+     NOTE the resource is `azurerm_eventgrid_system_topic_event_subscription`
+     (blob_events_to_servicebus/main.tf:35), not `azurerm_eventgrid_event_subscription` as row #63's
+     wording implies. Same schema for these three attributes; both were checked.
+     retry_policy.max_delivery_attempts   30              AZURE EVENT GRID (block is Optional+Computed
+                                                          and expandEventSubscriptionRetryPolicy returns
+                                                          nil when unset, so nothing is sent) —
+                                                          event_subscription_funcs.go:567-579
+     retry_policy.event_time_to_live      1440 min (24 h) AZURE EVENT GRID
+     event_delivery_schema                "EventGridSchema" TERRAFORM PROVIDER Default —
+                                                          event_subscription_schema.go:57-65
+     storage_blob_dead_letter_destination absent -> deadLetterDestination: null (omitted end-to-end)
+     Source for the two Azure-side values, quoted verbatim from Microsoft docs
+     (https://learn.microsoft.com/en-us/azure/event-grid/delivery-and-retry):
+       "Maximum number of attempts ... The default value is 30"
+       "Event time-to-live (TTL) ... The default value is 1440 minutes"
+
+     *** THE DEPLOY-DAY CONSEQUENCE, WHICH THE INVENTORY NEVER STATED ***
+       MS docs, same page, verbatim: "By default, Event Grid doesn't turn on dead-lettering." and
+       "If you don't configure dead-lettering for an endpoint, Event Grid drops events..."
+       So once EITHER 30 attempts OR 1440 minutes is exhausted — whichever comes first — the
+       BlobCreated event is SILENTLY DROPPED, with no record outside Event Grid delivery metrics.
+       The Service Bus queue's own $DeadLetterQueue does NOT cover this: it catches messages that
+       reached the queue, not events Event Grid failed to deliver INTO the queue.
+
+   REPO-INTERNAL EVIDENCE: none exists. No *.tfstate, no plan output, no *.tfplan anywhere in the
+   repo. The tftest fixture uses `mock_provider "azurerm" {}` with command = plan only, and its own
+   header says "a mocked plan leaves every provider-computed id unknown" — it reveals nothing about
+   defaults. The lab apply is the strongest available evidence.
+
+ (b) IS create_endpoint_asset_ingestion_queue = true ACTUALLY APPLIED ON ox-az-p-eus2-c02?
+     *** CANNOT BE DETERMINED WITHOUT A PRODUCTION APPLY / PRODUCTION CREDENTIAL. Not guessed. ***
+     Commands run and their verbatim output:
+       az servicebus queue show --name endpoint-asset-ingestion \
+          --namespace-name ox-az-p-eus2-c02-saas --resource-group ox-az-p-eus2-c02
+         -> ERROR: (ResourceGroupNotFound) Resource group 'ox-az-p-eus2-c02' could not be found.
+            (the RG name is correct — .../c02/cell/main.tf:244; the namespace name is
+             ${account}-${tenant} per service_bus.tf:8)
+       az account list
+         -> only "Agents Development", sub b3f77526, tenant 533678d2 — the LAB tenant. Onyx
+            production Azure is not in this identity's scope.
+       az graph query -q "Resources | where name startswith 'ox-az-p-eus2-c02'"
+         -> "count": 0, "total_records": 0
+       aws --profile shared-infra-admin sts get-caller-identity      (the backend.tf profile)
+         -> aws: [ERROR]: The config profile (shared-infra-admin) could not be found
+       aws --profile agent-dev s3 ls s3://ox-inf-use1-tf-state-default/...
+         -> AccessDenied ... not authorized to perform: s3:ListBucket
+     WHAT IS DETERMINED: the code is merged and on origin/main
+       (git merge-base --is-ancestor 7b9e6788 origin/main -> true), and both instances set the
+       variable true (saas/main.tf:121, centerpoint/main.tf:111).  MERGED != APPLIED.
+     This remains the single open deploy-day question, and it is exactly the one the 4e apply-order
+     hazard turns into a CrashLoopBackOff if answered wrong.
+
+ (c) THE LAUNCHDARKLY TARGETING FOR THE TWO AZURE TENANTS — DETERMINED (read-only)
+     Flag key confirmed at common_core/services/feature_flags/consts.py:245. Read live:
+       GET https://app.launchdarkly.com/api/v2/flags/default/endpoint-asset-ingestion   -> HTTP 200
+     Production env, on: true, last modified 2026-08-19:
+       fallthrough = variation 0 = TRUE  -> DEFAULT-ON for every tenant matching no rule
+       offVariation = 1 (false), irrelevant while on: true
+       rule 1 -> false : tenant_name in ["bamfunds","fireblocks","intuit-prod"]  ("HOLDOUTS — old lane")
+       rule 2 -> true  : ["Onyx Security"]
+       rule 3 -> true  : ["wellabe","Saputo","HG Capital","Brex","Aflac","mastercontrol",
+                          "Master Control","Buckle"]
+       rule 4 -> true  : ["Compass","Nextiva","Centerpoint Energy","LVT","Ro","YipitData","Antares",
+                          "Cava","westfield","Gilbane","oncoursehome","digitalidentity","kraft",
+                          "SouthernCo","pvh","hub","Waste Management","SmartCentres","Regions Bank"]
+       no individual targets / contextTargets
+     Evaluation context: Context.builder(tenant_uuid).kind("tenant").set("tenant_name", ...)
+       (feature_flags/service.py:217), called from ingestion/object_processor.py:95.
+     ANSWER: centerpoint -> TRUE (explicitly in rule 4). saas (multi-tenant) -> TRUE for every tenant
+     on it, because none of the three holdouts live on this Azure instance and the FALLTHROUGH IS TRUE.
+     So the newly-enabled Azure pods will PROCESS objects, not sit at skipped_flag_off.
+     COROLLARY THE BODY SHOULD CARRY: because the production fallthrough is ON, the LD flag is NOT an
+     effective gate for this cutover. The only real gate is the chart's per-cell enabled: true (#78).
+
+ (d) DOES sensor_service READ THE NEW _sys_* PROPERTIES?  — DEFINITIVE NO
+       grep -rc "_sys_" backend_python/src/sensor_service --include=*.py   -> zero hits in every file
+     Both sensor_service handlers touch only msg.body / msg.id:
+       sensor_event_consumer.py:121 and :128  json.loads(msg.body)
+       sensor_event_consumer.py:187 and :190  parse_blob_event_message(msg.body)
+       sensor_event_consumer.py:118           message_id=msg.id
+     It DOES receive them (ASBQueueClient constructed at sensor_event_consumer.py:294; the properties
+     are stamped unconditionally at asb.py:61 and :65) — they are simply never read.
+     CONFIRMED READ SITES ELSEWHERE, at head:
+       alert_processor_service/consumer/message_handler.py:69,:73 (constants), consumed :105 and :110
+         inside _observe_queue_wait
+       endpoint_asset_ingestion/consumer/message_handler.py:79 and :88
+     So defect (i) stands and is correctly scoped: it is alert_processor_service — NOT sensor_service —
+     whose behaviour silently changes on Azure.
+
+=========================================================================================================
+7. WHAT REMAINS GENUINELY UNDETERMINED, AND THE DEFECTS THIS INVENTORY SURFACED
+=========================================================================================================
+ STILL UNDETERMINED (3)
+  1. Whether the Terraform apply has landed on ox-az-p-eus2-c02 — section 6(b). Needs a production
+     credential or the apply-workflow record. Not guessable; it is the apply-order hazard of 4e.
+  2. The EXACT azurerm patch version production applied. No lock file is committed. The provider-side
+     Default: values above are stable across 4.x, and the Azure-side computed values do not depend on
+     provider version, so this does not change any value in 6(a) — but it is stated rather than assumed.
+  3. Whether the production DB tenant.name for the centerpoint tenant is literally "Centerpoint
+     Energy". Immaterial to 6(c) because the production fallthrough is true either way.
+
+ DEFECTS SURFACED (neither fixed by this PR)
+  (i)  STALE COMMENT, NOW FACTUALLY WRONG — alert_processor_service/consumer/message_handler.py:67-68
+       (the cite MOVED from :66-68) says "The ASB client does not surface it, so on the Azure lane
+       queue-wait relies solely on the body timestamp — Azure is out of scope this PR." Row #24 makes
+       the ASB client surface both properties, silently changing THAT service's queue_wait sampling
+       population on Azure cells.
+  (ii) The original defect (ii) — the undeclared metric-semantics change (#41+#42) — IS NO LONGER
+       APPLICABLE. Both rows were reverted by the round-45 owner ruling; metrics.py:134 is unchanged
+       from base and grep -c 'processed_with_failures' over backend_python/src returns 0 files. No
+       dashboard filtering outcome="processed" is affected by this PR.
+  (iii) NEW, from section 6(a): Event Grid delivery has NO dead-letter destination, so an undeliverable
+       BlobCreated event is silently dropped after 30 attempts or 24 hours. The queue's own
+       $DeadLetterQueue does not cover it. No row in the original inventory said this.
+
+=========================================================================================================
+8. TICKET AUTHORISATION — which defaults the ticket actually demands, and which it does not
+   Source: ClickUp PRDCT-11935 (https://app.clickup.com/t/86bbg11ad), description + all 7 comments
+   (4 ClickBot PR stubs, 1 Coder-Task stub, 1 Iddo Gal verifier-rules comment 2026-08-18T14:19:49Z,
+   1 Coder Agent disclosure). ALL technical authorisation text is in the DESCRIPTION; no comment adds
+   a default. Quotes are verbatim.
+=========================================================================================================
+ AUTHORISED BY THE TICKET
+  [T1] lane enablement on both Azure cells
+       "Flip enabled: true on both Azure instances; KEDA azure-servicebus trigger with the SAS
+        TriggerAuthentication (workload-identity CTA is broken cluster-wide); fix the stale comment
+        at release.yaml:64-66."
+  [T2] Azure Service Bus as the transport
+       "endpoint_asset_ingestion/config.py: add ASB config (mirror ScannerEventConsumerASBConfig)
+        + blob stanza."
+       "service.py: CloudProvider.AZURE branch with ASB factory mode (copy
+        scanner_event_consumer_service/service.py:69-95; ASB caps max_messages=1)."
+  [T3] Event Grid -> Service Bus, and the parser
+       "Wire blob -> Event Grid -> Service Bus for non-BYOC Azure SaaS (pattern exists at
+        modules/byoc/azure/data-plane/storage.tf:62-96 but has zero callers), incl. the subject ->
+        Label delivery property the SQL filters need."
+       "Write the missing Event Grid parser (port backend/internal/queue/eventgrid/event.go ->
+        common_core/services/ingestion_events/), dispatch on cloud in consumer/event_parser.py.
+        Highest-risk item — without it the service boots green and drops everything."
+  [T4] the boot refusal on cloud/transport mismatch
+       "Make LD flags cloud-aware or add a boot-time assertion refusing to start when transport !=
+        config.cloud (fixes footguns 1+3)."
+       NOTE: offered as ONE OF TWO alternatives. "refusing to start" does authorise refuse-over-warn.
+  [T5] ASB max_messages = 1
+       "(copy scanner_event_consumer_service/service.py:69-95; ASB caps max_messages=1)."
+       The "AWS keeps 10" half is NOT authorised — the ticket never states the AWS value.
+  [T6] deleting the dead Azure branches in the two sibling services
+       "Decide gen-2 ASB branch fate: fix with the item-4 parser or delete
+        (scanner_event_consumer_service + mcp_gateway_event_consumer_service)."
+  [T7] the mcp-scanner discriminator
+       "byoc_events subscription with SQL rule sys.Label LIKE '%source=mcp-scanner/%'
+        (mirror only-extension)."
+  [T-extra] other ticket-named deliverables the inventory rows rest on
+       "replace hard S3Client(...) with common_core.services.storage_factory.create_storage_client(...)"
+       "Entra federated credential + Service Bus Data Receiver / Storage Blob Data Reader roles for a
+        new endpoint-asset-ingestion SA (replaces IRSA)."
+       "Publish queue names/namespace into flux config like cell-aws-instance/fluxcd_config.tf does."
+       "drop-aws-only-values.yaml: add-null entries for AWS-only leaves the base overlay introduces
+        (asset_ingestion_sqs, asset_ingestion_s3); verify with scripts/helm-equivalence.sh."
+
+ NO TICKET AUTHORISATION — OWNER DECISION (stated plainly, not invented)
+  [U1] #49  max_delivery_count = 5. The ticket names the knob — "native DLQ via max_delivery_count" —
+       and states NO number, no retry budget, and never mentions the AWS lane's maxReceiveCount. The
+       value 5 is a run decision. (And per section 3 the "deviates from every sibling" rationale is
+       itself now stale.)
+  [U2] #57 + 4f  placing the filter on the EVENT GRID subject filter, and create_byoc_events_topic
+       false->true on saas. The ticket authorises the discriminator as a SERVICE BUS SQL RULE on
+       sys.Label (T7), NOT as an Event Grid subject filter, and never asks for the topic to be created
+       on saas — which also stands up three fan-out subscriptions for already-live consumers.
+  [U3] #47  azure-storage-blob as a DIRECT backend_python dependency. The string appears nowhere in the
+       ticket. The nearest text — "make BlobStorageClient satisfy the ObjectStore protocol" — is a
+       protocol conformance, not a dependency-manifest change affecting every backend_python image.
+  [U4] #24  _system_properties on the ASB client, and the consequent change to alert_processor_service's
+       queue-wait sampling on Azure cells. Neither "_sys_ApproximateReceiveCount", "_sys_SentTimestamp"
+       nor "alert_processor" appears anywhere in the ticket. A cross-service behaviour change the
+       ticket never contemplates.
+  [U5] #18  assert_cloud_supported refusing to boot unless cloud is AWS on the two SIBLING services.
+       The ticket's only boot-refusal line is scoped to "when transport != config.cloud" (T4).
+  [U6] #89  the image-tag pin in versions.yaml. "versions.yaml", "image.tag" and the version string
+       appear nowhere in the ticket.
+  [U7] #88 / #93 / #94  messageCount '10', maxReplicaCount, fallback replicas. T1 authorises the
+       TRIGGER TYPE and SAS TriggerAuthentication; NO NUMBER appears in the ticket.
+  [U8] #27 / #30 / #31 / NEW-4  dead-lettering an empty parse on Azure while AWS acks the same
+       emptiness as a routine s3:TestEvent. The ticket asks for a working poison path ("native DLQ via
+       max_delivery_count"; verifier rule C11 — "one malformed message shown parked ... not retried
+       forever and not silently dropped with the rest of its batch") but never authorises the
+       AWS/Azure ASYMMETRY. "s3:TestEvent" and "empty parse" appear nowhere.
+       Counter-pressure worth stating: the ticket's own diagnosis of the gen-2 bug is that empty
+       parses being ACKED is the failure mode — "parse_s3_event_message returns [] for Event Grid
+       BlobCreated bodies -> the handler acks and silently drops 100% of messages" — which motivates
+       the direction without authorising the asymmetry.
+  Also [OWNER], with no ticket text at all: #5 (max_wait_time_seconds 20, unbounded), #6, #7, #10/#10a/
+  #10b, #34, #36, #72, #84, #90, and NEW-1..NEW-9.
+
+ *** TWO SCOPE CLAIMS THE TICKET DOES NOT SUPPORT — this matters for how the board reads the reverts ***
+  [S1] There is NO "Azure enablement only" / "not a bug-fix ticket" / "gen-1 parity is out of scope"
+       sentence anywhere in the ticket. That framing is the ROUND-45 OWNER RULING, not the ticket.
+       The ticket text points the OTHER way — section heading: "Live footguns (fix even if parity is
+       deferred)"; and "Do not retire gen-1 until parity lands."
+       => the 17 WITHDRAWN rows are authorised BY THE OWNER, not by the ticket, and must be cited
+          that way. Citing the ticket for them would be an invented authorisation.
+  [S2] There is NO "do not change behaviour on AWS cells" statement in the ticket. The nearest text is
+       protective of GEN-1, not of the AWS gen-2 lane: "Do not retire gen-1 until parity lands."
+       The AWS-no-change demand is likewise an owner-created demand (round-45 ruling), not a ticket quote.
