@@ -1,0 +1,619 @@
+# PRDCT-11935 at7-51-posture-reaffirm-headcode.txt — amendment_r50 AMENDED PART 2 on the head under verify: STILL-OPEN / RE-EVALUATED / DIFF-GUARDED-FROZEN, four-leg COVERAGE, identity-pinned worker, bracketed no-op counter
+# FILE LAST WRITTEN 2026-08-24T02:39:29Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T02:26:52Z
+
+window r50at7002800 · tenant onyx_security (uuid 61750f27-8fbd-42a4-80cf-4191cfb2371a, public.tenants id 1)
+Governing contract: d-c2-lc-posture.amendment_r50 (spec_interpretations entry (15)); test_plan.json
+sha256 973b3cfa916fa7122561aa3d65739bf6db469ab341eb52b52288496e7dad69a5.
+
+This file SUPERSEDES evidence/at7-50-amendment-r30-reaffirm.txt, which measured FROZEN-BASE worker code and
+must NOT be re-cited as head behaviour. evidence/r30-genone-reaffirm.txt stays the round-30 HISTORICAL
+record only. The round-50 research REFERENCE is evidence/r50-posture/r50-01...07 — its METHOD was followed;
+every number below was RE-MEASURED here in this window, none copied from it.
+
+THE END-STATE ESTABLISHED HERE: after a REAL removal, the subject's issue instances stay OPEN, are
+RE-EVALUATED on every covered front-door scan of the owning agent, and are DIFF-GUARDED-FROZEN — the
+no-write is COUNTED as outcome="unchanged", not inferred from an absent update. The RETIRED r30
+observable (a per-scan updated_at re-touch) is NOT claimed here and did NOT occur.
+
+==============================================================================
+0. THE SUBJECT, AND THAT ITS REMOVAL IS REAL
+==============================================================================
+### REAL REMOVAL of the POSTURE SUBJECT — window r50at7002800 — 2026-08-24T02:05:14Z
+
+--- BEFORE: subject present on box ---
+drwxr-xr-x 2 coder coder 4096 Aug 24 01:27 /home/coder/.claude/skills/r50at7002800-posture
+1116c348c2d5efc2f143629e2ebabcf737f2b0d136f3bb26afee222663a48ee2  /home/coder/.claude/skills/r50at7002800-posture/SKILL.md
+--- CONTROL that must remain ---
+drwxr-xr-x 2 coder coder 4096 Aug 24 01:27 /home/coder/.claude/skills/r50at7002800-posturectl
+5e8b9c0d6dced4f0c9b1b18dc2977db152affa2718e43cc13597453e09850c6d  /home/coder/.claude/skills/r50at7002800-posturectl/SKILL.md
+
+--- REMOVE (real filesystem removal; never a DB edit) ---
+rm -rf skills/r50at7002800-posture   OK
+
+--- AFTER: subject ABSENCE proven THREE WAYS ---
+(1) directory listing:
+      ls: cannot access '/home/coder/.claude/skills/r50at7002800-posture': No such file or directory
+(2) glob over the skills root the scanner reads (/home/coder/.claude/skills):
+      matches for r50at7002800-posture (exact dir): 0
+      sibling control still present: 1
+(3) filesystem-wide find for the subject name (excluding evidence/scratch):
+      (empty above == no on-box trace of the SUBJECT dir)
+
+### REMOVAL COMPLETE 2026-08-24T02:05:14Z
+
+  SUBJECT skill  r50at7002800-posture  — two asset rows, one per scanner-derived identity:
+      447772  unique_identifier e9ff9700308a6fa6295aea17383c5793b55ca4a44f025db19bd9cdee55d26072
+      448472  unique_identifier 239bf2fe30126892add46f80cd55094f6a08b879e5f8c891e846fc662dc1985f
+    on-disk SKILL.md sha256 at removal time: 1116c348c2d5efc2f143629e2ebabcf737f2b0d136f3bb26afee222663a48ee2
+  SUBJECT issue instances (7): 6721/6722 skill-supply-chain-attack · 6725/6726 skill-hardcoded-secrets ·
+                               6729 skill-insecure-credential-handling · 6732/6733 skill-dangerous-capability
+  CONTROLS that STAY installed: r50at7002800-posturectl (assets 447740, 448499 — created in-window at
+    01:44:50) and r50at7002800-posturectl2 (asset 450716), installed for this leg at 02:05:26Z AFTER the
+    removal precisely so its rows are CREATED by a counted, scan-tied, identity-pinned covered pass (c4).
+
+==============================================================================
+1. F1 — THE PATH-IDENTITY ANCHOR, RE-DERIVED HERE ON THE HEAD UNDER VERIFY
+   (amendment_r50 AMENDED F1; replaces amendment_r30's frozen-base anchor in full)
+==============================================================================
+== git rev-parse HEAD ==
+2b60fdc4df25188104e737e6311087681355eff8
+== working tree cleanliness ==
+dirty files: 0
+== git fetch origin main ==
+2026-08-24T02:05:42Z
+From https://github.com/onyxsecurity/onyx
+ * branch                  main       -> FETCH_HEAD
+fetch completed 2026-08-24T02:05:44Z
+== origin/main ==
+dfc449763d94237708dd2332cc2e36a308543996
+== MB = git merge-base origin/main HEAD ==
+822abd2356f02c10f1d35901dd3c5feef43d8ade
+== (a) PR-INTRODUCED DIFF: git diff $MB..HEAD -- <pathspec>  (MB=822abd2356f02c10f1d35901dd3c5feef43d8ade) — required 0 lines EACH ==
+PATHSPEC                                                                                     DIFFLINES  LSTREE@MB
+backend_python/src/python_temporal_worker/issue_detection/                                          0         20
+backend_python/src/common/repository/issues/                                                        0          9
+backend_python/src/common/repository/skill.py                                                       0          1
+backend_python/src/common/posture/                                                                  0         17
+backend_python/src/common_db/models/issue_instance.py                                               0          1
+backend/service/temporal/worker/pkg/general/scanner_collector/post_inventory.go                     0          1
+backend/service/temporal/worker/pkg/general/scanner_collector/tenant_workflow.go                    0          1
+backend/service/temporal/worker/pkg/general/scanner_collector/issue_risk_bridge_workflow.go         0          1
+
+== (b) UPSTREAM-RESIDUAL REPORT (report-only, NOT a FAIL): git diff HEAD..origin/main -- <pathspec> ==
+PATHSPEC                                                                                     RESIDUAL
+backend_python/src/python_temporal_worker/issue_detection/                                          0
+backend_python/src/common/repository/issues/                                                        0
+backend_python/src/common/repository/skill.py                                                       0
+backend_python/src/common/posture/                                                                  0
+backend_python/src/common_db/models/issue_instance.py                                               0
+backend/service/temporal/worker/pkg/general/scanner_collector/post_inventory.go                     0
+backend/service/temporal/worker/pkg/general/scanner_collector/tenant_workflow.go                    0
+backend/service/temporal/worker/pkg/general/scanner_collector/issue_risk_bridge_workflow.go         0
+
+-- git log --oneline HEAD..origin/main -- <all 8 pathspecs> --
+   (empty above == no upstream commit touches the 8 engine pathspecs since HEAD)
+== (c) THE NEW LANE'S OWN FILE — full diff $MB..HEAD -- backend_python/src/endpoint_asset_ingestion/ingestion/writers.py ==
+-- hunk headers --
+-- changed line count: 0 --
+
+-- head symbol lines (live grep, not asserted) --
+   123:_ISSUE_AND_RISK_BRIDGE_WORKFLOW = "IssueAndRiskBridgeWorkflow"
+   662:async def _posture_trigger(deps: IngestionDeps, created_asset_ids: list[int]) -> None:
+   688:            _ISSUE_AND_RISK_BRIDGE_WORKFLOW,
+   1118:    await _posture_trigger(deps, created_asset_ids)
+
+-- FULL DIFF (pasted) --
+  (a) VERDICT: 0 diff lines on ALL EIGHT pathspecs vs the merge-base, each pathspec proven non-empty at
+      $MB (git ls-tree >= 1) — no empty-pathspec false pass.
+  (b) VERDICT: 0 residual against origin/main dfc449763d94237708dd2332cc2e36a308543996 on all eight, and
+      `git log --oneline HEAD..origin/main -- <the 8>` is EMPTY: no upstream commit has touched the engine
+      since HEAD. (Report-only clause — a non-zero residual would not be a FAIL.)
+  (c) VERDICT: writers.py has ZERO changed lines between $MB and HEAD, so no hunk can touch
+      _posture_trigger (def :662, call :1118) or _ISSUE_AND_RISK_BRIDGE_WORKFLOW (:123, used :688).
+      The head symbol line numbers grepped live above match amendment_r50's cites exactly.
+  => The re-affirm engine is NOT INTRODUCED BY THIS PR and is byte-identical to upstream main.
+
+==============================================================================
+2. F1(d) — RUNTIME IDENTITY: the pod that EXECUTED these measurements runs head code
+   (never assumed; in-pod sha256 vs the same checkout, plus the diff-guard read out of the pod)
+==============================================================================
+== F1(d) RUNTIME IDENTITY — in-pod sha256 vs the SAME head checkout (2b60fdc4df25188104e737e6311087681355eff8) ==
+pod: temporal-python-worker-678758dc4f-8cq6g
+image: localhost:5001/onyx/temporal-python-worker:r50-head
+imageID: localhost:5001/onyx/temporal-python-worker@sha256:01880ce899b58002164d1b0bd486d2ececdaf93af679bf464519f20c5bfbe0da
+started: 2026-08-23T23:27:39Z  restarts: 0
+captured: 2026-08-24T02:06:45Z   (comparison sorted with LC_ALL=C on BOTH sides)
+
+== python_temporal_worker/issue_detection — in-pod sha256 lines ==
+7b3c8c5283f99a01e6d7d363174e0bc1f1379403e477c1f0ae81adae2df74f89  python_temporal_worker/issue_detection/__init__.py
+6c80fe54e3e5e4eb274407d93cf39d99d82b1ca817fd449485593f46e00ec9d9  python_temporal_worker/issue_detection/activities.py
+41b1f5779eefafbd0f31beeacd7a7370d29b13afbddb8eddb91644483efa96b3  python_temporal_worker/issue_detection/catalog.py
+29fab01b50adcedd4a7481c4d251ee041808c3eb448d1f4d42f884d3e33a6a3c  python_temporal_worker/issue_detection/cve_matcher.py
+4358a1c2c103af50c341b408b3114cfdeacdca5ef05432c3634af29aaeecadb3  python_temporal_worker/issue_detection/dynamic.py
+1c2950264e991fad4ce661da2c91088e65ff06867b972acd3f220d71d736c218  python_temporal_worker/issue_detection/enrichers/__init__.py
+6d1d05fcd9a9fbb7dd0129da382f6949290efe53bae7038c88bb2cb29b4c6eb9  python_temporal_worker/issue_detection/enrichers/registry.py
+549629e719da5408daf9ff09e2a718491414e0ed295065a677ac322d97619aa4  python_temporal_worker/issue_detection/enrichers/skill_posture.py
+48035e10ecaf9090413d43416e88bd6d78c44cc58cb45ab33a9fdf1384c63a4a  python_temporal_worker/issue_detection/enrichers/subagent_posture.py
+25c1665527c7333025195fb2cba5a442ca19dae116dcae1e93bbaddc5e0adec8  python_temporal_worker/issue_detection/enrichers/system_prompt.py
+6edc143853a340a2ab6e3839d4d65d54c291ad49d0763fbceb637e0ae0ed49df  python_temporal_worker/issue_detection/mcp.py
+0efaa823bce12236f225704cab685ae5432e037ef72b4ccda9714b9a7eaf1f75  python_temporal_worker/issue_detection/migrations.py
+0da03294423536ed7ed81dc9fd89572a8a20763a970f827a0798a4b24c9e0e14  python_temporal_worker/issue_detection/models.py
+c816d46099118bb675eacd3ec21f45998bbaf26ec61817c544bfcc4f22059689  python_temporal_worker/issue_detection/skill_posture.py
+3fd95a4f24cf44eae64676d6fe2744471ac53786f67773a83267fd59904e2bcd  python_temporal_worker/issue_detection/subagent_posture.py
+5e01eb11f1a6e5461a5c94b46f18664c9fd0068a4231580c349772a792b29447  python_temporal_worker/issue_detection/system_prompt_posture.py
+f79c3b09a3f975e06e4a225585d07e2355748ace4b7927cd938ec6b68108f2d8  python_temporal_worker/issue_detection/workflow.py
+-> IDENTICAL (17 files)
+
+== common/repository/issues — in-pod sha256 lines ==
+1e39c62436bac479497adfb1ea317474c5c041cce3263179d78c1825567327bc  common/repository/issues/__init__.py
+40f13d695422b6f4c05b06dbbaeeef660038cfd6bfd2c23a818c9c5b0669a454  common/repository/issues/aggregation_models.py
+3eb56f1e1d341729ff6d39b4202f34e00710974ba40722a27ce988f07297b9e3  common/repository/issues/external_api_repository.py
+f4605a29f157d238d4b7f920c6f3dbf189e160589884043c5905c2ac176a5a3b  common/repository/issues/filters.py
+b0ea1ec5c5b0ba7123134d34441db349a67427877373c282eb19c07566eafca8  common/repository/issues/issue_repository.py
+b786bbaf089f81ed8a4395d64be2fa48d8630ddfcb0aea332e7ad0cf86655441  common/repository/issues/schemas.py
+0498ab374e9438841ae04754d07f332e53ab68e9e3cbb1027dd895ee69eff425  common/repository/issues/service.py
+1e337830d5a0c7031a7b88bc7074027d9c09bd3df1a316c4f3f10dd8d7725866  common/repository/issues/utils.py
+1e9140c687a96a747a534e7eaa5e550aa9b980c40f33468df33dad13f8c04f0c  common/repository/issues/write_params.py
+-> IDENTICAL (9 files)
+
+== common/posture — in-pod sha256 lines ==
+df33ff4c9d8bae77c2a59511e0219eb917b08748d38444474c616a5b8fa3c73f  common/posture/__init__.py
+c4836b956d59538095b54a81091f7b778fbe5e4b8ba2a699319d9b7082d79313  common/posture/cascade.py
+d7b45b4b5587fa2688b24c44f781a73afc744529330aa76a3fe0cdbe7d13c279  common/posture/chunking.py
+a9796733087bed017931c818ea61ad42d0f5f937f668336998be419f11ca1cc2  common/posture/classifier.py
+f818aff1e0dcb57162ee8e35b9ede5da0142448dcd6bc16f1d60faa70df0d26f  common/posture/concurrency.py
+e81c07ee150f8b77d1a3c02a4935076d780a5de7b2bd6a6b840b8d5cce774c9c  common/posture/enricher.py
+ccc9eed7c1aac3d9286f9df4882ae54a7a348cf4c6cab835925ffea97ea83c6b  common/posture/eval/__init__.py
+d28fffc66dd21d99647d7dcaaf889dce4ba0540e7e0f8022e0fd3a77a13e63dc  common/posture/eval/harness.py
+13e3dd307fc0f0f636ef8a56eb2b26e3455531572fd0f0e576ad93c0e5a0e353  common/posture/logging.py
+501fec7d1700343f2c5bd33699b6e383b183ce30747d709c86cd9a741353c248  common/posture/metrics.py
+6ae8c88718d3f5a28978aff6733b7822adb2b791c8123a53d1ca13064704a577  common/posture/models.py
+143797cc3819800edd3734ed0363fef63b460d50fb549d71a8a76edea7632624  common/posture/pipeline.py
+c4865835cc728e6788c3f7a0bf5a09db05fd79194abc3f498a0e91525d3288ac  common/posture/skill_pack.py
+a906f4215c2c8de3e45321675db5589fb623a9b22d94162ba45d71c5ffce6447  common/posture/subagent_pack.py
+-> IDENTICAL (14 files)
+
+common/observability/issue_write_metrics.py  pod=cae98e770d268efc7a394551d8a24afbdd339981353c4f59c320e7e444dd9088  local=cae98e770d268efc7a394551d8a24afbdd339981353c4f59c320e7e444dd9088  IDENTICAL
+common/repository/skill.py  pod=b5adfa2a1e54ec08db64622180ff20c7338018e4a1308d067cdf7f8c96ef2511  local=b5adfa2a1e54ec08db64622180ff20c7338018e4a1308d067cdf7f8c96ef2511  IDENTICAL
+common_db/models/issue_instance.py  pod=36cac9793b1579e8b58fab1b9b2b103a07ff55cf0d1847f395688fa805eb46d2  local=36cac9793b1579e8b58fab1b9b2b103a07ff55cf0d1847f395688fa805eb46d2  IDENTICAL
+
+== HEAD-added deps present in the image venv (in-pod import proof) ==
+dnspython + azure-storage-blob import OK in /app/.venv
+
+== the diff-guard as it exists in the RUNNING pod (issue_repository.py:1316-1329, read in-pod) ==
+            | insert_stmt.excluded.evidence_line_end.is_not(None)
+        )
+        evidence_differs = (
+            IssueInstance.evidence.is_distinct_from(insert_stmt.excluded.evidence)
+            | IssueInstance.reasoning.is_distinct_from(insert_stmt.excluded.reasoning)
+            | IssueInstance.evidence_source_label.is_distinct_from(insert_stmt.excluded.evidence_source_label)
+            | IssueInstance.evidence_line_start.is_distinct_from(insert_stmt.excluded.evidence_line_start)
+            | IssueInstance.evidence_line_end.is_distinct_from(insert_stmt.excluded.evidence_line_end)
+        )
+        has_evidence_write = has_any_incoming_evidence & evidence_differs
+        # should_reopen: distinguishes the reopen branch (flip state) from
+        # the refresh-already-open branch (leave state alone).
+        should_reopen = (IssueInstance.resolve_state == IssueInstanceResolveState.CLOSED) | IssueInstance.closed_at.is_not(None)
+        # should_reopen_or_refresh: the WHERE on the UPDATE. Skip rows
+        # that are already OPEN with nothing new to write, and never
+        # touch IGNORED rows.
+        should_reopen_or_refresh = (should_reopen | has_evidence_write) & (IssueInstance.resolve_state != IssueInstanceResolveState.IGNORED)
+
+        stmt = insert_stmt.on_conflict_do_update(
+            index_elements=["issue_definition_id", "asset_id"],
+
+==============================================================================
+3. THE COUNTED SCANS — three REAL front-door scans, all POST-REMOVAL
+   (/tmp/onyx-scanner, head-built, sha256 6c6ca19911149363619b84de91a776b77acdc9073c9b6bf419e263d3c37e306c
+    per at7-01 §7 -> http://ingest-onyx:8080/mcp-scanner, Kong key-auth)
+==============================================================================
+  scan A  scan_run_id 0c7eef83-3b32-4b6a-bc1f-fee8717e6473   02:05:32Z - 02:06:46Z  payloads_sent 6  skills_total 267
+  scan B  scan_run_id 5eec516a-2d9c-4225-b918-676ed6d24d4e   02:11:18Z - 02:12:28Z  payloads_sent 6  skills_total 267
+  scan C  scan_run_id f8aac578-c238-4a71-9cf0-a516276e5b08   02:15:33Z - 02:16:45Z  payloads_sent 6  skills_total 267
+  All three ran AFTER the 02:05:14Z removal. The removed subject name appears ZERO times in every
+  ingested object of all three scans (counted below) — the subject is genuinely gone from the payload.
+
+------------------------------------------------------------------------------
+c1 — SCAN TIE: scan_run_id -> the LITERAL ingested object -> the scanner-object-*-bridge id
+     Method: the azure blob was DOWNLOADED from the real lab storage (prdct11935st/ingestion, the
+     vector azure_blob sink target) and grepped for the scan's own scan_run_id. This is the literal
+     mapping, not a timing inference. No schedule (scanner-tenant-*) bridge is counted anywhere here.
+------------------------------------------------------------------------------
+  scan A  0c7eef83-3b32-4b6a-bc1f-fee8717e6473
+    object tenant=61750f27-.../source=mcp-scanner/date=2026-08-24/1787537159-313b9c24-14f3-4397-b20e-022360b53ebe.log
+           blob creationTime 2026-08-24T02:05:59+00:00  size 686255
+           grep hits: scan_run_id 0c7eef83 = 4 · r50at7002800-posturectl2 = 1 · REMOVED SUBJECT = 0
+      -> eai-azure consumer 02:06:03.095928Z  "started issue+risk bridge" writers.py:698 _posture_trigger asset_count=4
+      -> bridge scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-98c5dfe18ebc534e0f84094d691e7089-bridge
+    object 1787537221-be37e326-8bfe-4a23-948c-48225663f225.log  creationTime 02:07:01+00:00  size 3068833
+           grep hits: scan_run_id 0c7eef83 = 4 · posturectl2 = 2 · REMOVED SUBJECT = 0
+      -> eai-azure 02:07:04.869587Z -> bridge scanner-object-61750f27-...-e8c84b6266d597ec246c1d0879ab904c-bridge
+  scan B  5eec516a-2d9c-4225-b918-676ed6d24d4e
+    object 1787537505-8398b258-e9e0-4d51-8b3d-44841bf8aa56.log  size 686279
+           grep hits: 5eec516a = 4 · f8aac578 = 0 · posturectl2 = 1 · REMOVED SUBJECT = 0
+      -> eai-azure 02:11:47.548336Z -> bridge scanner-object-61750f27-...-0ceb15884cdc804855fecc6e7bccc52e-bridge
+    object 1787537563-12b7cc56-d457-484d-a65c-c7b83ba228c4.log  size 3068823
+           grep hits: 5eec516a = 4 · f8aac578 = 0 · posturectl2 = 2 · REMOVED SUBJECT = 0
+      -> eai-azure 02:12:46.458948Z -> bridge scanner-object-61750f27-...-9102a410598b5a75608855841a642cf1-bridge
+  scan C  f8aac578-c238-4a71-9cf0-a516276e5b08
+    object 1787537760-3c1d5ce6-fd86-44c0-b190-9513385046d6.log  size 686280
+           grep hits: f8aac578 = 4 · 5eec516a = 0 · posturectl2 = 1 · REMOVED SUBJECT = 0
+      -> eai-azure 02:16:04.279892Z -> bridge scanner-object-61750f27-...-c4bcb40d309011a17ee82342bcebcac4-bridge
+    object 1787537821-f92832f1-ec02-426b-b943-db7857b638c2.log  size 3068840
+           grep hits: f8aac578 = 4 · 5eec516a = 0 · posturectl2 = 2 · REMOVED SUBJECT = 0
+      -> eai-azure 02:17:05.327345Z -> bridge scanner-object-61750f27-...-12783a1241c9b3dc58945e9c2c700422-bridge
+
+  TRANSPORT NOTE (honest, measured): every bridge counted above was started by the AZURE-lane consumer
+  pod eai-azure-7c4f9bd78c-hd7xd from its own Service-Bus-delivered object. The AWS-lane consumer
+  (endpoint-asset-ingestion-5bcd755bd7-ltmrt) is also live on this shared box and started its own
+  scanner-object-* bridges from the parallel s3 objects in the same window — transport-independence is
+  therefore observed in-window from BOTH lanes, exactly as amendment_r50 carries it structurally (one
+  shared IssueDetectionWorkflow, both bridges' files 0 PR-diff).
+
+------------------------------------------------------------------------------
+c2 — BRIDGE -> child IssueDetectionWorkflow whose link_applications_to_issues INPUT contains the
+     OWNING AGENT's asset id, with the run<->pod binding taken FROM TEMPORAL HISTORY (F1(d))
+------------------------------------------------------------------------------
+=== SCAN C  01a0318e-9e25-7e2b-93c7-070381849d20_5  run=01a0318e-9e80-784b-8adb-abf3cbbbb947
+    started=2026-08-24T02:17:05.408544Z closed=2026-08-24T02:17:07.391264Z
+    parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-12783a1241c9b3dc58945e9c2c700422-bridge
+    WORKER IDENTITIES: ['15@temporal-python-worker-678758dc4f-8cq6g']
+    ACTIVITY link_applications_to_issues
+      INPUT : {"asset_ids": [23, 10727], "platform_tenant": {"ID": 1, "Name": "Onyx Security", "SchemaName": "onyx_security", "UUID": "61750f27-8fbd-42a4-80cf-4191cfb2371a"}}
+      RESULT: {"processed_apps": 2, "apps_with_issues": 1, "failed_apps": 0, "created_instance_ids": [], "reopened_instance_ids": [], "closed_instance_ids": []}
+=== SCAN C  01a0318d-afae-7567-a8bd-c4baee680a4b_5  run=01a0318d-afcf-73b5-a9b6-6bdb010edd93
+    started=2026-08-24T02:16:04.303244Z closed=2026-08-24T02:16:07.713894Z
+    parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-c4bcb40d309011a17ee82342bcebcac4-bridge
+    WORKER IDENTITIES: ['15@temporal-python-worker-678758dc4f-8cq6g']
+    ACTIVITY link_applications_to_issues
+      INPUT : {"asset_ids": [23, 10656, 10727, 55751], "platform_tenant": {"ID": 1, "Name": "Onyx Security", "SchemaName": "onyx_security", "UUID": "61750f27-8fbd-42a4-80cf-4191cfb2371a"}}
+      RESULT: {"processed_apps": 4, "apps_with_issues": 1, "failed_apps": 0, "created_instance_ids": [], "reopened_instance_ids": [], "closed_instance_ids": []}
+=== SCAN B  01a0318a-aaf4-78b6-9807-d730b0915567_5  run=01a0318a-ab10-78ca-8ce3-e7aef36c0313
+    started=2026-08-24T02:12:46.480577Z closed=2026-08-24T02:12:47.183222Z
+    parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-9102a410598b5a75608855841a642cf1-bridge
+    WORKER IDENTITIES: ['15@temporal-python-worker-678758dc4f-8cq6g']
+    ACTIVITY link_applications_to_issues
+      INPUT : {"asset_ids": [23, 10727], "platform_tenant": {"ID": 1, "Name": "Onyx Security", "SchemaName": "onyx_security", "UUID": "61750f27-8fbd-42a4-80cf-4191cfb2371a"}}
+      RESULT: {"processed_apps": 2, "apps_with_issues": 1, "failed_apps": 0, "created_instance_ids": [], "reopened_instance_ids": [], "closed_instance_ids": []}
+=== SCAN B  01a03189-c4d6-77c6-a523-cb2d5b031b01_5  run=01a03189-c4ed-75a4-9c1e-1251b6fada89
+    started=2026-08-24T02:11:47.565370Z closed=2026-08-24T02:11:49.228801Z
+    parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-0ceb15884cdc804855fecc6e7bccc52e-bridge
+    WORKER IDENTITIES: ['15@temporal-python-worker-678758dc4f-8cq6g']
+    ACTIVITY link_applications_to_issues
+      INPUT : {"asset_ids": [23, 10656, 10727, 55751], "platform_tenant": {"ID": 1, "Name": "Onyx Security", "SchemaName": "onyx_security", "UUID": "61750f27-8fbd-42a4-80cf-4191cfb2371a"}}
+      RESULT: {"processed_apps": 4, "apps_with_issues": 1, "failed_apps": 0, "created_instance_ids": [], "reopened_instance_ids": [], "closed_instance_ids": []}
+=== SCAN A  01a03184-8351-796c-8be4-1f9a60fbb537_5  run=01a03184-8375-74be-a54e-96bd4a6c731d
+    started=2026-08-24T02:06:03.125311Z closed=2026-08-24T02:07:24.031869Z
+    parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-98c5dfe18ebc534e0f84094d691e7089-bridge
+    WORKER IDENTITIES: ['15@temporal-python-worker-678758dc4f-8cq6g']
+    ACTIVITY link_applications_to_issues
+      INPUT : {"asset_ids": [23, 10656, 10727, 55751], "platform_tenant": {"ID": 1, "Name": "Onyx Security", "SchemaName": "onyx_security", "UUID": "61750f27-8fbd-42a4-80cf-4191cfb2371a"}}
+      RESULT: {"processed_apps": 4, "apps_with_issues": 1, "failed_apps": 0, "created_instance_ids": [6748, 6749, 6750, 6751], "reopened_instance_ids": [], "closed_instance_ids": []}
+  asset-id -> name (the ids that appear in the INPUTs above; SELECT beside the claim, not asserted):
+       23    Claude Code (b1, b10, b11, ...)          AssetTypeDesktopAgent   <-- THE OWNING AGENT
+    10656    Claude (coder)                           AssetTypeDesktopAgent
+    10727    Codex (...)                              AssetTypeDesktopAgent
+    55751    Hermes Agent (coder)                     AssetTypeDesktopAgent
+  Every counted run's Temporal-history activity identity is 15@temporal-python-worker-678758dc4f-8cq6g —
+  byte-identical to the identity-proven pod of §2. A task-queue name is NOT used as a pod identity.
+
+  THE SUBJECT ROWS' asset_id JOINED TO THE REMOVED SKILL'S ASSET ROW (same capture):
+  id  |             identifier             | asset_id |        asset         |         resolve_state         | closed_at |          created_at           |          updated_at           |           md5_evidence           |          md5_reasoning           |            md5_label             |            md5_lstart            |             md5_lend             
+------+------------------------------------+----------+----------------------+-------------------------------+-----------+-------------------------------+-------------------------------+----------------------------------+----------------------------------+----------------------------------+----------------------------------+----------------------------------
+ 6721 | skill-supply-chain-attack          |   447772 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 115e947332eb99d9207520b6badd5bb4 | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+ 6722 | skill-supply-chain-attack          |   448472 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | bcba8c82bc9fa6fa8b22852bdde29682 | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+ 6725 | skill-hardcoded-secrets            |   447772 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 99d75cc6356e88d65e52db8f3f2f5c01 | 410e62966027b24235bc6468da44219f | 77427c33fabab0e470f53b2098bf2780 | e4da3b7fbbce2345d7772b0674a318d5 | e4da3b7fbbce2345d7772b0674a318d5
+ 6726 | skill-hardcoded-secrets            |   448472 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 99d75cc6356e88d65e52db8f3f2f5c01 | 410e62966027b24235bc6468da44219f | 77427c33fabab0e470f53b2098bf2780 | e4da3b7fbbce2345d7772b0674a318d5 | e4da3b7fbbce2345d7772b0674a318d5
+ 6729 | skill-insecure-credential-handling |   447772 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 833b21720b5ecf944728532c29f7eeec | 410fdd6f5dbb84dd317fe9cd893a05ac | 77427c33fabab0e470f53b2098bf2780 | c51ce410c124a10e0db5e4b97fc2af39 | c51ce410c124a10e0db5e4b97fc2af39
+ 6732 | skill-dangerous-capability         |   447772 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 2746a4cf243a7e162bdf80c9c0adda42 | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+ 6733 | skill-dangerous-capability         |   448472 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 42305644feb25baba813accbc7d542ab | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+(7 rows)
+
+------------------------------------------------------------------------------
+c3 — the live AgentToSkill edge from the owning agent to the REMOVED subject (is_deleted = f) and the
+     subject's posture source-status complete = t (so the matcher's completeness gate,
+     all_source_keys_complete / activities.py:1531-1532, cannot have skipped it)
+------------------------------------------------------------------------------
+ source_asset_id | connection_type | is_deleted | destination_asset_id |           name           
+-----------------+-----------------+------------+----------------------+--------------------------
+              23 | AgentToSkill    | f          |               447740 | r50at7002800-posturectl
+              23 | AgentToSkill    | f          |               447772 | r50at7002800-posture
+              23 | AgentToSkill    | f          |               448472 | r50at7002800-posture
+              23 | AgentToSkill    | f          |               448499 | r50at7002800-posturectl
+              23 | AgentToSkill    | f          |               450716 | r50at7002800-posturectl2
+(5 rows)
+
+ asset_id | source_type | classifier_fingerprint | complete | failure_count |        last_attempt_at        | claimed_at 
+----------+-------------+------------------------+----------+---------------+-------------------------------+------------
+   447772 | skill_md    | v18                    | t        |             0 | 2026-08-24 01:44:48.825536+00 | 
+   448472 | skill_md    | v18                    | t        |             0 | 2026-08-24 01:44:48.825536+00 | 
+   450716 | skill_md    | v18                    | t        |             0 | 2026-08-24 02:07:23.640625+00 | 
+(3 rows)
+
+------------------------------------------------------------------------------
+c4 (ONCE PER WINDOW) — the SAME-AGENT SAME-DEFINITION IN-WINDOW *CREATED* CONTROL,
+    minted by a creating run that is ITSELF covered (c1 scan-tie + c2 owning-agent input + F1(d) identity)
+------------------------------------------------------------------------------
+  Control skill r50at7002800-posturectl2 — a fresh REAL posture-tripping skill installed on the SAME
+  machine at 2026-08-24T02:05:26Z (AFTER the subject removal), SKILL.md sha256
+  665bfbcc8c5179240bb92793fc425c274741d306b82b1ec48cfc1406f59777cf. It reaches the tenant DB only via the
+  same real front-door chain, never a hand-seeded row.
+
+  Its creating run IS counted scan A's own covered run:
+    scan_run_id 0c7eef83-3b32-4b6a-bc1f-fee8717e6473
+      -> object 1787537159-313b9c24-14f3-4397-b20e-022360b53ebe.log  (scan_run_id grep hits = 4)
+      -> scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-98c5dfe18ebc534e0f84094d691e7089-bridge  (a
+         NEW-LANE scanner-object bridge — NOT a schedule timer)
+      -> IssueDetectionWorkflow 01a03184-8351-796c-8be4-1f9a60fbb537_5 run 01a03184-8375-74be-a54e-96bd4a6c731d
+         started 02:06:03.125311Z  COMPLETED 02:07:24.031869Z
+         link_applications_to_issues INPUT  {"asset_ids": [23, 10656, 10727, 55751], "platform_tenant": {...
+                                             "SchemaName": "onyx_security", "UUID": "61750f27-..."}}
+         link_applications_to_issues RESULT {"processed_apps": 4, "apps_with_issues": 1, "failed_apps": 0,
+                                             "created_instance_ids": [6748, 6749, 6750, 6751],
+                                             "reopened_instance_ids": [], "closed_instance_ids": []}
+         Temporal-history worker identity: 15@temporal-python-worker-678758dc4f-8cq6g (= §2's proven pod)
+
+  The control's rows, CREATED IN-WINDOW for the SAME skill-* definition family as the frozen subject:
+  id  | asset_id |           name           |             identifier             |         resolve_state         |          created_at           |          updated_at           
+------+----------+--------------------------+------------------------------------+-------------------------------+-------------------------------+-------------------------------
+ 6748 |   450716 | r50at7002800-posturectl2 | skill-supply-chain-attack          | IssueInstanceResolveStateOpen | 2026-08-24 02:07:23.854862+00 | 2026-08-24 02:07:23.854862+00
+ 6749 |   450716 | r50at7002800-posturectl2 | skill-hardcoded-secrets            | IssueInstanceResolveStateOpen | 2026-08-24 02:07:23.854862+00 | 2026-08-24 02:07:23.854862+00
+ 6750 |   450716 | r50at7002800-posturectl2 | skill-insecure-credential-handling | IssueInstanceResolveStateOpen | 2026-08-24 02:07:23.854862+00 | 2026-08-24 02:07:23.854862+00
+ 6751 |   450716 | r50at7002800-posturectl2 | skill-dangerous-capability         | IssueInstanceResolveStateOpen | 2026-08-24 02:07:23.854862+00 | 2026-08-24 02:07:23.854862+00
+(4 rows)
+  control asset + its FRESH classification (vs the subject's findings, frozen at 01:44:48):
+    450716 r50at7002800-posturectl2  asset_posture_source_status complete=t  last_attempt_at 02:07:23.640625+00
+    447772 / 448472 r50at7002800-posture  asset_posture_findings.classified_at 01:44:48.829425+00 (8 each, unchanged)
+
+  WHY THIS IS THE PER-PAIR EVALUATED-NESS PROOF: the counted pass demonstrably expanded THIS agent's
+  AgentToSkill set and ran the skill matchers end-to-end (it CREATED 6748-6751 for four skill-* definitions
+  on the same owning agent). The subject rides the SAME JOIN with no per-skill filter
+  (common/repository/skill.py:229-256, is_deleted==False connections — its edge is live above), so a pass
+  that evaluated (same definitions x control) evaluated the subject too. On later counted scans (B, C) the
+  control legitimately reads unchanged — its rows are byte-identical to their 02:07:23.854862+00 create.
+  Head deliberately leaves NO per-pair re-observation trace (the detection audit upsert is
+  on_conflict_do_nothing presence-only, and the unchanged counter carries no identifier label), which is
+  exactly why the amendment routes per-pair evaluated-ness through this CREATED control.
+
+==============================================================================
+4. FROZEN — the subject rows before / after, byte-for-byte
+==============================================================================
+BEFORE (pre-removal baseline, read 2026-08-24T01:50:30Z, before the 02:05:14Z removal and before scans A/B/C):
+ 6721 | skill-supply-chain-attack          |   447772 | r50at7002800-posture    | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 115e947332eb99d9207520b6badd5bb4 | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+ 6722 | skill-supply-chain-attack          |   448472 | r50at7002800-posture    | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | bcba8c82bc9fa6fa8b22852bdde29682 | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+ 6725 | skill-hardcoded-secrets            |   447772 | r50at7002800-posture    | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 99d75cc6356e88d65e52db8f3f2f5c01 | 410e62966027b24235bc6468da44219f | 77427c33fabab0e470f53b2098bf2780 | e4da3b7fbbce2345d7772b0674a318d5 | e4da3b7fbbce2345d7772b0674a318d5
+ 6726 | skill-hardcoded-secrets            |   448472 | r50at7002800-posture    | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 99d75cc6356e88d65e52db8f3f2f5c01 | 410e62966027b24235bc6468da44219f | 77427c33fabab0e470f53b2098bf2780 | e4da3b7fbbce2345d7772b0674a318d5 | e4da3b7fbbce2345d7772b0674a318d5
+ 6729 | skill-insecure-credential-handling |   447772 | r50at7002800-posture    | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 833b21720b5ecf944728532c29f7eeec | 410fdd6f5dbb84dd317fe9cd893a05ac | 77427c33fabab0e470f53b2098bf2780 | c51ce410c124a10e0db5e4b97fc2af39 | c51ce410c124a10e0db5e4b97fc2af39
+ 6732 | skill-dangerous-capability         |   447772 | r50at7002800-posture    | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 2746a4cf243a7e162bdf80c9c0adda42 | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+ 6733 | skill-dangerous-capability         |   448472 | r50at7002800-posture    | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 42305644feb25baba813accbc7d542ab | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+
+AFTER counted scan A alone (read 2026-08-24T02:11:18Z):
+--- SUBJECT ROWS after SCAN A (read 2026-08-24T02:11:18Z) ---
+  id  |             identifier             | asset_id |         resolve_state         | closed_at |          updated_at           |              ev_md5              |             rsn_md5              |   src    | ls | le 
+------+------------------------------------+----------+-------------------------------+-----------+-------------------------------+----------------------------------+----------------------------------+----------+----+----
+ 6721 | skill-supply-chain-attack          |   447772 | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 115e947332eb99d9207520b6badd5bb4 | SKILL.md |    |   
+ 6722 | skill-supply-chain-attack          |   448472 | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | bcba8c82bc9fa6fa8b22852bdde29682 | SKILL.md |    |   
+ 6725 | skill-hardcoded-secrets            |   447772 | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 99d75cc6356e88d65e52db8f3f2f5c01 | 410e62966027b24235bc6468da44219f | SKILL.md |  5 |  5
+ 6726 | skill-hardcoded-secrets            |   448472 | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 99d75cc6356e88d65e52db8f3f2f5c01 | 410e62966027b24235bc6468da44219f | SKILL.md |  5 |  5
+ 6729 | skill-insecure-credential-handling |   447772 | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 833b21720b5ecf944728532c29f7eeec | 410fdd6f5dbb84dd317fe9cd893a05ac | SKILL.md | 13 | 13
+ 6732 | skill-dangerous-capability         |   447772 | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 2746a4cf243a7e162bdf80c9c0adda42 | SKILL.md |    |   
+ 6733 | skill-dangerous-capability         |   448472 | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 42305644feb25baba813accbc7d542ab | SKILL.md |    |   
+(7 rows)
+
+ asset_id | findings |        min_classified         |        max_classified         
+----------+----------+-------------------------------+-------------------------------
+   447772 |        8 | 2026-08-24 01:44:48.829425+00 | 2026-08-24 01:44:48.829425+00
+   448472 |        8 | 2026-08-24 01:44:48.829425+00 | 2026-08-24 01:44:48.829425+00
+(2 rows)
+
+AFTER counted scans A + B + C, with all FIVE evidence columns as md5 (read 2026-08-24T02:22Z):
+  id  |             identifier             | asset_id |        asset         |         resolve_state         | closed_at |          created_at           |          updated_at           |           md5_evidence           |          md5_reasoning           |            md5_label             |            md5_lstart            |             md5_lend             
+------+------------------------------------+----------+----------------------+-------------------------------+-----------+-------------------------------+-------------------------------+----------------------------------+----------------------------------+----------------------------------+----------------------------------+----------------------------------
+ 6721 | skill-supply-chain-attack          |   447772 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 115e947332eb99d9207520b6badd5bb4 | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+ 6722 | skill-supply-chain-attack          |   448472 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | bcba8c82bc9fa6fa8b22852bdde29682 | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+ 6725 | skill-hardcoded-secrets            |   447772 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 99d75cc6356e88d65e52db8f3f2f5c01 | 410e62966027b24235bc6468da44219f | 77427c33fabab0e470f53b2098bf2780 | e4da3b7fbbce2345d7772b0674a318d5 | e4da3b7fbbce2345d7772b0674a318d5
+ 6726 | skill-hardcoded-secrets            |   448472 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 99d75cc6356e88d65e52db8f3f2f5c01 | 410e62966027b24235bc6468da44219f | 77427c33fabab0e470f53b2098bf2780 | e4da3b7fbbce2345d7772b0674a318d5 | e4da3b7fbbce2345d7772b0674a318d5
+ 6729 | skill-insecure-credential-handling |   447772 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 833b21720b5ecf944728532c29f7eeec | 410fdd6f5dbb84dd317fe9cd893a05ac | 77427c33fabab0e470f53b2098bf2780 | c51ce410c124a10e0db5e4b97fc2af39 | c51ce410c124a10e0db5e4b97fc2af39
+ 6732 | skill-dangerous-capability         |   447772 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 2746a4cf243a7e162bdf80c9c0adda42 | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+ 6733 | skill-dangerous-capability         |   448472 | r50at7002800-posture | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | 77c20861340793bdfceec11a77e07c33 | 42305644feb25baba813accbc7d542ab | 77427c33fabab0e470f53b2098bf2780 | d41d8cd98f00b204e9800998ecf8427e | d41d8cd98f00b204e9800998ecf8427e
+(7 rows)
+
+  VERDICT (FROZEN): for all seven subject instances, across THREE consecutive covered post-removal scans —
+    resolve_state  = IssueInstanceResolveStateOpen   (unchanged)
+    closed_at      = NULL                            (unchanged)
+    updated_at     = 2026-08-24 01:44:50.117728+00   (UNCHANGED; still equal to created_at)
+    all FIVE evidence columns (evidence, reasoning, evidence_source_label, evidence_line_start,
+      evidence_line_end) — md5s byte-identical before and after
+    asset_posture_findings.classified_at = 2026-08-24 01:44:48.829425+00 on BOTH subject assets (frozen)
+  FROZEN binds the final two consecutive covered scans (B and C), and in fact binds all three.
+  TRANSITIONAL TOLERANCE (at most one pasted-differing refresh) was NOT used: ZERO refresh writes occurred
+  on the subject rows. No updated_at bump is claimed anywhere in this file — the r30 observable is RETIRED.
+
+  MEMBERSHIP / NOT-ORPHANED / RISK HALF (amendment_r30 part 1, carried by amendment_r50):
+    subject issue_instances: 7 rows · 4 distinct issue_definition_id · 2 distinct asset_id
+      -> unchanged in membership: the same 7 instance ids as before the removal, one per firing definition
+         per asset row; NO new instance minted for the removed artifact; NONE closed; NONE duplicated.
+    each still JOINS an existing asset row (the join above returns the asset name for every row -> not orphaned).
+    RISK HALF: the subject's asset-row count stays 1 per identity (2 identities, 2 rows) across the scans;
+      assets.total_risk_score is a COLUMN on those existing rows (447772 -> 3.18, 448472 -> 2.80,
+      is_deleted = f) — risk_score_calculation writes a column, not rows, so there are no risk rows to mint.
+
+==============================================================================
+5. COUNTED — the worker's own /metrics, read BRACKETING exactly the counted scans
+==============================================================================
+  tenant-uuid -> schema mapping (SELECT from public.tenants, so the series is attributably the scans' tenant):
+     id |                 uuid                 |  schema_name  |     name
+    ----+--------------------------------------+---------------+---------------
+      1 | 61750f27-8fbd-42a4-80cf-4191cfb2371a | onyx_security | Onyx Security
+
+--- COUNTER BRACKET READ #1 (worker /metrics, pod temporal-python-worker-678758dc4f-8cq6g) at 2026-08-24T02:05:32Z ---
+issue_evidence_refreshes_total{identifier="agent-using-skill-with-dangerous-capability",tenant_schema="onyx_security"} 16.0
+issue_evidence_refreshes_total{identifier="agent-using-skill-with-hardcoded-secrets",tenant_schema="onyx_security"} 16.0
+issue_evidence_refreshes_total{identifier="agent-using-skill-with-insecure-credential-handling",tenant_schema="onyx_security"} 25.0
+issue_records_written_total{lane="legacy-detection",outcome="closed",tenant_schema="onyx_security"} 2.0
+issue_records_written_total{lane="legacy-detection",outcome="created",tenant_schema="onyx_security"} 22.0
+issue_records_written_total{lane="legacy-detection",outcome="refreshed",tenant_schema="onyx_security"} 57.0
+issue_records_written_total{lane="legacy-detection",outcome="reopened",tenant_schema="onyx_security"} 1.0
+issue_records_written_total{lane="legacy-detection",outcome="unchanged",tenant_schema="onyx_security"} 126744.0
+
+--- COUNTER BRACKET READ #2 (worker /metrics) at 2026-08-24T02:21:36Z ---
+issue_evidence_refreshes_total{identifier="agent-using-skill-with-dangerous-capability",tenant_schema="onyx_security"} 27.0
+issue_evidence_refreshes_total{identifier="agent-using-skill-with-dangerous-capability",tenant_schema="prdct11935_ta"} 11.0
+issue_evidence_refreshes_total{identifier="agent-using-skill-with-hardcoded-secrets",tenant_schema="onyx_security"} 27.0
+issue_evidence_refreshes_total{identifier="agent-using-skill-with-hardcoded-secrets",tenant_schema="prdct11935_ta"} 11.0
+issue_evidence_refreshes_total{identifier="agent-using-skill-with-insecure-credential-handling",tenant_schema="onyx_security"} 36.0
+issue_evidence_refreshes_total{identifier="agent-using-skill-with-insecure-credential-handling",tenant_schema="prdct11935_ta"} 11.0
+issue_evidence_refreshes_total{identifier="agent-using-skill-with-supply-chain-risk",tenant_schema="prdct11935_ta"} 11.0
+issue_records_written_total{lane="legacy-detection",outcome="closed",tenant_schema="onyx_security"} 3.0
+issue_records_written_total{lane="legacy-detection",outcome="created",tenant_schema="onyx_security"} 26.0
+issue_records_written_total{lane="legacy-detection",outcome="refreshed",tenant_schema="onyx_security"} 90.0
+issue_records_written_total{lane="legacy-detection",outcome="reopened",tenant_schema="onyx_security"} 2.0
+issue_records_written_total{lane="legacy-detection",outcome="unchanged",tenant_schema="onyx_security"} 170920.0
+
+  DELTAS across the bracket (02:05:32Z -> 02:21:36Z, spanning exactly counted scans A, B and C, one pod
+  lifetime, no restart — restarts=0, started 23:27:39Z):
+    outcome="unchanged"  126,744 -> 170,920   (+44,176)  STRICTLY INCREASED — the evaluated-no-write pairs
+    outcome="created"         22 ->      26   (+4)       exactly the c4 control's created_instance_ids 6748-6751
+    outcome="refreshed"       57 ->      90   (+33)      ALL of them agent-using-skill-* (see below)
+    outcome="closed"           2 ->       3   (+1)       instance 34, mcp-server-credential-in-address on
+                                                          asset 214 "mcp-remote MCP Server" — an unrelated MCP
+                                                          asset, affirmatively NOT_MATCHED at 02:13:17Z. NOT a
+                                                          subject row.
+    outcome="reopened"         1 ->       2   (+1)       likewise not a subject row.
+    issue_evidence_refreshes_total, onyx_security:
+      agent-using-skill-with-dangerous-capability          16 -> 27
+      agent-using-skill-with-hardcoded-secrets             16 -> 27
+      agent-using-skill-with-insecure-credential-handling  25 -> 36
+      -> the ONLY refresh series that moved are the asset-23 AGENT-PAIR definitions, whose evidence
+         GENUINELY differed because the control skill posturectl2 joined the agent's skill set (the
+         IS DISTINCT FROM path working as designed).
+      -> **NO issue_evidence_refreshes_total series exists for ANY skill-* definition** — the subject's own
+         definition class took ZERO evidence refreshes across all three counted scans.
+
+  THE COMPLETE INVENTORY OF onyx_security issue_instances whose updated_at moved inside the bracket
+  (so the counter deltas are attributable, and the subject's absence from the list is explicit):
+      6748 skill-supply-chain-attack            asset 450716 r50at7002800-posturectl2   (c4 control, CREATED)
+      6749 skill-hardcoded-secrets              asset 450716 r50at7002800-posturectl2   (c4 control, CREATED)
+      6750 skill-insecure-credential-handling   asset 450716 r50at7002800-posturectl2   (c4 control, CREATED)
+      6751 skill-dangerous-capability           asset 450716 r50at7002800-posturectl2   (c4 control, CREATED)
+        34 mcp-server-credential-in-address     asset 214    mcp-remote MCP Server      (unrelated, CLOSED)
+      1640 agent-using-skill-with-hardcoded-secrets            asset 23 Claude Code     (genuinely-differing refresh)
+      1641 agent-using-skill-with-dangerous-capability         asset 23 Claude Code     (genuinely-differing refresh)
+      1642 agent-using-skill-with-insecure-credential-handling asset 23 Claude Code     (genuinely-differing refresh)
+      -- NONE of 6721/6722/6725/6726/6729/6732/6733 (the subject) appears. --
+
+  HONEST STATEMENT OF WHAT THE COUNTER PROVES, per the metric's own counting-stage contract
+  (common/observability/issue_write_metrics.py:52-61 — the metric counts WRITE ATTEMPTS, not evaluations):
+  outcome="unchanged" is TENANT-WIDE and carries no identifier label, so it proves that the engine
+  evaluated tens of thousands of (definition x asset) pairs in this bracket and deliberately wrote nothing
+  for them. The PER-PAIR claim for the subject rides COVERAGE c4 (the created control on the same agent and
+  the same definitions, minted by the same covered pass), never this counter.
+
+==============================================================================
+6. THE MECHANISM AT HEAD (read out of the RUNNING pod in §2, not from the checkout)
+==============================================================================
+  common/repository/issues/issue_repository.py:1316-1329 —
+    evidence_differs        = evidence IS DISTINCT FROM ... (all five stored evidence columns)
+    has_evidence_write      = has_any_incoming_evidence & evidence_differs
+    should_reopen_or_refresh= (should_reopen | has_evidence_write) & (resolve_state != IGNORED)
+  its own comment: "Skip rows that are already OPEN with nothing new to write, and never touch IGNORED rows."
+  Plus the pre-SQL narrowing (_select_changed_instance_writes, issue_detection/activities.py:610) and the
+  post-commit transition counters (_record_detection_transitions :285, _emit_recorded_transitions :338).
+  => The per-scan updated_at re-touch amendment_r30 measured on 67b4096f is GONE ON HEAD BY DESIGN. What is
+     measured here is the diff-guard doing exactly that, counted.
+
+==============================================================================
+7. WHAT THIS IS AND IS NOT (amendment_r50 CARRIED prongs — r30's attribution rules, unchanged)
+==============================================================================
+  * The issues stay OPEN INDEFINITELY against an artifact that no longer exists on the machine; the product
+    renders the deleted file's content as live Evidence (evidence/at7-22-ui-lifecycle-posture.png). That is a
+    USER-VISIBLE WRONG STATE, unchanged at head, ticketed as PRDCT-12071 (86bbj56qh).
+  * This is NOT presented as azure-lane-specific: the detection engine is ONE shared IssueDetectionWorkflow
+    invoked identically by both lanes' bridges, both lanes' files carry 0 PR-diff (§1), and both lanes were
+    live in this window.
+  * This is NOT a lane divergence.
+  * This is NOT correct, and NOT acceptable, lifecycle handling.
+  * C2 clause 5's "shows it stale or marked deleted" half is NOT claimed satisfied for this class — it is
+    adjudicated UNREPRESENTABLE and carried OVERTAKEN in the PR's C3 ledger with the amendment_r50 defect
+    framing.
+  * No frozen row and no unchanged render is presented as a product-visible "stale/deleted" state.
+  * No updated_at bump is presented as the re-affirm (the RETIRED observable); none occurred.
+
+==============================================================================
+8. CROSS-REFERENCES
+==============================================================================
+  evidence/at7-47-posture-path-identity.txt   — the standalone F1 artifact (same clauses, same head sha)
+  evidence/at7-09-db-rows-posture.txt         — the posture class's pasted DB rows at head
+  evidence/at7-18-lifecycle-db.txt            — the per-class post-removal end-states (posture delegated here)
+  evidence/at7-22-ui-lifecycle-posture.png    — amendment_r50 part 3, the honest post-removal render
+  evidence/at7-22b-ui-lifecycle-posture-definition.png — the subject's own definition drawer, Status Open
+  evidence/at7-legE-ui-results.json           — the programmatic assertions behind those two captures
+  evidence/at7-46-posture-followup-ticket-r30.txt / at7-52-posture-ticket-correction.txt — the ticket cites
+  evidence/r50-posture/r50-01…07              — the round-50 research REFERENCE measurement (method only)
+  evidence/r30-genone-reaffirm.txt            — round-30 HISTORICAL (frozen-base engine), never head behaviour
+  evidence/at7-50-amendment-r30-reaffirm.txt  — SUPERSEDED (frozen-base worker), must not be re-cited
+
+==============================================================================
+9. BOX STATE AND RESTORE PROOF FOR THIS LEG
+==============================================================================
+=== RESTORE PROOF — window r50at7002800, round-52 posture leg — 2026-08-24T02:39:12Z ===
+
+-- 1. ~/onyx: untouched, clean, still at head --
+   git rev-parse HEAD          : 2b60fdc4df25188104e737e6311087681355eff8
+   git status --porcelain lines: 0
+   git stash list              : 0 entries
+   current branch              : factory-eval-v32/PRDCT-11935
+   NOTE (disclosed, not hidden): two scratch files (subjread.sh, subj-afterA.txt) were accidentally
+   created in ~/onyx at 02:11Z by a shell whose 'cd' ran in a backgrounded subshell. They were moved
+   to /tmp/prdct11935/r52/at7/ at 02:22Z and the tree is clean above. No tracked file was ever edited.
+
+-- 2. the PROTECTED plan artifacts: never written by this leg --
+   test_plan.json       mtime 2026-08-24T00:52:43Z
+   test_plan.sha256     mtime 2026-08-24T00:53:04Z
+   research_report.md   mtime 2026-08-24T00:53:59Z
+   env_setup.md         mtime 2026-08-24T00:20:17Z
+   verify_report.md     mtime 2026-08-23T23:14:14Z
+   (all predate this leg's start at 02:05Z; test_plan.json sha256 973b3cfa916fa7122561aa3d65739bf6db469ab341eb52b52288496e7dad69a5)
+
+-- 3. box artifacts: the removal is the TEST, the controls stay (amendment_r50 c4) --
+   REMOVED (the lifecycle subject, intentional and contracted):
+     /home/coder/.claude/skills/r50at7002800-posture  -> ls: cannot access '/home/coder/.claude/skills/r50at7002800-posture': No such file or directory
+   STILL INSTALLED (must remain):
+     r50at7002800-posturectl        /home/coder/.claude/skills/r50at7002800-posturectl
+     r50at7002800-posturectl2       /home/coder/.claude/skills/r50at7002800-posturectl2
+     r50at7002800-sibskill          /home/coder/.claude/skills/r50at7002800-sibskill
+     r50at7002800-sibsub.md         /home/coder/.claude/agents/r50at7002800-sibsub.md
+     onyx-sib-r50at7002800 (MCPB)   /home/coder/.config/Claude/Claude Extensions/onyx-sib-r50at7002800
+   ADDED BY THIS LEG (kept on purpose - it is the c4 CREATED control the amendment requires):
+     /home/coder/.claude/skills/r50at7002800-posturectl2/SKILL.md  sha256 665bfbcc8c5179240bb92793fc425c274741d306b82b1ec48cfc1406f59777cf
+
+-- 4. cluster / infra: nothing changed by this leg --
+   NAME                                                        READY   STATUS      RESTARTS        AGE
+   eai-azure-7c4f9bd78c-hd7xd                                  1/1     Running     0               4h30m
+   eai-azure-r39a-5cf58c967b-7j8vv                             1/1     Running     0               4h8m
+   endpoint-asset-ingestion-5bcd755bd7-ltmrt                   1/1     Running     0               4h56m
+   temporal-python-worker-678758dc4f-8cq6g                     1/1     Running     0               3h11m
+   worker pod restarts = 0 (unchanged; no redeploy, no image swap, no scale change)
+   no LaunchDarkly flag was read-written, no Kong/vector config was edited, no DB row was hand-edited
+   (every DB change below came through the real front door): the only writes are the three real scans'.
+
+-- 5. scratch confined to the sanctioned paths --
+   /tmp/prdct11935/r52/at7            58 files
+   /tmp/ui-drive/r52-*.mjs            7 files (browser drivers)
+   downloaded ingest blobs            /tmp/prdct11935/r52/at7/objs (7 files, read-only copies)
+   browser profiles                   /tmp/r52-at7-profileD /tmp/r52-at7-profileE /tmp/r52-at7-profileF /tmp/r52-probe-profile
+
+-- 6. evidence self-check --
+   $ sha256sum $AGENT_FACTORY_ARTIFACTS/evidence/at7-*.png | awk '{print $1}' | sort | uniq -d
+     (no output) -> duplicate sha256 among the 29 evidence/at7-*.png files = 0. CLEAN, and it stayed
+     clean across the four PNGs this leg wrote (at7-22, at7-22b, at7-21, at7-21b).
+   duplicate sha256 among the 28 indexed at7 recordings : 0 (computed in at7-49)
+   secrets scan over the files this leg wrote:
+     at7-51-posture-reaffirm-headcode.txt           hits=0
+     at7-09-db-rows-posture.txt                     hits=0
+     at7-23-attestations.txt                        hits=0
+     at7-49-recordings-index.txt                    hits=0
+     at7-legD-ui-results.json                       hits=0
+     at7-legE-ui-results.json                       hits=0
+     at7-legF-ui-results.json                       hits=0
