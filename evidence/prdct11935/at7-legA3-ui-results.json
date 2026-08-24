@@ -1,0 +1,77 @@
+{
+  "stamp": "2026-08-24T01:19:41.961Z",
+  "window": "r50at7002800",
+  "head": "2b60fdc4df25188104e737e6311087681355eff8",
+  "steps": [
+    {
+      "route": "/ai-assets/mcp/442199",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/mcp/442199?tab=overview"
+    },
+    {
+      "route": "/ai-assets/skills/441993",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/skills/441993?tab=overview"
+    },
+    {
+      "route": "/ai-assets/subagents/442189",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/subagents/442189?tab=overview"
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets"
+    }
+  ],
+  "assertions": [
+    {
+      "where": "MCP server detail /ai-assets/mcp/442199",
+      "needle": "Onyx Lab R50 MCP",
+      "locator": "page.getByText(\"Onyx Lab R50 MCP\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 3,
+      "asserted_text": "AI Assets Onyx Lab R50 MCP Onyx Lab R50 MCP (Local File) MCP Server 1.0.0"
+    },
+    {
+      "where": "skill detail /ai-assets/skills/441993",
+      "needle": "r50at7002800-skill",
+      "locator": "page.getByText(\"r50at7002800-skill\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 4,
+      "asserted_text": "AI Assets r50at7002800-skill RS r50at7002800-skill Skill"
+    },
+    {
+      "where": "subagent detail /ai-assets/subagents/442189",
+      "needle": "r50at7002800-sub",
+      "locator": "page.getByText(\"r50at7002800-sub\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 4,
+      "asserted_text": "AI Assets r50at7002800-sub RS r50at7002800-sub Sub-Agent"
+    }
+  ],
+  "api_search_statuses": {
+    "r50at7002800-skill": [
+      400,
+      400,
+      400,
+      400,
+      400,
+      400
+    ]
+  },
+  "login": {
+    "ok": true,
+    "url_after_login": "http://ui.onyxd.svc.cluster.local:8080/overview",
+    "identity": "coder-agent@onyx.security"
+  },
+  "api_search_statuses_all": [
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+  ],
+  "verdict": "ALL-ASSERTIONS-PASS"
+}
