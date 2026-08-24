@@ -1,12 +1,11 @@
 # PRDCT-11935 at6-12 — the writer image under test was BUILT FROM THE HEAD THAT MERGES, proven byte-exact
-# FILE LAST WRITTEN 2026-08-24T00:51:18Z   (round-50 evidence-honesty sweep; the previous stamp was 2026-08-21T03:52:27Z)
+# FILE LAST WRITTEN 2026-08-24T03:48:34Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # THIS FILE IS NOW ACCURATE AGAINST onyx head 2b60fdc4df25188104e737e6311087681355eff8, WITH THIS CORRECTION: the image proven
 #   byte-exact below was built from the SUPERSEDED branch a2486bb33f, and the two symbols §3 greps for as
 #   "the round's own code fix" were REVERTED OUT OF THIS PR by the round-45 and round-46 owner rulings.
 #   The byte-exactness proof itself stands; what it proves is exactness against a PRE-REVERT head.
 # (original stamp line follows)
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · captured 2026-08-21T00:46:48Z
 #
 # The head moved this round (the G15 fix is a real code change), so the image was rebuilt from the NEW
@@ -46,7 +45,11 @@
 ##      $ git diff 822abd2356..2b60fdc4df | grep -c '_send_lock'                  ->  0
 ##      $ git diff 822abd2356..2b60fdc4df | grep -c '_meter_session_alerts'       ->  0
 ##      $ git diff --stat origin/main -- backend_python/src/common_core/services/queue/asb.py
-##        1 file changed, 25 insertions(+)     (the _system_properties addition, nothing else)
+##        .../src/common_core/services/queue/asb.py          | 25 ++++++++++++++++++++++
+##        1 file changed, 25 insertions(+)
+##        (the _system_properties addition, nothing else. Re-run at origin/main = dfc449763d and
+##         HEAD = 2b60fdc4df; the previously pasted summary line was abridged to the totals only —
+##         its numbers, 1 file / 25 insertions, are unchanged by this re-run.)
 ##    THE ORIGINAL GREP OUTPUT IS RETAINED VERBATIM, as the record of what that image contained:
     _send_lock in common_core/services/queue/asb.py            : 2 occurrences
     _meter_session_alerts in ingestion/writers.py              : 2 occurrences
