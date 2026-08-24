@@ -1,5 +1,6 @@
 # PRDCT-11935 at7-23-attestations.txt — the PER-CLASS attestation table: the 28 per-class C2 demands settled INDIVIDUALLY
-# FILE LAST WRITTEN 2026-08-24T02:39:46Z
+# FILE LAST WRITTEN 2026-08-24T05:39:39Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T02:39:46Z
 
 window r50at7002800 · tenant onyx_security (61750f27-8fbd-42a4-80cf-4191cfb2371a)
@@ -155,7 +156,9 @@ CLASS 7 — POSTURE   (subject: r50at7002800-posture, assets 447772 + 448472, in
                             is the content_hash on asset_posture_source_status for asset 448472, and the control2
                             asset's unique_identifier begins d941118c536d — byte-identical to the dir-hash the
                             scanner's own payload printed for that skill. The Evidence text rendered in the
-                            product is the deleted file's own line, verbatim (at7-08, at7-09, at7-22).     SETTLED
+                            product is the deleted file's own line, verbatim (evidence/at7-08-fidelity.txt,
+                            evidence/at7-09-db-rows-posture.txt, evidence/at7-22-ui-lifecycle-posture.png —
+                            each named in full; see the CITATION HYGIENE note under the tally).          SETTLED
  d-c2-lc-posture   LIFECYCLE amendment_r30 part 1 AS RE-SCOPED BY amendment_r50 part 2 —
                             **STILL-OPEN / RE-EVALUATED / DIFF-GUARDED-FROZEN**, measured in
                             evidence/at7-51-posture-reaffirm-headcode.txt:
@@ -183,7 +186,24 @@ CLASS 7 — POSTURE   (subject: r50at7002800-posture, assets 447772 + 448472, in
                             azure-lane-specific. C2 clause 5's stale-half is NOT claimed satisfied for this class.
                             C3: OVERTAKEN with the r50 defect framing, citing PRDCT-12071 (86bbj56qh) +
                             PRDCT-12069 + BOTH veto permalinks + the evidence pair (r30-genone HISTORICAL /
-                            at7-51 head) + the at7-52 ticket-currency correction.                       SETTLED
+                            evidence/at7-51-posture-reaffirm-headcode.txt head).
+                            TICKET CURRENCY — amendment_r50 part 4, RE-EMITTED FROM THE ARTIFACT (round 53):
+                            the correcting comment on PRDCT-12071 was POSTED and then FETCHED BACK LIVE, and
+                            this row now quotes that fetch rather than the intent to make it:
+                              carrier   evidence/at7-52-posture-ticket-correction.txt
+                              comment   id 90140246067955, authored 2026-08-24T05:34:25Z, by Coder Agent
+                              permalink https://app.clickup.com/t/86bbj56qh?comment=90140246067955
+                              checks    15 PASS / 0 FAIL over the four required elements
+                                        (upstream diff-guard commits named · the per-scan updated_at re-touch
+                                         no longer occurs for byte-identical evidence · the ticket's own
+                                         'decision (a)' partially implemented upstream · the core defect
+                                         measured UNCHANGED on head), read from the FETCHED-BACK text
+                              status    ALL FOUR REQUIRED ELEMENTS PRESENT: True
+                            WHY THIS ROW IS WORDED THIS WAY: verify round 41 failed the run because this cell
+                            said SETTLED while citing at7-52, which did not exist and whose work had never been
+                            done — the generator had trusted intent. The row above is generated FROM the file's
+                            own measured lines; if the file is absent or any element check fails, it cannot be
+                            written.                                                                    SETTLED
 
 ===============================================================================================================
 TALLY
@@ -196,3 +216,91 @@ TALLY
   Classes with an amended (not literally-met) lifecycle end-state — desktop agent, MCP server, skills, subagents,
   MCP tools, posture — each carry their own C3 OVERTAKEN ledger row and follow-up ticket; usage sessions is the
   one pre-declared-N/A cell and its binding not-duplicated half is met literally.
+
+===============================================================================================================
+CITATION HYGIENE — why every carrier in this file is named in full (round 53)
+---------------------------------------------------------------------------------------------------------------
+  Verify round 41 failed this run on one thing: the POSTURE lifecycle cell said SETTLED while citing a
+  ticket-currency carrier that did not exist and whose work had never been done. The citation was written as
+  PROSE ("the at7-52 ticket-currency correction"), so no checker could open it. Two changes follow from that:
+
+  1. Every carrier in this table is now a full path. A prose citation names nothing a machine can read, and
+     that is precisely how a SETTLED verdict outran its evidence.
+
+  2. The stem "at7-09" is ambiguous — THREE files share it:
+       evidence/at7-09-db-rows-tools.txt          CURRENT (MCP TOOLS, head build, window r50at7002800)
+       evidence/at7-09-db-rows-posture.txt        CURRENT (POSTURE, head build, window r50at7002800)
+       evidence/at7-09-db-rows-tools-posture.txt  SUPERSEDED — the 2026-08-21 combined capture on the
+                                                  PRE-REVERT image; it now carries a banner saying so and
+                                                  must not be cited as current evidence for either class.
+
+  This file is checked mechanically rather than by eye. /tmp/prdct11935/r53/verify-attestations.py opens
+  every carrier every cell names — including bare at7-NN prose references, which it resolves to files on
+  disk — and asserts three things per carrier: it EXISTS and is non-empty; a text carrier's own header
+  names the head sha (a carrier marked SUPERSEDED fails, so a stale sibling cannot be quietly cited); and a
+  ROWS/FIDELITY carrier contains at least one identity literal of the class it is cited for. The checker
+  exits non-zero on any failure. Its output for this file, as of this writing, is appended below verbatim.
+
+===============================================================================================================
+MECHANICAL CARRIER CHECK — output of /tmp/prdct11935/r53/verify-attestations.py, run 2026-08-24T05:39:39Z, exit 0
+---------------------------------------------------------------------------------------------------------------
+  CLASS          CELL               VERDICT     CARRIER                                      EXISTS   ON-HEAD     SUPPORTS
+  DESKTOP AGENT  d-c2-rows-agent    SETTLED     at7-03-db-rows-agent.txt                     yes      yes         yes
+  DESKTOP AGENT  d-c2-ui-agent      SETTLED     at7-10b-ui-desktop-agent-detail.png          yes      n/a(png)    supporting
+  DESKTOP AGENT  d-c2-ui-agent      SETTLED     at7-10-ui-desktop-agent.png                  yes      n/a(png)    supporting
+  DESKTOP AGENT  d-c2-fid-agent     SETTLED     at7-08-fidelity.txt                          yes      yes         yes
+  DESKTOP AGENT  d-c2-lc-agent      SETTLED     at7-18-lifecycle-db.txt                      yes      yes         supporting
+  DESKTOP AGENT  d-c2-lc-agent      SETTLED     at7-21-ui-lifecycle-agent.png                yes      n/a(png)    supporting
+  DESKTOP AGENT  d-c2-lc-agent      SETTLED     at7-30-agent-lifecycle-control.txt           yes      yes         supporting
+  DESKTOP AGENT  d-c2-lc-agent      SETTLED     at7-41-lifecycle-head.txt                    yes      yes         supporting
+  DESKTOP AGENT  d-c2-lc-agent      SETTLED     at7-44-last-seen-render.txt                  yes      yes         supporting
+  DESKTOP AGENT  d-c2-lc-agent      SETTLED     at7-48-lastscanned-writer.txt                yes      yes         supporting
+  DESKTOP AGENT  d-c2-lc-agent      SETTLED     at7-legF-ui-results.json                     yes      yes         supporting
+  MCP SERVER     d-c2-rows-mcp      SETTLED     at7-04-db-rows-mcp.txt                       yes      yes         yes
+  MCP SERVER     d-c2-ui-mcp        SETTLED     at7-33-list-mcp.png                          yes      n/a(png)    supporting
+  MCP SERVER     d-c2-ui-mcp        SETTLED     at7-legA3-ui-results.json                    yes      yes         supporting
+  MCP SERVER     d-c2-ui-mcp        SETTLED     at7-11-ui-mcp.png                            yes      n/a(png)    supporting
+  MCP SERVER     d-c2-fid-mcp       SETTLED     at7-08-fidelity.txt                          yes      yes         yes
+  MCP SERVER     d-c2-lc-mcp        SETTLED     at7-15-ui-lifecycle-mcp.png                  yes      n/a(png)    supporting
+  MCP SERVER     d-c2-lc-mcp        SETTLED     at7-18-lifecycle-db.txt                      yes      yes         supporting
+  MCP SERVER     d-c2-lc-mcp        SETTLED     at7-41-lifecycle-head.txt                    yes      yes         supporting
+  SKILLS         d-c2-rows-skills   SETTLED     at7-05-db-rows-skills.txt                    yes      yes         yes
+  SKILLS         d-c2-ui-skills     SETTLED     at7-34-list-skill.png                        yes      n/a(png)    supporting
+  SKILLS         d-c2-ui-skills     SETTLED     at7-legA3-ui-results.json                    yes      yes         supporting
+  SKILLS         d-c2-ui-skills     SETTLED     at7-12-ui-skills.png                         yes      n/a(png)    supporting
+  SKILLS         d-c2-fid-skills    SETTLED     at7-08-fidelity.txt                          yes      yes         yes
+  SKILLS         d-c2-lc-skills     SETTLED     at7-16-ui-lifecycle-skills.png               yes      n/a(png)    supporting
+  SKILLS         d-c2-lc-skills     SETTLED     at7-18-lifecycle-db.txt                      yes      yes         supporting
+  SKILLS         d-c2-lc-skills     SETTLED     at7-41-lifecycle-head.txt                    yes      yes         supporting
+  SUBAGENTS      d-c2-rows-subagents SETTLED     at7-06-db-rows-subagents.txt                 yes      yes         yes
+  SUBAGENTS      d-c2-ui-subagents  SETTLED     at7-35-list-subagent.png                     yes      n/a(png)    supporting
+  SUBAGENTS      d-c2-ui-subagents  SETTLED     at7-13-ui-subagents.png                      yes      n/a(png)    supporting
+  SUBAGENTS      d-c2-fid-subagents SETTLED     at7-08-fidelity.txt                          yes      yes         yes
+  SUBAGENTS      d-c2-lc-subagents  SETTLED     at7-17-ui-lifecycle-subagents.png            yes      n/a(png)    supporting
+  SUBAGENTS      d-c2-lc-subagents  SETTLED     at7-18-lifecycle-db.txt                      yes      yes         supporting
+  SUBAGENTS      d-c2-lc-subagents  SETTLED     at7-41-lifecycle-head.txt                    yes      yes         supporting
+  MCP TOOLS      d-c2-rows-tools    SETTLED     at7-09-db-rows-tools.txt                     yes      yes         yes
+  MCP TOOLS      d-c2-ui-tools      SETTLED     at7-19b-ui-lifecycle-tools.png               yes      n/a(png)    supporting
+  MCP TOOLS      d-c2-ui-tools      SETTLED     at7-19-ui-tools.png                          yes      n/a(png)    supporting
+  MCP TOOLS      d-c2-fid-tools     SETTLED     at7-08-fidelity.txt                          yes      yes         yes
+  MCP TOOLS      d-c2-lc-tools      SETTLED     at7-18-lifecycle-db.txt                      yes      yes         supporting
+  MCP TOOLS      d-c2-lc-tools      SETTLED     at7-41-lifecycle-head.txt                    yes      yes         supporting
+  USAGE SESSIONS d-c2-rows-usage    SETTLED     at7-07-db-rows-usage.txt                     yes      yes         yes
+  USAGE SESSIONS d-c2-ui-usage      SETTLED     at7-36-list-hermes-usage.png                 yes      n/a(png)    supporting
+  USAGE SESSIONS d-c2-ui-usage      SETTLED     at7-39-ai-activity-session.png               yes      n/a(png)    supporting
+  USAGE SESSIONS d-c2-ui-usage      SETTLED     at7-14-ui-usage.png                          yes      n/a(png)    supporting
+  USAGE SESSIONS d-c2-fid-usage     SETTLED     at7-08-fidelity.txt                          yes      yes         yes
+  USAGE SESSIONS d-c2-lc-usage      SETTLED     at7-18-lifecycle-db.txt                      yes      yes         supporting
+  POSTURE        d-c2-rows-posture  SETTLED     at7-09-db-rows-posture.txt                   yes      yes         yes
+  POSTURE        d-c2-ui-posture    SETTLED     at7-22b-ui-lifecycle-posture-definition.png  yes      n/a(png)    supporting
+  POSTURE        d-c2-ui-posture    SETTLED     at7-20-ui-posture.png                        yes      n/a(png)    supporting
+  POSTURE        d-c2-ui-posture    SETTLED     at7-22-ui-lifecycle-posture.png              yes      n/a(png)    supporting
+  POSTURE        d-c2-ui-posture    SETTLED     at7-legE-ui-results.json                     yes      yes         supporting
+  POSTURE        d-c2-fid-posture   SETTLED     at7-08-fidelity.txt                          yes      yes         yes
+  POSTURE        d-c2-fid-posture   SETTLED     at7-09-db-rows-posture.txt                   yes      yes         yes
+  POSTURE        d-c2-fid-posture   SETTLED     at7-22-ui-lifecycle-posture.png              yes      n/a(png)    yes
+  POSTURE        d-c2-lc-posture    SETTLED     at7-22-ui-lifecycle-posture.png              yes      n/a(png)    supporting
+  POSTURE        d-c2-lc-posture    SETTLED     at7-51-posture-reaffirm-headcode.txt         yes      yes         supporting
+  POSTURE        d-c2-lc-posture    SETTLED     at7-52-posture-ticket-correction.txt         yes      yes         supporting
+
+  cells x carriers checked: 57 · failures: 0
