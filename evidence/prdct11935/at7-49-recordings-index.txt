@@ -1,0 +1,114 @@
+# PRDCT-11935 at7-49-recordings-index.txt - the at7 run recordings ON DISK for THIS window (r50at7002800), mapped leg by leg
+# FILE LAST WRITTEN 2026-08-24T02:38:42Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T02:38:42Z
+
+WHAT THIS FILE IS: at7 is a behavior-over-time UI acceptance test, so the evidence-classes contract demands a
+Playwright webm + trace.zip at the PINNED paths evidence/recordings/at7.webm and evidence/recordings/at7.trace.zip.
+at7 is driven in several browser legs, so several recordings exist. This index states plainly WHICH PAIR IS THE
+PINNED ONE and what every other pair is. It deliberately REPLACES the 2026-08-21 version of at7-49, which indexed
+a PREVIOUS run's recordings.
+
+>>> THE PINNED PAIR (the contract's required_evidence; NOT renamed, NOT moved, NOT overwritten by this round):
+>>>     evidence/recordings/at7.trace.zip
+>>>     evidence/recordings/at7.webm
+>>> Every other at7.<leg>.{webm,trace.zip} listed below is a SUPPLEMENTARY per-leg recording of the same AT.
+
+Everything listed here was produced in THIS window (r50at7002800, from 2026-08-24T00:28Z) on head 2b60fdc4df25188104e737e6311087681355eff8,
+through capture-run-recording's recordedContext()/finalize() - recordVideo on the CONTEXT, tracing started at the
+top, both flushed by finalize() on the finally-path, then renamed to the pinned name. The webm is HUMAN-FACING
+ONLY; the machine-checkable proof of each leg is its programmatic assertions in the matching
+at7-leg*-ui-results.json plus the trace.zip.
+
+  size / mtime / sha256 read live at 2026-08-24T02:38:42Z.
+
+FILE                                         BYTES  MTIME (UTC)           SHA256 (first 32)                 ROLE
+--------------------------------------------------------------------------------------------------------------------------------------
+at7.webm                                   7714391  2026-08-24T00:48:11Z  6fa2608f0c90fc1df16944dda169d0ba  PINNED
+at7.trace.zip                             63796559  2026-08-24T00:48:10Z  6efe310ccb9921a7a387cc1e8261e190  PINNED
+at7.legA2.webm                            10793495  2026-08-24T01:03:22Z  cb29c02aca138cb6c5ba98a1275b6ef6  
+at7.legA2.trace.zip                       99272886  2026-08-24T01:03:22Z  308166ff56e6c2d92fd53a39e1b6d8bd  
+at7.legA3.webm                             3319062  2026-08-24T01:21:13Z  5bb81c88d48ba3edbe0f80a8e7fb7a6b  
+at7.legA3.trace.zip                       23464441  2026-08-24T01:21:12Z  41330feec9614f465f7a3747a348b356  
+at7.lifecycle.webm                         7540657  2026-08-24T01:41:39Z  f88f16d2a13d391516b502ec451a6c1b  
+at7.lifecycle.trace.zip                   68756845  2026-08-24T01:41:39Z  87e1c70110d4868358b8f7e47ee9d103  
+at7.posture-pre.webm                       5122503  2026-08-24T01:53:47Z  5bc019c1997ea02f1bf4ad0dff7f8165  
+at7.posture-pre.trace.zip                 67342719  2026-08-24T01:53:47Z  03e4f6bd4a05c2a75794ce9dbafc4f82  
+at7.posture-post.webm                      3840216  2026-08-24T02:24:35Z  c40629388721a320f223d1c95106c136  
+at7.posture-post.trace.zip                19870638  2026-08-24T02:24:34Z  2486483101fe468a1ffeeccd7146d695  
+at7.lifecycle-agent-r52.webm               3324062  2026-08-24T02:36:18Z  b6b39889f1d38661419fc69b6de329e3  
+at7.lifecycle-agent-r52.trace.zip         55862472  2026-08-24T02:36:17Z  f3f2cda927674375b8c9949fcfc805a1  
+at7.probe-search.webm                      3499208  2026-08-24T01:14:20Z  ddda1563d76775d747d98d1723583c70  PROBE
+at7.probe-search.trace.zip                31406127  2026-08-24T01:14:20Z  5dc63f1dd7ebb68485d9a49e0f7f6a92  PROBE
+at7.probe2.webm                            1766835  2026-08-24T01:16:15Z  c41b5ee632921aaf63deb2134f8723d8  PROBE
+at7.probe2.trace.zip                      19599254  2026-08-24T01:16:15Z  cf6a516469d6a0ad3d5284a1f3ea99c7  PROBE
+at7.probe3.webm                            3385651  2026-08-24T01:18:50Z  6b1eadb4c056fb05051e3db307c26f42  PROBE
+at7.probe3.trace.zip                      27114165  2026-08-24T01:18:50Z  a9e9019a280ca9e32a28c1299e25826b  PROBE
+at7.r52probe.webm                          2223612  2026-08-24T02:17:54Z  54819d9ddda347b11de05fd9ef810337  PROBE
+at7.r52probe.trace.zip                    10878938  2026-08-24T02:17:54Z  cc89008f0b12101b089094799a35fe9b  PROBE
+at7.r52probe2.webm                         1707144  2026-08-24T02:18:58Z  66ce77144c4cde2f801e87f29ee7f05a  PROBE
+at7.r52probe2.trace.zip                   10985661  2026-08-24T02:18:58Z  b9341184e2ecbe379728730a9d0d80a2  PROBE
+at7.r52probe3.webm                         2468976  2026-08-24T02:20:12Z  34d268a1fc4aec1c13c90bee07afa099  PROBE
+at7.r52probe3.trace.zip                   14704621  2026-08-24T02:20:12Z  2364988d7cb3e530e0b6a2e7dad90e4f  PROBE
+at7.r52probe4.webm                         1319932  2026-08-24T02:34:24Z  a10f367cdd443d0fe2d1b8aa3ae7f3a7  PROBE
+at7.r52probe4.trace.zip                    6898158  2026-08-24T02:34:24Z  e2acd6150d0702139b99865c8123a74e  PROBE
+
+PER-LEG MAPPING (what each recording shows, and which evidence files it backs):
+  * at7.{webm,trace.zip}
+      **THE PINNED PAIR the TEST-PLAN contract and pull_run expect** (required_evidence:
+      evidence/recordings/at7.trace.zip + evidence/recordings/at7.webm).
+      Leg A - real-SSO login, /ai-assets, the desktop-agent detail route, /ai-activity list + per-session panel.
+      Backs: at7-legA-ui-results.json, at7-10, at7-10a, at7-10b, at7-38, at7-39.
+  * at7.legA2.{webm,trace.zip}
+      Leg A2 - /ai-assets list located to the MCP / skill / subagent assets, plus /ai-activity usage.
+      Backs: at7-legA2-ui-results.json, at7-11, at7-12, at7-13, at7-14.
+  * at7.legA3.{webm,trace.zip}
+      Leg A3 - the MCP / skill / subagent DETAIL routes for this window's assets (442199 / 441993 / 442189),
+      all HTTP 200 with the asset names asserted visible.  Backs: at7-legA3-ui-results.json, at7-37.
+  * at7.lifecycle.{webm,trace.zip}
+      Leg B - POST-removal renders for mcp / skills / subagents / tools plus the /ai-assets list surfaces.
+      Backs: at7-legB-ui-results.json, at7-15, at7-15b, at7-16, at7-17, at7-19b, at7-32..36, at7-14b.
+  * at7.posture-pre.{webm,trace.zip}
+      Leg C - PRE-removal posture (/posture-issues) and the first desktop-agent pair attempt.
+      Backs: at7-legC-ui-results.json, at7-20.
+      Leg C DIED mid-run on a locator.click against an already-filled search input; its fatal frame is
+      at7-FATAL-legC.png. Its desktop-agent captures were error pages and were replaced by leg F.
+  * at7.posture-post.{webm,trace.zip}
+      Leg E (round 52) - the POST-removal posture render leg C never reached.
+      Backs: at7-legE-ui-results.json (ALL-ASSERTIONS-PASS), at7-22-ui-lifecycle-posture.png,
+      at7-22b-ui-lifecycle-posture-definition.png.
+      NOTE: an earlier round-52 attempt (leg D) finalized to this same pinned name and was OVERWRITTEN
+      IN PLACE by leg E's successful run. Leg D's own record survives as at7-legD-ui-results.json
+      (verdict SOME-ASSERTIONS-FAILED: it filtered /posture-issues by the definition IDENTIFIER
+      instead of the rendered TITLE and so landed on an empty list). Leg D threw no fatal, so there
+      is deliberately no at7-FATAL-legD.png.
+  * at7.lifecycle-agent-r52.{webm,trace.zip}
+      Leg F (round 52) - the desktop-agent POST-removal pair RE-CAPTURED on
+      /ai-assets/desktop-agents/<assetId>, the route that actually resolves on this build.
+      Backs: at7-legF-ui-results.json (ALL-ASSERTIONS-PASS), at7-21-ui-lifecycle-agent.png,
+      at7-21b-ui-lifecycle-agent-control.png.
+  * at7.probe-search.{webm,trace.zip}
+      Diagnostic probe - /posture-issues search-box behaviour.
+  * at7.probe2.{webm,trace.zip}
+      Diagnostic probe - list-surface locators.
+  * at7.probe3.{webm,trace.zip}
+      Diagnostic probe - detail-route locators.
+  * at7.r52probe.{webm,trace.zip}
+      Round-52 diagnostic probe - /posture-issues issue drawer discovery (definition #56).
+  * at7.r52probe2.{webm,trace.zip}
+      Round-52 diagnostic probe - the subject's own definition drawer (#45).
+  * at7.r52probe3.{webm,trace.zip}
+      Round-52 diagnostic probe - the Skills-chip navigation target.
+  * at7.r52probe4.{webm,trace.zip}
+      Round-52 diagnostic probe - the desktop-agents route; this is how the /group/<id> 404 was found.
+
+RECORDINGS IN THIS DIRECTORY THAT ARE *NOT* FROM THIS WINDOW (prior-round history; NEVER cite them as this
+window's evidence): at7.lifecycle-agent.* (2026-08-23T18:29Z, round 39) and every hyphen-suffixed legacy name
+at7-<something>-r<NN>.* - at7-20-r32, at7-21-r28, at7-21-r32, at7-22-r28, at7-22-r30, at7-desktop-agent-r27,
+at7-lifecycle-r17 / -r18 / -r18b / -r18c / -r26, at7-lifecycle.*, at7-lists.*, at7-lists-r23, at7-r25,
+at7-usage.*, at7-usage-r19, at7-usage-r24, at7-vr30-pass2, at7-vr30-pass3.
+NOTE ON NAMING: this window's legs use DOT separators (at7.<leg>.*); the prior rounds' use HYPHENS
+(at7-<leg>-r<NN>.*). That is how the two generations are told apart at a glance.
+
+SELF-CHECK, computed while writing this file: 28 indexed files, duplicate sha256 count = 0
+(every leg recorded a genuinely different session). The pinned pair at7.webm / at7.trace.zip is present,
+non-empty, and was neither renamed nor moved by this round.
