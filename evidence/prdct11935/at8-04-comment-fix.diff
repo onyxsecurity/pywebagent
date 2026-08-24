@@ -1,6 +1,7 @@
 # PRDCT-11935 at8-04 — Deliverable C ("fix the stale comment") is OVERTAKEN BY UPSTREAM, evidenced
+# FILE LAST WRITTEN 2026-08-24T03:48:34Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 #                        PER INSTANCE to the amendment_r31 (i) specification
-# FILE LAST WRITTEN 2026-08-24T01:47:47Z
 # PROVENANCE — every sha this capture depends on, named:
 #   onyx head        2b60fdc4df25188104e737e6311087681355eff8  (branch factory-eval-v32/PRDCT-11935)
 #   flux-fleet       a4493c1e5ac0545fdf7fcd2f349060288111c42c  (PR onyxsecurity/flux-fleet#2307 head — the PR is OPEN, NOT merged;
@@ -30,7 +31,9 @@
     6964ee876d65dd3ffe85e8ee1b397be200df44c7
     2026-08-20T08:58:16+00:00
     PRDCT-4368 | Remove all comments from the instance override files, and record the rules they carried (#2334)
-    its own diff --stat, in full (eight instance release.yaml files, one doc — nothing else):
+    its own diff --stat, in full (eight instance release.yaml files, one doc — nothing else),
+    re-derived verbatim from the fresh flux-fleet clone named in the provenance header:
+    $ cd /tmp/prdct11935/r51/at8/ff && git show --stat --format='' 6964ee876d65dd3ffe85e8ee1b397be200df44c7
      .../instances/bamfunds/onyx-app/release.yaml       |  16 --
      .../instances/intuit/onyx-app/release.yaml         |  31 ---
      .../instances/saas/onyx-app/release.yaml           |  10 -
