@@ -1,11 +1,51 @@
-# PRDCT-11935 at6-08 — why the seeded-connector scanner_version fix moves no row on this box
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx branch dfe23b9e83 · captured 2026-08-20T02:02:47Z
+# PRDCT-11935 at6-08 — ~~why the seeded-connector scanner_version fix moves no row on this box~~
+#   RETITLED ROUND 50: "the gateway-version gate, measured — the fix it was written about is REVERTED"
+# FILE LAST WRITTEN 2026-08-24T00:51:54Z   (round-50 evidence-honesty sweep; previous stamp 2026-08-21T03:52:27Z)
+# THIS FILE IS NOW ACCURATE AGAINST onyx head 2b60fdc4df25188104e737e6311087681355eff8.
+#   Its two measured FACTS stand unchanged. Its PREMISE does not, and is corrected below.
+#   (the file's own last-write stamp; the capture times stated below belong to the measurements
+#    themselves, which is why the two can differ when a later round corrected a number.)
+# MEASUREMENTS CAPTURED ON onyx branch dfe23b9e83 · captured 2026-08-20T02:02:47Z
 #
-# The PR argues that 8342fed114 (stamping scanner_version onto seeded connectors) changes nothing
-# OBSERVABLE here, and that its proof is therefore a unit test. That argument rests on two measured
-# facts which, until this round, existed only in the PR body's prose — so they are captured here.
+# ##########################################################################################
+# #  CORRECTED PREMISE. WHAT THIS FILE SAID: "The PR argues that 8342fed114 (stamping
+# #  scanner_version onto seeded connectors) changes nothing OBSERVABLE here, and that its proof
+# #  is therefore a unit test." That framing presumed the PR CONTAINS 8342fed114.
+# #  WHAT IS TRUE AT HEAD: IT DOES NOT. Commit 8342fed114 — the seeded-connector scanner_version
+# #  stamp, together with `build_seeded_connector_servers` seeding in the new lane and the
+# #  `desktop_agent_creator/scanner_version.py` module it introduced — was REVERTED OUT OF THIS PR
+# #  by the ROUND-45 OWNER RULING. There is no seeded-connector scanner_version fix in this PR to
+# #  explain the null effect of, and its unit test is gone with it.
+# #
+# #  THE COMMANDS THAT SHOW IT, at head 2b60fdc4df25188104e737e6311087681355eff8:
+# #    $ git diff 822abd2356..2b60fdc4df | grep -c 'scanner_version'
+# #    1        <- and that ONE hit is a DOCS line in the new ADR
+# #             ("**Scanner-version fallback.** `scanner_installations.scanner_version` records ..."),
+# #             not a code change. This PR changes NO scanner_version code.
+# #    $ grep -rn 'scanner_version' backend_python/src/endpoint_asset_ingestion | wc -l
+# #    3        <- extract.py:251, extract.py:638, mcp_writer.py:1140 — and all three are
+# #             BYTE-IDENTICAL AT THE PR BASE 822abd2356, i.e. pre-existing, not added here:
+# #    $ git grep -n 'scanner_version' 822abd2356 -- backend_python/src/endpoint_asset_ingestion
+# #    822abd2356:.../ingestion/extract.py:251 · :638 · .../ingestion/mcp_writer.py:1140
+# #    $ grep -rn 'test_seeded_connectors_carry_the_agents_scanner_version' backend_python | wc -l
+# #    0        <- the unit test this file called "the proof" no longer exists
+# #
+# #  ONE THING THAT IS *NOT* ZERO, quoted exactly rather than rounded down:
+# #    $ grep -rn 'build_seeded_connector_servers' backend_python/src backend | wc -l
+# #    3
+# #    backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/connector_seed.py:37:def build_seeded_connector_servers(
+# #    backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/workflow.py:34:        build_seeded_connector_servers,
+# #    backend_python/src/python_temporal_worker/integrations/desktop_agent_creator/workflow.py:726:                        seeded_connector_servers = build_seeded_connector_servers(agent_data.app_name, full_catalog=not seed_allowlist_only)
+# #    All three are GEN-1 code (`python_temporal_worker/integrations/desktop_agent_creator/`), which
+# #    this PR does not touch. NONE is in the new endpoint_asset_ingestion lane. So the honest
+# #    statement is "the seeding still exists in gen-1 and was never added to the new lane", NOT
+# #    "the symbol does not exist".
+# #
+# #  WHAT SURVIVES AND IS STILL USEFUL: FACT 1 and FACT 2 below are real DB measurements of the
+# #  gateway-version gate (crud.py:133-134) on this box, and the scanner-emits-scannerVersion
+# #  observation at the end is a real correction of an earlier PR-body error. They are kept verbatim.
+# #  They now document the gate's behaviour, not the null effect of a fix this PR carries.
+# ##########################################################################################
 #
 # The gate, in code: common/repository/mcp_gateway_installations/crud.py:133-134
         effective_current_gw_version = (
