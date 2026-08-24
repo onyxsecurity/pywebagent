@@ -1,6 +1,7 @@
 # PRDCT-11935 at9-05 — the consumer's runtime identity, PROVEN least-privilege, and the
+# FILE LAST WRITTEN 2026-08-24T03:48:34Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 #                      alert-processing claim re-measured under BOTH identities
-# FILE LAST WRITTEN 2026-08-24T01:27:50Z
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8
 # infrastructure authored source: origin/main @ 82a5908353c4b3a7333dad86dc52d1ee470c383a  (PR #1575 is MERGED)
 # captured 2026-08-24T00:29Z – 2026-08-24T01:27:50Z   (all measurements below are from this window)
