@@ -1,320 +1,89 @@
-# PRDCT-11935 at7-41 — HEAD-BUILD removal + second-scan measurement (amendment_r26 parts 1 and 2)
-# FILE LAST WRITTEN 2026-08-21T10:03:28Z
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-mgm5c · captured 2026-08-21T05:07:00Z
-# origin/main is contained in this head (main-ahead 0) and the tree is clean at capture time.
-# Lifecycle leg driven on the HEAD BUILD, tenant onyx_security (SPA-rendered) + the new lane's parity
-# tenants prdct11935_ta / prdct11935_tb, both fed by the same two real scans.
-#
-# HOW TO READ THIS FILE (amendment_r26). C2 clause 5 asks that a second scan after removal "shows it
-# stale or marked deleted". For the skill / subagent / MCP-server / MCP-tools classes the product ships
-# NO such representation — the AssetStatus enum has no stale value, no writer in EITHER lane moves
-# status/is_deleted on absence, and the SPA's only lifecycle rendering is a Deleted badge gated on
-# is_deleted, which the scanner lane never sets. So this file NEVER calls a frozen row a stale state.
-# It reports the amendment's four-part end-state instead: not resurrected, not duplicated, not refreshed
-# (with the class proven re-covered by the same scan), and the honest product render. The DESKTOP AGENT
-# class IS now amended too: research adjudicated it in ROUND 28 (d-c2-lc-agent.amendment_r28,
-# spec_interpretations (9), which supersedes entry (8)'s carve-out), after the premise for carving it out
-# was refuted — the SPA's "Last Seen" binds to updated_at, not last_scanned_at, and renders the same day
-# for the uninstalled agent and every still-installed control (at7-44). So ALL FIVE lifecycle classes now
-# carry the same four-part amended end-state, and the desktop-agent class's frozen-vs-advancing contrast
-# is claimed as a DATABASE fact only (at7-30). No class in this evidence set is claimed to render a
-# stale state.
+# PRDCT-11935 at7-41-lifecycle-head.txt — the HEAD-build removal + second-scan measurement: per-subject rows frozen, tools is_active unchanged, per-uid counts = 1, class re-covered
+# FILE LAST WRITTEN 2026-08-24T01:35:26Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:35:26Z
 
-=============================== 1. THE LEG, AS IT RAN ===============================
-REMOVAL LEG (head build r26) START 2026-08-21T04:35:57Z
--- subjects removed:
-     MCP bundle onyx-lab-mcp removed (dir + enable flag)
-     skill lab-w25-20260821033140 removed
-     subagent lab-w25-20260821033140.md removed
--- STEP 6: a runtime really uninstalled (never the control):
-     npm uninstall -g openclaw exit=0
-     openclaw gone from PATH
--- siblings that must SURVIVE, proven present on disk right now:
-     PRESENT /home/coder/.config/Claude/Claude Extensions/onyx-lab-sibling
-     PRESENT /home/coder/prdct11935-lab/.claude/agents/lab-w26-sibling-20260821043148.md
--- and the removed subjects proven ABSENT from the machine:
-     onyx-lab-mcp                                                             ABSENT
-     lab-w25-20260821033140                                                   ABSENT
-     lab-w25-20260821033140.md                                                ABSENT
-SCAN 2 START 2026-08-21T04:35:58Z
-scanner exit=0
-2026-08-21T04:37:01.548323066Z	INFO	Scan run completed	{"payloads_sent": 6, "users": 1, "agents_detected_total": 4, "mcp_servers_total": 3, "projects_total": 2, "skills_total": 134, "duration_ms": 60344, "scan_run_id": "b622f611-fc03-4985-82e5-8ec7a2bd3f95"}
-"agent_names": ["claude-code", "claude", "codex", "hermes-agent"]
+THE BUILD THIS WAS DRIVEN ON (read live from the cluster, not assumed):
+  writer  eai-azure-7c4f9bd78c-hd7xd   localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+          imageID sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25
+          in-pod sha256 vs ~/onyx@2b60fdc4df: endpoint_asset_ingestion 38/38 IDENTICAL,
+          common_core/services/queue 8/8 IDENTICAL, common_core/services/ingestion_events 5/5 IDENTICAL
+  worker  temporal-python-worker-678758dc4f-8cq6g  localhost:5001/onyx/temporal-python-worker:r50-head
+          imageID sha256:01880ce899b58002164d1b0bd486d2ececdaf93af679bf464519f20c5bfbe0da
+          in-pod sha256 vs ~/onyx@2b60fdc4df: issue_detection 17/17, repository/issues 9/9,
+          common/posture 14/14, common/observability 2/2 all IDENTICAL (sorted compare)
+  scanner /tmp/onyx-scanner sha256 6c6ca19911149363619b84de91a776b77acdc9073c9b6bf419e263d3c37e306c
+          == a fresh `go build` of ~/onyx@2b60fdc4df done this window
+  The whole lifecycle leg — removal, scan 2, scan 3 and every capture — ran on this build.
 
-  SCAN 1 (baseline)  run_id bbd7f531-06f5-4707-b80d-b3e0f7f1af05  started 2026-08-21T04:31:48Z
-      payloads_sent 8 · agents_detected_total 5 · mcp_servers_total 4 · skills_total 205
-  SCAN 2 (post-removal) run_id b622f611-fc03-4985-82e5-8ec7a2bd3f95  started 2026-08-21T04:35:58Z
-      payloads_sent 6 · agents_detected_total 4 · mcp_servers_total 3 · skills_total 134
-      agent_names ["claude-code","claude","codex","hermes-agent"] — openclaw (the step-6 uninstall)
-      is gone; all four CONTROL runtimes that host the siblings are still detected.
-
-=============================== 2. PART 1 — NOT RESURRECTED, NOT DUPLICATED ===============================
---- (1) per-unique_identifier counts — must all be 1 (no duplicate row created by scan 2)
-                             unique_identifier                              | rows 
-----------------------------------------------------------------------------+------
- 8b916171b15187c2cb510a52b7ac4343c346d5e729794cd40761d9ac9c62a90f           |    1
- mcpb:onyx-lab-mcp::1.5.0                                                   |    1
- mcpb:onyx-lab-sibling::1.0.0                                               |    1
- subagent::623018f5e56ad11371421ca878f5c5c02fa9b955ffa4f1964289d39a66654ae4 |    1
- subagent::cacc4e6cef1596e37492b4d987a8369403902b8b09eb3d30ffeaf73a91de1f42 |    1
-(5 rows)
-
---- class totals with the CORRECT type literal
-          k          | count 
----------------------+-------
- assets:AssetTypeMCP |    37
- assets:is_deleted   |     0
- assets:skill        |   219
- assets:subagent     |    60
- mcp_server_tools    |     0
- tools               |   105
- tools:inactive      |     0
-(7 rows)
-
-## Every artifact identity resolves to exactly ONE asset row after the second scan, and the tenant-wide
-## is_deleted count is 0. Nothing was resurrected and nothing was duplicated.
-
-=============================== 3. PART 2 — NOT REFRESHED, WITH THE CLASS RE-COVERED ===============================
---- (2) REMOVED SUBJECTS — row state after scan 2 (must be byte-identical to baseline)
-   id   |          name          |       type        |        status         | is_deleted |          updated_at           
---------+------------------------+-------------------+-----------------------+------------+-------------------------------
- 131106 | Onyx Lab MCP           | AssetTypeMCP      | AssetStatusDiscovered | f          | 2026-08-21 03:32:11.070973+00
- 131278 | lab-w25-20260821033140 | AssetTypeSkill    | AssetStatusDiscovered | f          | 2026-08-21 03:33:03.966696+00
- 131332 | lab-w25-20260821033140 | AssetTypeSubAgent | AssetStatusDiscovered | f          | 2026-08-21 03:33:04.115284+00
-(3 rows)
-
---- removed subject's tools — frozen, still active, not deleted
- active_tools | total_tools |                        names                         |            newest             
---------------+-------------+------------------------------------------------------+-------------------------------
-            5 |           5 | lab_echo,lab_hostname,lab_search,lab_time,lab_verify | 2026-08-21 03:32:11.124173+00
-(1 row)
-
-## The three removed subjects' rows are byte-identical to their pre-removal state: status
-## AssetStatusDiscovered, is_deleted=f (the psql column prints it as `f`), updated_at frozen at 03:32:11 / 03:33:03 / 03:33:04 — all
-## BEFORE the 04:35:58 second scan. The bundle's five tools are equally untouched and still is_active=t.
-##
-## THE RE-COVERAGE VEHICLE PER CLASS — proof the second scan really covered each class rather than
-## skipping it (a skipped class would produce the same "unchanged" rows for the wrong reason):
-##
-##   mcp servers  SUMMARY COUNTER. mcp_servers_total 4 -> 3 across the two scans, and the DB's own
-##                scanner_installations.total_mcp_servers 19 -> 18. (The two counters disagree in
-##                absolute value because the scanner's summary counts unique servers while the stored
-##                total counts per-agent attributions; both decrement by exactly the removed bundle.)
-##                The removed bundle is proven absent from the machine in section 1.
-##   skills       SUMMARY COUNTER. skills_total 205 -> 134 across the two scans, matching
-##                scanner_installations.total_skills 205 -> 134. Directory proven absent in section 1.
-##   subagents    NO SUMMARY COUNTER EXISTS, so the vehicle is the still-present same-machine SIBLING
-##                subagent, attached to claude-code — a control runtime that survives the step-6
-##                uninstall and is still detected by scan 2. It is LITERALLY PRESENT in scan 2's
-##                payload (section 4), while the removed subject is gone from it.
-##   mcp tools    NO SUMMARY COUNTER EXISTS, so the vehicle is the SIBLING MCP server (attached to the
-##                "claude" runtime, also still detected by scan 2): literally present in scan 2's
-##                payload, with its tool set intact by DB read-back:
---- sibling tool set INTACT? expected exactly sib_check/sib_echo/sib_time all active
- active_tools | total_tools |            names            
---------------+-------------+-----------------------------
-            3 |           3 | sib_check,sib_echo,sib_time
-(1 row)
-
-
-=============================== 4. THE SIBLINGS, LITERALLY IN SCAN 2's PAYLOAD ===============================
-## Source: the raw scanner payload objects as transported, read back out of the ingestion bucket
-## (s3://ingestion/tenant=11935a00-0000-4000-8000-000000000a01/source=mcp-scanner/date=2026-08-21/).
-## The claude-code PROJECT payload of each scan; scan 2's object is parity-1787287018-d00be04d-274b-
-## 47bb-8e50-45b6bb082de9.log (967664 bytes, sha256 522cab728b9151dd...).
-##
-##   scan 1  subagents array = 53 entries   sibling present: True    removed subject present: True
-##   scan 2  subagents array = 52 entries   sibling present: True    removed subject present: False
-##
-## The sibling's own record in scan 2's payload:
-##   .data.codingAgent.subagents[49].fileName = lab-w26-sibling-20260821043148
-##   .data.codingAgent.subagents[49].content  = "---\nname: lab-w26-sibling-20260821043148\n..."
-##
-## And the sibling MCP server in scan 2's payload (the stored summary payload, users[].agents[]):
-##   ("claude", "ext:onyx-lab-sibling/onyx-lab-sibling")   present in BOTH scans
-##   ("claude", "ext:onyx-lab-mcp/onyx-lab-mcp")           present in scan 1, ABSENT from scan 2
-##
-## Note on instruments: the scanner's "Subagent file matched" DEBUG line is emitted per AGENT DIRECTORY,
-## not per file (scanner.go:1296-1305 dedups on projectSubAgentDirs), so that log names only the first
-## file in a directory and cannot speak to an individual subagent. The payload above is the instrument.
-
-=============================== 5. THE SAME END STATE ON THE NEW LANE AT HEAD ===============================
-## The identical two scans were also written by the NEW writer at head (localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26, pod eai-azure-66d8f8595d-mgm5c) into its two
-## parity tenants. Both recorded scan 2 (scan_run_id b622f611, scanned_at 04:36:59, totals 4/18/134 —
-## identical to the gen-1 row), and both land the identical end state:
-NEW-LANE (head build prdct11935-r26, pod eai-azure-66d8f8595d-mgm5c) POST-SCAN-2 READ-BACK
-
-############ schema=prdct11935_ta
-
---- removed subjects — row state after scan 2 (must be unchanged, is_deleted f)
-  id   |          name          |       type        |        status         | is_deleted |          updated_at           
--------+------------------------+-------------------+-----------------------+------------+-------------------------------
- 47769 | Onyx Lab MCP           | AssetTypeMCP      | AssetStatusDiscovered | f          | 2026-08-21 02:52:04.847789+00
- 50659 | Onyx Lab MCP           | AssetTypeMCP      | AssetStatusDiscovered | f          | 2026-08-21 04:32:04.691175+00
- 50886 | lab-w25-20260821033140 | AssetTypeSkill    | AssetStatusDiscovered | f          | 2026-08-21 04:33:07.962077+00
- 50940 | lab-w25-20260821033140 | AssetTypeSubAgent | AssetStatusDiscovered | f          | 2026-08-21 04:33:08.240123+00
-(4 rows)
-
-
---- per-unique_identifier counts (must be 1 each)
-                             unique_identifier                              | rows 
-----------------------------------------------------------------------------+------
- 8b916171b15187c2cb510a52b7ac4343c346d5e729794cd40761d9ac9c62a90f           |    1
- mcpb:onyx-lab-mcp::1.4.0                                                   |    1
- mcpb:onyx-lab-mcp::1.5.0                                                   |    1
- mcpb:onyx-lab-sibling::1.0.0                                               |    1
- subagent::623018f5e56ad11371421ca878f5c5c02fa9b955ffa4f1964289d39a66654ae4 |    1
- subagent::cacc4e6cef1596e37492b4d987a8369403902b8b09eb3d30ffeaf73a91de1f42 |    1
-(6 rows)
-
-
---- class totals + tenant-wide deleted count
-          k          | count 
----------------------+-------
- assets:AssetTypeMCP |    20
- assets:is_deleted   |     0
- assets:skill        |   197
- assets:subagent     |    54
- tools:inactive      |     0
-(5 rows)
-
-
---- siblings + their tools survived
-  id   |              name              |       type        |        status         | is_deleted | active_tools 
--------+--------------------------------+-------------------+-----------------------+------------+--------------
- 50658 | Onyx Lab Sibling MCP           | AssetTypeMCP      | AssetStatusDiscovered | f          |            3
- 50948 | lab-w26-sibling-20260821043148 | AssetTypeSubAgent | AssetStatusDiscovered | f          |            0
-(2 rows)
-
-
---- any asset row written AFTER scan-2 start 04:35:58Z
- rows_written_after_scan2_start 
---------------------------------
-                              0
-(1 row)
-
-
-############ schema=prdct11935_tb
-
---- removed subjects — row state after scan 2 (must be unchanged, is_deleted f)
-  id   |          name          |       type        |        status         | is_deleted |          updated_at           
--------+------------------------+-------------------+-----------------------+------------+-------------------------------
- 60983 | Onyx Lab MCP           | AssetTypeMCP      | AssetStatusDiscovered | f          | 2026-08-21 02:51:20.353774+00
- 64305 | Onyx Lab MCP           | AssetTypeMCP      | AssetStatusDiscovered | f          | 2026-08-21 03:32:10.940947+00
- 64477 | lab-w25-20260821033140 | AssetTypeSkill    | AssetStatusDiscovered | f          | 2026-08-21 03:33:04.143159+00
- 64531 | lab-w25-20260821033140 | AssetTypeSubAgent | AssetStatusDiscovered | f          | 2026-08-21 03:33:04.281471+00
-(4 rows)
-
-
---- per-unique_identifier counts (must be 1 each)
-                             unique_identifier                              | rows 
-----------------------------------------------------------------------------+------
- 8b916171b15187c2cb510a52b7ac4343c346d5e729794cd40761d9ac9c62a90f           |    1
- mcpb:onyx-lab-mcp::1.4.0                                                   |    1
- mcpb:onyx-lab-mcp::1.5.0                                                   |    1
- mcpb:onyx-lab-sibling::1.0.0                                               |    1
- subagent::623018f5e56ad11371421ca878f5c5c02fa9b955ffa4f1964289d39a66654ae4 |    1
- subagent::cacc4e6cef1596e37492b4d987a8369403902b8b09eb3d30ffeaf73a91de1f42 |    1
-(6 rows)
-
-
---- class totals + tenant-wide deleted count
-          k          | count 
----------------------+-------
- assets:AssetTypeMCP |    22
- assets:is_deleted   |     0
- assets:skill        |   197
- assets:subagent     |    54
- tools:inactive      |     0
-(5 rows)
-
-
---- siblings + their tools survived
-  id   |              name              |       type        |        status         | is_deleted | active_tools 
--------+--------------------------------+-------------------+-----------------------+------------+--------------
- 64755 | Onyx Lab Sibling MCP           | AssetTypeMCP      | AssetStatusDiscovered | f          |            3
- 64989 | lab-w26-sibling-20260821043148 | AssetTypeSubAgent | AssetStatusDiscovered | f          |            0
-(2 rows)
-
-
---- any asset row written AFTER scan-2 start 04:35:58Z
- rows_written_after_scan2_start 
---------------------------------
-                              0
-(1 row)
-
-
-
-=============================== 6. THE ONE THING THE SECOND SCAN DID CHANGE: THE AGENT-TO-MCP EDGE ===============================
-## Stated prominently because it qualifies every "nothing changed" sentence in this evidence set: the
-## ASSET rows did not move, but the agent-to-MCP EDGE into the removed bundle WAS soft-deleted by the
-## second scan. That is the one absence-driven soft-delete either lane has (mcp_writer.py:1603-1662),
-## and it fired here because the host runtime ("claude") is still installed and still reported, so its
-## keep-set was non-empty and simply no longer contained the removed bundle. The empty-keep-set skip
-## that protects an offline machine did not apply.
-##
-## The SIBLING's edge is the control: same source runtime, same scan, still is_deleted=f. So the
-## reconcile demonstrably RAN and was selective — it is not a blanket wipe, and the removed bundle's
-## edge is not merely untouched.
-===== onyx_security
-   id   |  src  |    src_name    |  dst   |       dst_name       | is_deleted |          updated_at           | changed_by_scan2 
---------+-------+----------------+--------+----------------------+------------+-------------------------------+------------------
-  10533 | 10656 | Claude (coder) |  10657 | Onyx Lab MCP         | t          | 2026-08-19 16:15:20.55217+00  | f
-  12671 | 10656 | Claude (coder) |  12839 | Onyx Lab MCP         | t          | 2026-08-19 17:13:06.141103+00 | f
-  21304 | 10656 | Claude (coder) |  21616 | Onyx Lab MCP         | t          | 2026-08-21 00:22:36.599369+00 | f
-  59684 | 10656 | Claude (coder) |  60390 | Onyx Lab MCP         | t          | 2026-08-20 19:09:55.334183+00 | f
- 101215 | 10656 | Claude (coder) | 102530 | Onyx Lab MCP         | t          | 2026-08-21 03:32:11.155263+00 | f
- 129237 | 10656 | Claude (coder) | 131106 | Onyx Lab MCP         | t          | 2026-08-21 04:36:07.854319+00 | t
- 129675 | 10656 | Claude (coder) | 131552 | Onyx Lab Sibling MCP | f          | 2026-08-21 04:31:57.731744+00 | f
-(7 rows)
-
-===== prdct11935_ta
-  id   |  src  |    src_name    |  dst  |       dst_name       | is_deleted |          updated_at           | changed_by_scan2 
--------+-------+----------------+-------+----------------------+------------+-------------------------------+------------------
- 47147 | 47663 | Claude (coder) | 47769 | Onyx Lab MCP         | t          | 2026-08-21 04:32:05.311931+00 | f
- 49996 | 47663 | Claude (coder) | 50658 | Onyx Lab Sibling MCP | f          | 2026-08-21 04:32:04.900764+00 | f
- 49997 | 47663 | Claude (coder) | 50659 | Onyx Lab MCP         | t          | 2026-08-21 04:37:04.556961+00 | t
-(3 rows)
-
-===== prdct11935_tb
-  id   |  src  |    src_name    |  dst  |       dst_name       | is_deleted |          updated_at           | changed_by_scan2 
--------+-------+----------------+-------+----------------------+------------+-------------------------------+------------------
- 60033 | 60981 | Claude (coder) | 60983 | Onyx Lab MCP         | t          | 2026-08-21 03:32:11.07954+00  | f
- 63299 | 60981 | Claude (coder) | 64305 | Onyx Lab MCP         | t          | 2026-08-21 04:36:07.867042+00 | t
- 63741 | 60981 | Claude (coder) | 64755 | Onyx Lab Sibling MCP | f          | 2026-08-21 04:31:57.671787+00 | f
-(3 rows)
-
-
-## Read the three tenants together: in every one, the edge into the removed bundle flipped to
-## is_deleted=t with an updated_at inside the second scan, and in every one the sibling's edge stayed
-## live. The older rows above are earlier rounds' bundles, already soft-deleted by their own removals.
-##
-## What this does NOT amount to is the demand's asset-level end state: an edge is a relationship, not
-## the artifact, and no SPA surface for these classes renders edge state as a stale-or-deleted badge on
-## the asset. The asset still reads Discovered and still renders live (section 3 and at7-18). The
-## amendment's grounding says exactly this, and this section is the measurement behind it.
-
-=============================== 7. THE DESKTOP-AGENT CLASS (a DB-only contrast — see at7-44) ===============================
---- desktop-agent staircase across THIS round's two scans (scan1 04:31:48Z, scan2 04:35:58Z)
-         name         |        last_scanned_at        | is_deleted | advanced_by_scan2 
-----------------------+-------------------------------+------------+-------------------
- Claude Code (coder)  | 2026-08-21 04:37:05.515416+00 | f          | t
- Codex (coder)        | 2026-08-21 04:37:03.928797+00 | f          | t
- Claude (coder)       | 2026-08-21 04:37:01.798888+00 | f          | t
- Hermes Agent (coder) | 2026-08-21 04:37:01.565223+00 | f          | t
- OpenClaw (coder)     | 2026-08-21 04:33:04.793812+00 | f          | f
- Claude Code (ubuntu) | 2026-08-20 19:12:37.437767+00 | f          | f
- OpenCode (coder)     | 2026-08-20 19:10:12.385118+00 | f          | f
+=== PER-SUBJECT ROWS FROZEN ACROSS THE POST-REMOVAL SCANS ===
+SET
+   id   |         name          |         type          |        status         | is_deleted |          created_at           |          updated_at           
+--------+-----------------------+-----------------------+-----------------------+------------+-------------------------------+-------------------------------
+  10729 | OpenClaw (coder)      | AssetTypeDesktopAgent |                       | f          | 2026-08-19 15:20:34.914874+00 | 2026-08-24 00:30:01.00619+00
+ 441993 | r50at7002800-skill    | AssetTypeSkill        | AssetStatusDiscovered | f          | 2026-08-24 00:29:58.896873+00 | 2026-08-24 01:17:23.065657+00
+ 442005 | r50at7002800-sibskill | AssetTypeSkill        | AssetStatusDiscovered | f          | 2026-08-24 00:29:58.896873+00 | 2026-08-24 01:17:23.065657+00
+ 442189 | r50at7002800-sub      | AssetTypeSubAgent     | AssetStatusDiscovered | f          | 2026-08-24 00:29:59.603306+00 | 2026-08-24 01:17:23.065657+00
+ 442193 | r50at7002800-sibsub   | AssetTypeSubAgent     | AssetStatusDiscovered | f          | 2026-08-24 00:29:59.603306+00 | 2026-08-24 01:17:23.065657+00
+ 442199 | Onyx Lab R50 MCP      | AssetTypeMCP          | AssetStatusDiscovered | f          | 2026-08-24 00:30:00.295263+00 | 2026-08-24 01:17:23.065657+00
+ 442200 | Onyx Sibling R50 MCP  | AssetTypeMCP          | AssetStatusDiscovered | f          | 2026-08-24 00:30:00.416544+00 | 2026-08-24 01:17:23.065657+00
 (7 rows)
 
 
-## The four runtimes still installed all advanced on scan 2 (04:37:0x). OpenClaw — uninstalled at
-## 04:35:57 by step 6 — is frozen at 04:33:04, its scan-1 value, and is_deleted is still f. That
-## frozen-vs-advancing CONTRAST against same-machine controls is the agent class's freshness claim, and
-## ROUND-28 NOTE: the table above is this window's measurement and is left as captured. Read as a CURRENT
-## statement it would now be wrong — OpenClaw's last_scanned_at has since advanced to 08:28:13 (still
-## trailing the four still-installed runtimes at 09:07:48) without OpenClaw reappearing in any scan
-## payload, so it is a lag rather than a freeze. Re-measured in evidence/at7-44-last-seen-render.txt §2.
-## it is claimed of the DATABASE only. The product does not render it: "Last Seen" is bound to
-## updated_at (instances-table.tsx:334-335) and reads the identical day for this uninstalled runtime and
-## for every still-installed control — measured in at7-44, rendered in at7-21 beside its control at7-21b.
+  class-member tables (what the scanner writer actually touches):
+SET
+            tbl             |   id   | asset_id |          created_at           |          updated_at           
+----------------------------+--------+----------+-------------------------------+-------------------------------
+ agent_skills               | 362069 |   441993 | 2026-08-24 00:29:58.896873+00 | 2026-08-24 00:29:58.896873+00
+ agent_skills               | 362070 |   442005 | 2026-08-24 00:29:58.896873+00 | 2026-08-24 00:29:58.896873+00
+ agent_subagents            |  52911 |   442189 | 2026-08-24 00:29:59.603306+00 | 2026-08-24 00:29:59.603306+00
+ agent_subagents            |  52912 |   442193 | 2026-08-24 00:29:59.603306+00 | 2026-08-24 00:29:59.603306+00
+ desktop_agent_applications |    105 |    10729 | 2026-08-19 15:20:34.914874+00 | 2026-08-24 00:32:03.418256+00
+ mcp_servers                |  19792 |   442199 | 2026-08-24 00:30:00.320436+00 | 2026-08-24 00:30:00.320436+00
+ mcp_servers                |  19793 |   442200 | 2026-08-24 00:30:00.437327+00 | 2026-08-24 00:30:00.437327+00
+(7 rows)
+
+
+=== TOOLS is_active UNCHANGED (the removed server's tools are neither deactivated nor deleted) ===
+SET
+ id  | asset_id |     name      | is_active |          created_at           |          updated_at           
+-----+----------+---------------+-----------+-------------------------------+-------------------------------
+ 159 |   442199 | r50__echo     | t         | 2026-08-24 00:30:00.348225+00 | 2026-08-24 00:30:00.348225+00
+ 160 |   442199 | r50__hostname | t         | 2026-08-24 00:30:00.348225+00 | 2026-08-24 00:30:00.348225+00
+ 161 |   442199 | r50__search   | t         | 2026-08-24 00:30:00.348225+00 | 2026-08-24 00:30:00.348225+00
+ 162 |   442199 | r50__time     | t         | 2026-08-24 00:30:00.348225+00 | 2026-08-24 00:30:00.348225+00
+ 163 |   442199 | r50__verify   | t         | 2026-08-24 00:30:00.348225+00 | 2026-08-24 00:30:00.348225+00
+ 164 |   442200 | r50sib__ping  | t         | 2026-08-24 00:30:00.463886+00 | 2026-08-24 00:30:00.463886+00
+ 165 |   442200 | r50sib__stat  | t         | 2026-08-24 00:30:00.463886+00 | 2026-08-24 00:30:00.463886+00
+(7 rows)
+
+
+=== PER-unique_identifier COUNTS = 1 (nothing resurrected, nothing duplicated) ===
+SET
+                             unique_identifier                              | rows 
+----------------------------------------------------------------------------+------
+ 72ee8d6b139cd83682b33064304d3ed2be6be53e570faf9f01e28b99584e9ca9           |    1
+ bb8d62f5c9a8c62e96cbc082999f4beaac239fff191cf61262691941b7fdcab4           |    1
+ endpoint_openclaw::ec255301bd4407d309fbce94811384b0                        |    1
+ mcpb:onyx-lab-r50at7002800::1.0.0                                          |    1
+ mcpb:onyx-sib-r50at7002800::1.0.0                                          |    1
+ subagent::2d2e397434cc739a831b9fabf8a4d19fd0a635ebf4cd3f19920704f26c11ed26 |    1
+ subagent::6777545c05a5d460c6cb8068a84a8ac6c3d4460ea347bfdb5f1250b4cf3c29e9 |    1
+(7 rows)
+
+
+=== SCAN-SUMMARY CLASS COUNTS PROVING THE CLASS WAS RE-COVERED (scan 2, quoted) ===
+  Skills attached    {"agent":"claude-code","global_skills_count":214,"total_skills":214,
+                      "static_paths":["/home/coder/.claude/skills"]}
+  Subagents attached {"agent":"claude-code","global_subagents_count":10,"total_subagents":10,
+                      "static_paths":["/home/coder/.claude/agents"]}
+  MCP server found   {"detector":"claude","name":"ext:onyx-sib-r50at7002800/onyx-sib-r50at7002800",
+                      "type":"stdio","scope":"user"}
+  Phase 1 done       {"agents_detected":4,"agent_names":["claude-code","claude","codex","hermes-agent"]}
+  Each class was really walked by the second scan; the subject's non-refresh is a property of the
+  subject, not of a scan that skipped the class.
+
+=== WHAT THIS MEASURES, STATED WITHOUT OVERCLAIM ===
+  The subject rows survive the removal unchanged: same id, same status, same is_deleted=f, same
+  class-member updated_at, tools still is_active=t. The product's semantics are "absence is not
+  delete" — no close, no tombstone, no staleness surfacing. That is the measured behaviour, ticketed
+  as PRDCT-12069 (at7-42 / at7-45). It is NOT presented here as a product-visible stale state.
