@@ -1,0 +1,152 @@
+# PRDCT-11935 at9-09 — raw captures behind at9-05 §3/§4/§6 (least-privilege runtime)
+# FILE LAST WRITTEN 2026-08-24T01:33:15Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8
+# identity: prdct11935-at9lp-eai (user-assigned managed identity, clientId ea4e34d7-…, NO secret)
+# captured 2026-08-24T00:29Z – 2026-08-24T01:25Z
+
+================ A. FULL allowed/denied matrix, least-privilege identity ================
+--- OP=LISTEN(receive) TARGET=at9lp-eai IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=ALLOWED
+    link established; peek returned 1 message(s)
+
+--- OP=SEND TARGET=at9lp-eai IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    ServiceBusAuthorizationError: Unauthorized access. 'Send' claim(s) are required to perform this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/at9lp-eai'. TrackingId:7bb3cb3388074235a5a2a50580bccf56_G34, SystemTracker:gateway10, Timestamp:2026-08-24T00:49:24 Error condition: amqp:unauthorized-access.
+
+--- OP=LISTEN(receive) TARGET=alert-processing-prdct11935 IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    ServiceBusAuthorizationError: Unauthorized access. 'Listen' claim(s) are required to perform this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/alert-processing-prdct11935'. TrackingId:40a6fc811b244be586a8962ed9e3f195_G0, SystemTracker:gateway10, Timestamp:2026-08-24T00:49:25 Error condition: amqp:unauthorized-access.
+
+--- OP=SEND TARGET=alert-processing-prdct11935 IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    ServiceBusAuthorizationError: Unauthorized access. 'Send' claim(s) are required to perform this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/alert-processing-prdct11935'. TrackingId:7d653fc3abe9496ebf76cd5d313e17a2_G17, SystemTracker:gateway10, Timestamp:2026-08-24T00:49:26 Error condition: amqp:unauthorized-access.
+
+--- OP=LISTEN(receive) TARGET=endpoint-asset-ingestion-prdct11935 IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    ServiceBusAuthorizationError: Unauthorized access. 'Listen' claim(s) are required to perform this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/endpoint-asset-ingestion-prdct11935'. TrackingId:8be5afc524a34b3cb35105633e0929d6_G15, SystemTracker:gateway10, Timestamp:2026-08-24T00:49:27 Error condition: amqp:unauthorized-access.
+
+--- OP=BLOB LIST TARGET=prdct11935st/ingestion IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=ALLOWED
+    first blobs: ['liveness/check-20260823T190855Z-1341322.txt', 'liveness/check-20260823T190920Z-1342155.txt', 'liveness/check-20260823T191008Z-1343490.txt']
+
+--- OP=BLOB LIST TARGET=prdct11935st/vector IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    HttpResponseError: This request is not authorized to perform this operation using this permission.
+    RequestId:ab9fe106-c01e-0061-6262-334688000000
+    Time:2026-08-24T00:49:30.3653382Z
+    ErrorCode:AuthorizationPermissionMismatch
+    Content: <?xml version="1.0" encoding="utf-8"?><Error><Code>AuthorizationPermissionMismatch</Code><Message>This request is not authorized to perform this operation using this permission.
+    RequestId:ab9fe106-c01e-0061-6262-334688000000
+    Time:2026-08-24T00:49:30.3653382Z</Message></Error>
+
+--- OP=BLOB LIST TARGET=d19prdct11935st/ingestion IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    HttpResponseError: This request is not authorized to perform this operation using this permission.
+    RequestId:38a33065-601e-0020-7f62-33c17d000000
+    Time:2026-08-24T00:49:30.4384385Z
+    ErrorCode:AuthorizationPermissionMismatch
+    Content: <?xml version="1.0" encoding="utf-8"?><Error><Code>AuthorizationPermissionMismatch</Code><Message>This request is not authorized to perform this operation using this permission.
+    RequestId:38a33065-601e-0020-7f62-33c17d000000
+    Time:2026-08-24T00:49:30.4384385Z</Message></Error>
+
+================ B. authored-3-grant posture (grant added, then removed) ================
+SEND-FLIPPED-ALLOWED after 20s
+--- OP=SEND TARGET=alert-processing-prdct11935 IDENTITY=prdct11935-at9lp-eai (UAMI) WITH the authored 3rd grant (queue-scoped Data Sender on alert-processing) RESULT=ALLOWED
+    message accepted by broker
+
+--- OP=LISTEN(receive) TARGET=alert-processing-prdct11935 IDENTITY=prdct11935-at9lp-eai (UAMI) WITH the authored 3rd grant (queue-scoped Data Sender on alert-processing) RESULT=DENIED
+    ServiceBusAuthorizationError: Unauthorized access. 'Listen' claim(s) are required to perform this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/alert-processing-prdct11935'. TrackingId:a0143e57ba5c49daa8e35796668b58b7_G43, SystemTracker:gateway10, Timestamp:2026-08-24T00:51:29 Error condition: amqp:unauthorized-access.
+
+================ C. current runtime identity (coder-agent-app) on the same queue ========
+--- OP=LISTEN(receive) TARGET=alert-processing-prdct11935 IDENTITY=coder-agent-app (738c6745) — the CURRENT eai-azure runtime identity RESULT=ALLOWED
+    link established; peek returned 1 message(s)
+
+--- OP=SEND TARGET=alert-processing-prdct11935 IDENTITY=coder-agent-app (738c6745) — the CURRENT eai-azure runtime identity RESULT=ALLOWED
+    message accepted by broker
+
+--- OP=LISTEN(receive) TARGET=endpoint-asset-ingestion-prdct11935 IDENTITY=coder-agent-app (738c6745) — the CURRENT eai-azure runtime identity RESULT=ALLOWED
+    link established; peek returned 0 message(s)
+
+================ D. federation: the real token-exchange attempts ========================
+$ az aks list -o json
+[]
+$ az provider show -n Microsoft.ContainerService --query registrationState -o tsv
+NotRegistered
+$ az identity list -g prdct11935-rg -o table   (before this round)
+<empty>
+$ kubectl get --raw /.well-known/openid-configuration
+{"issuer":"https://kubernetes.default.svc.cluster.local","jwks_uri":"https://172.18.0.3:6443/openid/v1/jwks","response_types_supported":["id_token"],"subject_types_supported":["public"],"id_token_signing_alg_values_supported":["RS256"]}
+$ federated-credential create (accepted):
+{
+  "audiences": [
+    "api://AzureADTokenExchange"
+  ],
+  "id": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourcegroups/prdct11935-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/prdct11935-at9lp-eai/federatedIdentityCredentials/at9lp-fedcred",
+  "issuer": "https://kubernetes.default.svc.cluster.local",
+  "name": "at9lp-fedcred",
+  "resourceGroup": "prdct11935-rg",
+  "subject": "system:serviceaccount:onyxd:endpoint-asset-ingestion",
+  "type": "Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials"
+}
+$ token exchange, subject NOT matching:
+ERROR: invalid_client
+DESCRIPTION: AADSTS700213: No matching federated identity record found for presented assertion subject 'system:serviceaccount:onyxd:at9lp-fed-probe'. Check your federated identity credential Subject, Audience and Issuer against the presented assertion. https://learn.microsoft.com/entra/workload-id/workload-identity-federation Trace ID: 71304c48-d281-4b1a-b36e-9ae0d2117200 Correlation ID: 59748f85-d6b7-4cd6-bcf9-e724a99e9d9b Timestamp: 2026-08-24 00:46:08Z
+$ token exchange, subject matching exactly:
+ERROR: invalid_request
+DESCRIPTION: AADSTS501661: Request to External OIDC endpoint failed. Trace ID: 4d70dd95-7758-49c2-9d9d-70ad7da3c500 Correlation ID: caaf4f00-f61f-459c-a24f-7079e5183a3d Timestamp: 2026-08-24 00:46:31Z
+
+================ E. clone log — credential acquisition + processed lines ================
+2026-08-24T00:57:40.291268Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=alert-processing-prdct11935
+2026-08-24T00:57:40.293064Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=at9lp-eai
+2026-08-24T00:57:40.297599Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=at9lp-eai
+2026-08-24T00:57:40.341930Z [info     ] ASB client connected           [common_core.services.queue.asb] filename=asb.py func_name=connect lineno=146 namespace=prdct11935bus.servicebus.windows.net queue_name=at9lp-eai
+2026-08-24T00:57:40.715527Z [info     ] DefaultAzureCredential acquired a token from ManagedIdentityCredential [azure.identity.aio._credentials.chained] filename=chained.py func_name=get_token lineno=99 otelServiceName=endpoint-asset-ingestion otelSpanID=0 otelTraceID=0 otelTraceSampled=False
+2026-08-24T00:57:40.802512Z [info     ] DefaultAzureCredential acquired a token from ManagedIdentityCredential [azure.identity.aio._credentials.chained] filename=chained.py func_name=get_token lineno=99 otelServiceName=endpoint-asset-ingestion otelSpanID=0 otelTraceID=0 otelTraceSampled=False
+2026-08-24T01:20:36.222752Z [info     ] DefaultAzureCredential acquired a token from ManagedIdentityCredential [azure.identity.aio._credentials.chained] filename=chained.py func_name=get_token_info lineno=163 otelServiceName=endpoint-asset-ingestion otelSpanID=e6fcfdf03377e9f0 otelTraceID=c4f15d40980f378b0a80ebdc26e61d5f otelTraceSampled=True s3_key='tenant=11935a18-0000-4000-8000-0000000018a1/source=mcp-scanner/date=2026-08-24/1787534435-c7f6f621-4c3f-405
+2026-08-24T01:20:57.675816Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.40651 outcome=processed s3_key='tenant=11935a18-0000-4000-8000-0000000018a1/source=mcp-scanner/date=2026-08-24/1787534435-c7f6f621-4c3f-4054-89f6-0b8921c128a8.log' span_id=e9c5a4050eda4f8e tenant_uuid=11935a18-0000-4000-8000-0000000018a1 trace_flags=01
+2026-08-24T01:22:17.726381Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.417898 outcome=processed s3_key='tenant=11935a18-0000-4000-8000-0000000018a1/source=mcp-scanner/date=2026-08-24/1787534509-eee24940-ac35-4873-b056-d1db238f5223.log' span_id=2eca3090dcc25eb7 tenant_uuid=11935a18-0000-4000-8000-0000000018a1 trace_flags=0
+
+================ F. tenant DB result ====================================================
+--- assets count before/after the least-privilege clone's run ---
+BEFORE=153  AFTER=438
+
+--- the marker skills this run created, as ASSET rows written by the LP clone ---
+ id  |           name           |      type      |          created_at           
+-----+--------------------------+----------------+-------------------------------
+ 285 | at9lp-r50b-010438        | AssetTypeSkill | 2026-08-24 01:20:36.876859+00
+ 289 | at9lp-r50-20260824T0100Z | AssetTypeSkill | 2026-08-24 01:20:36.876859+00
+ 292 | at9lp-r50c-011140        | AssetTypeSkill | 2026-08-24 01:20:36.876859+00
+ 301 | at9lp-r50d-012008        | AssetTypeSkill | 2026-08-24 01:20:36.876859+00
+(4 rows)
+
+--- their FIDELITY HASHES (agent_skills.skill_md_hash / skill_dir_hash) ---
+ asset_id |           name           |                          skill_md_hash                           |                          skill_dir_hash                          
+----------+--------------------------+------------------------------------------------------------------+------------------------------------------------------------------
+      285 | at9lp-r50b-010438        | c105cac99eadaa005df38e7b960740ee429102d174665e4cb854d2a408a6a00f | 8f0cf2fef6ce26ecca8761987921ddf2af3350cc12ebae436697d756e3992a78
+      289 | at9lp-r50-20260824T0100Z | 9fdb2b535d44d44b048cea74c70ec3b1165e7dd2bf2b15a76b0f5020d0f186a2 | a5b25aca1913fd9149bf44165820c4d08555b2dea793cc9c37f982f7ddcde057
+      292 | at9lp-r50c-011140        | 82848c9c3f2a2ed8d37eec434208ab83b23475b13ef7ff9626d4fea734011cab | bb655af292e7c611ad66ae7b37fcae8c2857576cf3ff4798b542acad26f7e376
+      301 | at9lp-r50d-012008        | ff4b883d9e8513b0b21515a2bdb615ecd48d2a8764cbc2b7392ffef6addc67d5 | e43a5287b1e982299ff99e392baf60f757abd2ca38b4647778d43c271cc5ca7e
+(4 rows)
+
+
+================ G. why an app registration was NOT available (identity choice) =========
+The brief asked for a dedicated app registration / service principal with its secret in a k8s secret.
+That path is closed in this tenant and the closure is mechanical, not a preference:
+
+  $ az ad app create --display-name prdct11935-at9lp-consumer --sign-in-audience AzureADMyOrg
+  ERROR: Insufficient privileges to complete the operation.
+      (coder-agent-app is Global Reader + subscription Owner, but holds no
+       Application.ReadWrite.OwnedBy — it cannot create directory objects.)
+
+  $ curl .../v1.0/policies/authorizationPolicy      -> http 403 Authorization_RequestDenied
+      (cannot even read whether member users may register apps)
+
+  Interactive fallback as coder-agent@onyx.security (az login --use-device-code) was driven twice in a
+  real browser through the JumpCloud SAML front door and failed deterministically at the same wall
+  both times — this is the documented AADSTS5000811 federation defect, not a transient:
+
+      AADSTS5000811: Unable to verify token signature. The signing key identifier does not match any
+      valid registered keys.
+      Request Id: 082c28e2-7865-46fd-a95d-00dff9c9c800   (attempt 1, 2026-08-24T00:36:16Z)
+      Trace/Request Id: aeb821…                          (attempt 2, ~2026-08-24T00:45Z)
+
+So the runtime identity used is a USER-ASSIGNED MANAGED IDENTITY instead — which is strictly BETTER
+for this AT, on three counts:
+  1. it is the SAME identity type the terraform authors (azurerm_user_assigned_identity), whereas an
+     app registration would have been a substitute;
+  2. it has NO client secret at all, so no credential could leak into an artifact or the repo — the
+     token comes from IMDS on the VM the identity is attached to;
+  3. it still holds EXACTLY the two authored data roles and nothing else (at9-05 §2).
+No superset credential was substituted anywhere.
