@@ -1,5 +1,5 @@
 # PRDCT-11935 at10-04 — EVIDENCE PROVENANCE, per artifact, generated from the artifacts themselves
-# generated 2026-08-23T21:58:15Z · onyx head 2b60fdc4df (committed 2026-08-23T17:11:02+00:00)
+# generated 2026-08-24T03:35:06Z · onyx head 2b60fdc4df (committed 2026-08-23T17:11:02+00:00)
 #
 # HOW THIS FILE IS PRODUCED, because two hand-maintained versions of it drifted from the artifacts they
 # described: a script reads each artifact's OWN header and prints the stamp, the onyx sha, the writer
@@ -86,13 +86,13 @@ at1-11-merged-head-creates.txt            2026-08-20T15:53:54Z   f4b3e9dfb2   pr
                                                                                              kind: (not classified)
 at1-12-ld-cutover-state.txt               2026-08-20T11:30:38Z   cb96081d70   -              10 lane-touching commit(s) landed after it: 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
-at10-01-pr-body.md                        2026-08-23T21:58:14Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+at10-01-pr-body.md                        2026-08-24T01:34:16Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: pr-state (a copy of the PR body as pushed)
-at10-02-image-check.txt                   2026-08-22T10:56:14Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none)
+at10-02-image-check.txt                   2026-08-24T03:34:38Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: pr-state (anonymous-200 receipts)
 at10-03-ci.txt                            2026-08-23T21:55:10Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: pr-state (CI on the head)
-at10-04-evidence-provenance.txt           2026-08-23T21:57:24Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+at10-04-evidence-provenance.txt           2026-08-23T21:58:16Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: document (this file)
 at10-04-ld-supersession-read.txt          2026-08-21T15:13:55Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none)
                                                                                              kind: (not classified)
@@ -124,7 +124,7 @@ at10-11-c3-audit-extension-r35.txt        2026-08-22T02:59:43Z   a2486bb33f   - 
                                                                                              kind: (not classified)
 at10-12-placement-receipt.txt             2026-08-22T10:54:22Z   a2486bb33f   -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
-at10-13-defaults-inventory.txt            2026-08-22T10:43:39Z   a2486bb33f   -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at10-13-defaults-inventory.txt            2026-08-24T00:57:56Z   a2486bb33f   -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
 at10-14-sibling-sweep.txt                 2026-08-22T10:49:44Z   a2486bb33f   -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
@@ -148,15 +148,21 @@ at10-23-evidence-currency.txt             2026-08-23T21:42:59Z   -            - 
                                                                                              kind: (not classified)
 at10-24-sibling-pr-12382.txt              2026-08-23T19:50:02Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
+at10-25-aws-cell-render.txt               2026-08-24T00:38:51Z   -            -              CURRENT — 0 lane-touching commits landed after it
+                                                                                             kind: (not classified)
+at10-26-alert-sender-hazard.txt           2026-08-24T00:48:45Z   -            -              CURRENT — 0 lane-touching commits landed after it
+                                                                                             kind: (not classified)
+at10-27-tracker-r6-fetch.txt              2026-08-24T00:51:11Z   -            -              CURRENT — 0 lane-touching commits landed after it
+                                                                                             kind: (not classified)
 at11-01-azure-alert-path.txt              2026-08-21T00:20:10Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
 at11-01-diff-audit.txt                    2026-08-23T17:14:59Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
-at11-02-aws-lane-base.txt                 2026-08-23T17:30:56Z   -            -              CURRENT — 0 lane-touching commits landed after it
+at11-02-aws-lane-base.txt                 2026-08-24T01:35:10Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: (not classified)
-at11-03-aws-lane-head.txt                 2026-08-23T17:30:56Z   -            -              CURRENT — 0 lane-touching commits landed after it
+at11-03-aws-lane-head.txt                 2026-08-24T01:35:10Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: (not classified)
-at11-04-aws-lane-diff.txt                 2026-08-23T17:31:27Z   -            -              CURRENT — 0 lane-touching commits landed after it
+at11-04-aws-lane-diff.txt                 2026-08-24T01:35:10Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: (not classified)
 at11-05-gen1-untouched.txt                2026-08-23T17:15:16Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
@@ -196,33 +202,33 @@ at4-02-postfix-refusal-aws-asb.txt        2026-08-23T19:37:56Z   -            - 
                                                                                              kind: live-runtime (boot refusal)
 at4-03-postfix-correct-boot.txt           2026-08-23T19:36:23Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: live-runtime (the good shape booting)
-at5-01-scanner-postfix.txt                2026-08-23T19:39:08Z   -            -              CURRENT — 0 lane-touching commits landed after it
+at5-01-scanner-postfix.txt                2026-08-24T00:51:33Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: live-runtime (gen-2 refusal)
-at5-02-mcpgw-postfix.txt                  2026-08-23T19:39:22Z   -            -              CURRENT — 0 lane-touching commits landed after it
+at5-02-mcpgw-postfix.txt                  2026-08-24T00:51:33Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: live-runtime (gen-2 refusal)
-at5-03-shapes.txt                         2026-08-21T07:35:21Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at5-03-shapes.txt                         2026-08-21T07:35:21Z   -            prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: render (the two config shapes under test)
 at5-04-replay-scanner.txt                 2026-08-18T19:20:04Z   20fa8d9553   -              22 lane-touching commit(s) landed after it: 153d29c86a, 988364c282, 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: live-runtime (zero consumption)
 at5-05-replay-mcpgw.txt                   2026-08-18T19:20:04Z   20fa8d9553   prdct11935-r8  22 lane-touching commit(s) landed after it: 153d29c86a, 988364c282, 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: live-runtime (zero consumption)
-at6-01-inventory.txt                      2026-08-21T09:21:52Z   a2486bb33f   -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at6-01-inventory.txt                      2026-08-24T00:41:15Z   a2486bb33f   -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: document (code-derived class inventory)
 at6-02-old-lane-rows.txt                  2026-08-21T03:04:11Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: db-rows (gen-1 tenant) + its Temporal receipt
 at6-03-new-lane-rows.txt                  2026-08-21T03:04:11Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: db-rows (new-lane tenant)
-at6-04a-diff-created.txt                  2026-08-21T03:04:11Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at6-04a-diff-created.txt                  2026-08-24T01:39:39Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: document (diff of at6-02/03)
-at6-04b-diff-matched.txt                  2026-08-23T19:22:09Z   -            -              CURRENT — 0 lane-touching commits landed after it
+at6-04b-diff-matched.txt                  2026-08-24T01:39:39Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: document (diff of at6-02/03)
-at6-04c-diff-reingest-skip.txt            2026-08-23T19:22:09Z   -            -              CURRENT — 0 lane-touching commits landed after it
+at6-04c-diff-reingest-skip.txt            2026-08-24T01:39:39Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: document (diff of at6-02/03)
 at6-05-per-class.txt                      2026-08-23T19:34:02Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: live-runtime (per-class settlements) + document
-at6-06-ledger.txt                         2026-08-23T19:42:28Z   -            -              CURRENT — 0 lane-touching commits landed after it
+at6-06-ledger.txt                         2026-08-24T00:58:43Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: document (the divergence ledger + closure table)
-at6-07-transport-equivalence.txt          2026-08-23T19:22:09Z   -            -              CURRENT — 0 lane-touching commits landed after it
+at6-07-transport-equivalence.txt          2026-08-24T01:39:39Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: db-rows (AWS vs Azure) + a KEDA state read
 at6-08-gateway-version-gate.txt           2026-08-20T02:02:47Z   dfe23b9e83   -              13 lane-touching commit(s) landed after it: cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
@@ -240,7 +246,7 @@ at6-13-parse-err.txt                      2026-08-21T00:51:12Z   a2486bb33f   pr
                                                                                              kind: (not classified)
 at6-14-failed-redeliver.txt               2026-08-21T03:10:01Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
-at6-15-processed-with-failures.txt        2026-08-21T12:07:38Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at6-15-processed-with-failures.txt        2026-08-21T12:07:38Z   -            prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
 at6-16-durable-retry-followup.txt         2026-08-21T12:34:45Z   a2486bb33f   -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
@@ -248,35 +254,35 @@ at6-17-controlled-leg-r34.txt             2026-08-22T01:18:05Z   a2486bb33f   pr
                                                                                              kind: (not classified)
 at6-18-v1-classification.txt              2026-08-22T02:55:48Z   a2486bb33f   -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
-at6-19-closure-table.md                   2026-08-23T09:36:28Z   a2486bb33f   -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at6-19-closure-table.md                   2026-08-24T00:49:38Z   a2486bb33f   -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: (not classified)
-at7-00-isolation.txt                      2026-08-21T03:39:35Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-00-isolation.txt                      2026-08-24T03:23:54Z   -            prdct11935-r2  CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: live-runtime (the isolation receipt, both ends)
-at7-01-real-install.txt                   2026-08-21T17:47:51Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-01-real-install.txt                   2026-08-24T00:44:44Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: document (collated install facts + hashes)
-at7-02-scan-payload-ref.txt               2026-08-21T17:49:05Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-02-scan-payload-ref.txt               2026-08-24T01:09:34Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: live-runtime + db-rows
-at7-03-db-rows-agent.txt                  2026-08-21T03:39:18Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-03-db-rows-agent.txt                  2026-08-24T01:10:05Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: db-rows
-at7-04-db-rows-mcp.txt                    2026-08-21T03:39:18Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-04-db-rows-mcp.txt                    2026-08-24T01:10:05Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: db-rows
-at7-05-db-rows-skills.txt                 2026-08-21T03:39:18Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-05-db-rows-skills.txt                 2026-08-24T01:10:06Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: db-rows
-at7-06-db-rows-subagents.txt              2026-08-21T03:39:18Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-06-db-rows-subagents.txt              2026-08-24T01:10:06Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: db-rows
-at7-07-db-rows-usage.txt                  2026-08-21T09:33:12Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-07-db-rows-usage.txt                  2026-08-24T01:10:06Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: db-rows + live-runtime (the sessions step's own reason)
-at7-08-fidelity.txt                       2026-08-21T03:39:18Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-08-fidelity.txt                       2026-08-24T01:34:51Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: document (machine value vs DB value, per class)
-at7-09-db-rows-posture.txt                2026-08-21T15:33:43Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-09-db-rows-posture.txt                2026-08-24T02:29:57Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
 at7-09-db-rows-tools-posture.txt          2026-08-21T03:39:18Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: db-rows + live-runtime (the posture bridge)
-at7-09-db-rows-tools.txt                  2026-08-21T15:33:43Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-09-db-rows-tools.txt                  2026-08-24T01:10:27Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
-at7-18-lifecycle-db.txt                   2026-08-21T05:08:35Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-18-lifecycle-db.txt                   2026-08-24T01:33:42Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: db-rows (post-removal state)
-at7-23-attestations.txt                   2026-08-21T23:08:30Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-23-attestations.txt                   2026-08-24T02:39:46Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: document (per-class attestation table)
 at7-24-removal.txt                        2026-08-20T17:29:02Z   0665ecc545   prdct11935-r2  7 lane-touching commit(s) landed after it: a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: live-runtime (the uninstall, on the machine)
@@ -284,7 +290,7 @@ at7-28-lifecycle-ui-redrive.txt           2026-08-21T05:00:18Z   a2486bb33f   - 
                                                                                              kind: (not classified)
 at7-29-posture-bridge.txt                 2026-08-20T17:31:30Z   0665ecc545   prdct11935-r2  7 lane-touching commit(s) landed after it: a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
-at7-30-agent-lifecycle-control.txt        2026-08-21T18:01:35Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-30-agent-lifecycle-control.txt        2026-08-24T01:34:10Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
 at7-31-inventory-read-model.txt           2026-08-20T17:20:00Z   0665ecc545   prdct11935-r2  7 lane-touching commit(s) landed after it: a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
@@ -292,43 +298,61 @@ at7-37-list-surface-revived.txt           2026-08-20T22:00:39Z   0665ecc545   - 
                                                                                              kind: (not classified)
 at7-40-usage-ai-activity.txt              2026-08-21T01:26:32Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
-at7-41-lifecycle-head.txt                 2026-08-21T05:07:00Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-41-lifecycle-head.txt                 2026-08-24T01:35:26Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
-at7-42-lifecycle-followup-ticket.txt      2026-08-21T07:45:46Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none)
+at7-42-lifecycle-followup-ticket.txt      2026-08-24T01:39:35Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
 at7-43-veto-permalink-r26.txt             2026-08-21T04:55:41Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
-at7-44-last-seen-render.txt               2026-08-21T09:49:04Z   a2486bb33f   -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-44-last-seen-render.txt               2026-08-24T01:11:51Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
-at7-45-lifecycle-followup-ticket-r28.txt  2026-08-21T09:28:54Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none)
+at7-45-lifecycle-followup-ticket-r28.txt  2026-08-24T01:39:35Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
-at7-46-posture-followup-ticket-r30.txt    2026-08-21T15:14:02Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none)
+at7-46-posture-followup-ticket-r30.txt    2026-08-24T01:39:35Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
 at7-46-veto-permalink-r28.txt             2026-08-21T09:39:39Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
-at7-47-posture-path-identity.txt          2026-08-21T15:12:12Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-47-posture-path-identity.txt          2026-08-24T01:11:05Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
-at7-48-lastscanned-writer.txt             2026-08-21T18:00:07Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-48-lastscanned-writer.txt             2026-08-24T01:38:07Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
-at7-49-recordings-index.txt               2026-08-21T18:43:16Z   a2486bb33f   -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at7-49-recordings-index.txt               2026-08-24T02:38:42Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
 at7-50-amendment-r30-reaffirm.txt         2026-08-23T19:34:28Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: (not classified)
-at8-01-render-saas.txt                    2026-08-23T19:01:24Z   a2486bb33f   -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)  [flux-fleet@a4493c1e5ac0: CURRENT]
+at7-51-posture-reaffirm-headcode.txt      2026-08-24T02:26:52Z   -            -              CURRENT — 0 lane-touching commits landed after it
+                                                                                             kind: (not classified)
+at7-legA-ui-results.json                  2026-08-24T00:48:05Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+                                                                                             kind: (not classified)
+at7-legA2-ui-results.json                 2026-08-24T01:03:17Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+                                                                                             kind: (not classified)
+at7-legA3-ui-results.json                 2026-08-24T01:21:10Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+                                                                                             kind: (not classified)
+at7-legB-ui-results.json                  2026-08-24T01:41:36Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+                                                                                             kind: (not classified)
+at7-legC-ui-results.json                  2026-08-24T01:53:44Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+                                                                                             kind: (not classified)
+at7-legD-ui-results.json                  2026-08-24T02:15:38Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+                                                                                             kind: (not classified)
+at7-legE-ui-results.json                  2026-08-24T02:24:33Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+                                                                                             kind: (not classified)
+at7-legF-ui-results.json                  2026-08-24T02:36:14Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
+                                                                                             kind: (not classified)
+at8-01-render-saas.txt                    2026-08-24T01:44:03Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: render (kustomize + helm)
-at8-02-render-centerpoint.txt             2026-08-23T19:01:24Z   a2486bb33f   -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)  [flux-fleet@a4493c1e5ac0: CURRENT]
+at8-02-render-centerpoint.txt             2026-08-24T01:44:03Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: render (kustomize + helm)
-at8-03-helm-equivalence.txt               2026-08-20T11:22:08Z   cb96081d70   -              10 lane-touching commit(s) landed after it: 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  [flux-fleet@396980bac]  [flux-fleet@68bdecfd1e70: 201 commit(s) behind a4493c1e5ac0 — SIBLING-STALE]
+at8-03-helm-equivalence.txt               2026-08-24T01:46:19Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: render (equivalence check)
-at8-04-comment-fix.diff                   2026-08-21T18:37:39Z   a2486bb33f   -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  [flux-fleet@cab40f0e42: 132 commit(s) behind a4493c1e5ac0 — SIBLING-STALE]
+at8-04-comment-fix.diff                   2026-08-24T01:47:56Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: render (a one-line chart-comment fix, as a diff)
-at8-05-parity-check.txt                   2026-08-23T19:00:29Z   -            -              CURRENT — 0 lane-touching commits landed after it  [flux-fleet@a4493c1e5ac0: CURRENT]
+at8-05-parity-check.txt                   2026-08-24T01:46:19Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: render (tenant parity)
 at8-05-render-and-boot.txt                2026-08-21T22:04:13Z   a2486bb33f   prdct11935-r2  6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: (not classified)
-at8-06-keda-live.txt                      2026-08-23T18:58:18Z   -            -              CURRENT — 0 lane-touching commits landed after it  [flux-fleet@a4493c1e5ac0: CURRENT]
+at8-06-keda-live.txt                      2026-08-24T03:16:58Z   a2486bb33f   prdct11935-r2  CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: live-runtime (KEDA ARMED and scaling, in kind)
-at8-07-instance-identity.diff             2026-08-18T19:41:33Z   -            -              21 lane-touching commit(s) landed after it: 988364c282, 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
+at8-07-instance-identity.diff             2026-08-24T01:46:19Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: render (the two instances are identical)
 at8-08-render-drift.txt                   2026-08-20T06:24:55Z   dfe23b9e83   -              13 lane-touching commit(s) landed after it: cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  [flux-fleet@396980bac]  [flux-fleet@e3fc1646ab2b: 272 commit(s) behind a4493c1e5ac0 — SIBLING-STALE]
                                                                                              kind: (not classified)
@@ -340,13 +364,15 @@ at9-03-sqlrule-negative.txt               2026-08-23T19:04:50Z   -            - 
                                                                                              kind: azure-side (the SQL rule NOT routing one)
 at9-04-delivery-property.json             2026-08-23T19:04:50Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: azure-side (the subject -> Label delivery property)
-at9-05-roles.txt                          2026-08-23T19:04:50Z   -            -              CURRENT — 0 lane-touching commits landed after it
+at9-05-roles.txt                          2026-08-24T01:36:19Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: azure-side (the consumer identity's exactly-two roles)
 at9-06-flux-config.txt                    2026-08-23T19:04:50Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: azure-side (the flux-config publication)
 at9-07-key-match.txt                      2026-08-23T19:04:50Z   -            -              CURRENT — 0 lane-touching commits landed after it
                                                                                              kind: document (the published key matches the consumer's)
 at9-08-credential-footprint.txt           2026-08-23T19:04:50Z   -            -              CURRENT — 0 lane-touching commits landed after it
+                                                                                             kind: (not classified)
+at9-09-least-privilege-runtime.txt        2026-08-24T01:33:15Z   -            -              CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none)
                                                                                              kind: (not classified)
 r30-genone-reaffirm.txt                   2026-08-21T14:47:53Z   -            -              6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none)
                                                                                              kind: (not classified)
@@ -367,7 +393,7 @@ suite-red-lock-renewal.txt                2026-08-20T02:03:03Z   dfe23b9e83   - 
 suite-red-without-implementation.txt      2026-08-18T20:06:23Z   153d29c86a   -              21 lane-touching commit(s) landed after it: 988364c282, 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd
                                                                                              kind: document (the suite fails without the fix)
 
---- the 112 artifacts LAST WRITTEN at least one second after their own capture stamp
+--- the 91 artifacts LAST WRITTEN at least one second after their own capture stamp
     The count above is len() of the list below, so the two cannot disagree — an earlier version
     said "51" in prose while enumerating 65 entries, 13 of which were +0s. A sub-second
     difference is not "written later" in any meaningful sense and is excluded.
@@ -387,9 +413,9 @@ suite-red-without-implementation.txt      2026-08-18T20:06:23Z   153d29c86a   - 
     at1-08-config-provenance.txt              stamped 2026-08-23T20:22:00Z  last written 2026-08-23T20:25:07Z  (+187s)
     at1-09-flag-verification.txt              stamped 2026-08-20T17:42:33Z  last written 2026-08-21T03:52:27Z  (+36594s)
     at1-10-competing-consumer.txt             stamped 2026-08-20T07:52:56Z  last written 2026-08-21T03:52:27Z  (+71971s)
-    at1-11-merged-head-creates.txt            stamped 2026-08-20T15:53:54Z  last written 2026-08-21T03:52:27Z  (+43113s)
+    at1-11-merged-head-creates.txt            stamped 2026-08-20T15:53:54Z  last written 2026-08-24T00:51:54Z  (+291480s)
     at1-12-ld-cutover-state.txt               stamped 2026-08-20T11:30:38Z  last written 2026-08-21T23:10:00Z  (+128362s)
-    at10-05-review-responses.txt              stamped 2026-08-20T03:24:22Z  last written 2026-08-23T11:10:37Z  (+287175s)
+    at10-05-review-responses.txt              stamped 2026-08-20T03:24:22Z  last written 2026-08-24T00:52:40Z  (+336498s)
     at10-06-evidence-audit.txt                stamped 2026-08-22T07:17:47Z  last written 2026-08-22T07:19:59Z  (+132s)
     at10-07-merge-impact.txt                  stamped 2026-08-20T02:38:24Z  last written 2026-08-21T03:52:27Z  (+90843s)
     at10-07-r46-body-and-adr.txt              stamped 2026-08-23T19:04:01Z  last written 2026-08-23T19:04:04Z  (+3s)
@@ -398,7 +424,6 @@ suite-red-without-implementation.txt      2026-08-18T20:06:23Z   153d29c86a   - 
     at10-08-render-check.txt                  stamped 2026-08-22T01:28:37Z  last written 2026-08-22T06:57:05Z  (+19708s)
     at10-09-ci-failures.txt                   stamped 2026-08-20T12:56:09Z  last written 2026-08-21T03:52:27Z  (+53778s)
     at10-10-lifecycle-embed-check.txt         stamped 2026-08-20T08:10:07Z  last written 2026-08-21T03:52:27Z  (+70940s)
-    at10-13-defaults-inventory.txt            stamped 2026-08-22T10:43:39Z  last written 2026-08-22T10:48:36Z  (+297s)
     at10-14-sibling-sweep.txt                 stamped 2026-08-22T10:49:44Z  last written 2026-08-22T10:52:30Z  (+166s)
     at10-15-side-pr-disposition.txt           stamped 2026-08-22T11:24:24Z  last written 2026-08-22T11:25:20Z  (+56s)
     at10-16-round40-residues.txt              stamped 2026-08-22T12:21:18Z  last written 2026-08-22T12:21:19Z  (+1s)
@@ -409,11 +434,10 @@ suite-red-without-implementation.txt      2026-08-18T20:06:23Z   153d29c86a   - 
     at10-22-scope-revert.txt                  stamped 2026-08-23T17:35:18Z  last written 2026-08-23T17:35:20Z  (+2s)
     at10-23-evidence-currency.txt             stamped 2026-08-23T21:42:59Z  last written 2026-08-23T21:43:00Z  (+1s)
     at10-24-sibling-pr-12382.txt              stamped 2026-08-23T19:50:02Z  last written 2026-08-23T20:24:11Z  (+2049s)
-    at11-01-azure-alert-path.txt              stamped 2026-08-21T00:20:10Z  last written 2026-08-21T03:52:27Z  (+12737s)
+    at10-25-aws-cell-render.txt               stamped 2026-08-24T00:38:51Z  last written 2026-08-24T01:35:00Z  (+3369s)
+    at10-26-alert-sender-hazard.txt           stamped 2026-08-24T00:48:45Z  last written 2026-08-24T00:48:46Z  (+1s)
+    at11-01-azure-alert-path.txt              stamped 2026-08-21T00:20:10Z  last written 2026-08-24T00:56:34Z  (+261384s)
     at11-01-diff-audit.txt                    stamped 2026-08-23T17:14:59Z  last written 2026-08-23T17:32:37Z  (+1058s)
-    at11-02-aws-lane-base.txt                 stamped 2026-08-23T17:30:56Z  last written 2026-08-23T17:32:37Z  (+101s)
-    at11-03-aws-lane-head.txt                 stamped 2026-08-23T17:30:56Z  last written 2026-08-23T17:32:37Z  (+101s)
-    at11-04-aws-lane-diff.txt                 stamped 2026-08-23T17:31:27Z  last written 2026-08-23T17:32:37Z  (+70s)
     at11-05-gen1-untouched.txt                stamped 2026-08-23T17:15:16Z  last written 2026-08-23T17:32:37Z  (+1041s)
     at11-06-single-pr.txt                     stamped 2026-08-23T12:50:03Z  last written 2026-08-23T17:32:37Z  (+16954s)
     at11-07-sibling-consumers-aws.txt         stamped 2026-08-23T17:31:48Z  last written 2026-08-23T17:32:37Z  (+49s)
@@ -431,67 +455,48 @@ suite-red-without-implementation.txt      2026-08-18T20:06:23Z   153d29c86a   - 
     at3-04-sibling-db.txt                     stamped 2026-08-23T21:41:52Z  last written 2026-08-23T21:42:39Z  (+47s)
     at4-01-postfix-refusal-azure-s3.txt       stamped 2026-08-23T19:37:43Z  last written 2026-08-23T19:46:48Z  (+545s)
     at4-02-postfix-refusal-aws-asb.txt        stamped 2026-08-23T19:37:56Z  last written 2026-08-23T19:46:48Z  (+532s)
-    at5-03-shapes.txt                         stamped 2026-08-21T07:35:21Z  last written 2026-08-21T10:06:03Z  (+9042s)
+    at5-03-shapes.txt                         stamped 2026-08-21T07:35:21Z  last written 2026-08-24T03:10:28Z  (+243307s)
     at5-04-replay-scanner.txt                 stamped 2026-08-18T19:20:04Z  last written 2026-08-21T03:52:27Z  (+203543s)
     at5-05-replay-mcpgw.txt                   stamped 2026-08-18T19:20:04Z  last written 2026-08-21T03:52:27Z  (+203543s)
-    at6-01-inventory.txt                      stamped 2026-08-21T09:21:52Z  last written 2026-08-22T07:00:06Z  (+77894s)
+    at6-01-inventory.txt                      stamped 2026-08-24T00:41:15Z  last written 2026-08-24T00:42:07Z  (+52s)
     at6-02-old-lane-rows.txt                  stamped 2026-08-21T03:04:11Z  last written 2026-08-21T03:52:27Z  (+2896s)
     at6-03-new-lane-rows.txt                  stamped 2026-08-21T03:04:11Z  last written 2026-08-21T03:52:27Z  (+2896s)
-    at6-04a-diff-created.txt                  stamped 2026-08-21T03:04:11Z  last written 2026-08-21T03:52:27Z  (+2896s)
-    at6-04b-diff-matched.txt                  stamped 2026-08-23T19:22:09Z  last written 2026-08-23T19:22:26Z  (+17s)
-    at6-04c-diff-reingest-skip.txt            stamped 2026-08-23T19:22:09Z  last written 2026-08-23T19:22:26Z  (+17s)
     at6-05-per-class.txt                      stamped 2026-08-23T19:34:02Z  last written 2026-08-23T20:26:23Z  (+3141s)
-    at6-06-ledger.txt                         stamped 2026-08-23T19:42:28Z  last written 2026-08-23T20:25:43Z  (+2595s)
-    at6-07-transport-equivalence.txt          stamped 2026-08-23T19:22:09Z  last written 2026-08-23T20:27:39Z  (+3930s)
-    at6-08-gateway-version-gate.txt           stamped 2026-08-20T02:02:47Z  last written 2026-08-21T03:52:27Z  (+92980s)
-    at6-08-residual-losses.txt                stamped 2026-08-20T15:06:38Z  last written 2026-08-21T03:52:27Z  (+45949s)
+    at6-08-gateway-version-gate.txt           stamped 2026-08-20T02:02:47Z  last written 2026-08-24T00:51:54Z  (+341347s)
+    at6-08-residual-losses.txt                stamped 2026-08-20T15:06:38Z  last written 2026-08-24T00:51:18Z  (+294280s)
     at6-09-fresh-tenant-parity.txt            stamped 2026-08-21T03:04:31Z  last written 2026-08-22T02:57:36Z  (+85985s)
-    at6-12-image-provenance.txt               stamped 2026-08-21T00:46:48Z  last written 2026-08-21T03:52:27Z  (+11139s)
+    at6-12-image-provenance.txt               stamped 2026-08-21T00:46:48Z  last written 2026-08-24T00:51:18Z  (+259470s)
     at6-13-parse-err.txt                      stamped 2026-08-21T00:51:12Z  last written 2026-08-21T03:52:27Z  (+10875s)
     at6-14-failed-redeliver.txt               stamped 2026-08-21T03:10:01Z  last written 2026-08-21T03:52:27Z  (+2546s)
-    at6-15-processed-with-failures.txt        stamped 2026-08-21T12:07:38Z  last written 2026-08-21T12:37:38Z  (+1800s)
+    at6-15-processed-with-failures.txt        stamped 2026-08-21T12:07:38Z  last written 2026-08-24T00:50:06Z  (+218548s)
     at6-16-durable-retry-followup.txt         stamped 2026-08-21T12:34:45Z  last written 2026-08-21T12:37:38Z  (+173s)
     at6-17-controlled-leg-r34.txt             stamped 2026-08-22T01:18:05Z  last written 2026-08-22T02:57:36Z  (+5971s)
     at6-18-v1-classification.txt              stamped 2026-08-22T02:55:48Z  last written 2026-08-22T03:06:12Z  (+624s)
-    at7-00-isolation.txt                      stamped 2026-08-21T03:39:35Z  last written 2026-08-21T03:52:27Z  (+772s)
-    at7-01-real-install.txt                   stamped 2026-08-21T17:47:51Z  last written 2026-08-21T19:29:46Z  (+6115s)
-    at7-02-scan-payload-ref.txt               stamped 2026-08-21T17:49:05Z  last written 2026-08-21T21:54:58Z  (+14753s)
-    at7-03-db-rows-agent.txt                  stamped 2026-08-21T03:39:18Z  last written 2026-08-21T03:52:27Z  (+789s)
-    at7-04-db-rows-mcp.txt                    stamped 2026-08-21T03:39:18Z  last written 2026-08-21T03:52:27Z  (+789s)
-    at7-05-db-rows-skills.txt                 stamped 2026-08-21T03:39:18Z  last written 2026-08-21T03:52:27Z  (+789s)
-    at7-06-db-rows-subagents.txt              stamped 2026-08-21T03:39:18Z  last written 2026-08-21T03:52:27Z  (+789s)
-    at7-08-fidelity.txt                       stamped 2026-08-21T03:39:18Z  last written 2026-08-21T19:13:34Z  (+56056s)
-    at7-09-db-rows-posture.txt                stamped 2026-08-21T15:33:43Z  last written 2026-08-21T23:10:00Z  (+27377s)
+    at7-00-isolation.txt                      stamped 2026-08-24T03:23:54Z  last written 2026-08-24T03:31:00Z  (+426s)
+    at7-04-db-rows-mcp.txt                    stamped 2026-08-24T01:10:05Z  last written 2026-08-24T01:10:06Z  (+1s)
     at7-09-db-rows-tools-posture.txt          stamped 2026-08-21T03:39:18Z  last written 2026-08-21T23:10:00Z  (+70242s)
-    at7-09-db-rows-tools.txt                  stamped 2026-08-21T15:33:43Z  last written 2026-08-21T23:10:00Z  (+27377s)
-    at7-18-lifecycle-db.txt                   stamped 2026-08-21T05:08:35Z  last written 2026-08-21T21:42:47Z  (+59652s)
+    at7-09-db-rows-tools.txt                  stamped 2026-08-24T01:10:27Z  last written 2026-08-24T01:10:28Z  (+1s)
     at7-24-removal.txt                        stamped 2026-08-20T17:29:02Z  last written 2026-08-21T03:52:27Z  (+37405s)
     at7-28-lifecycle-ui-redrive.txt           stamped 2026-08-21T05:00:18Z  last written 2026-08-21T07:45:46Z  (+9928s)
     at7-29-posture-bridge.txt                 stamped 2026-08-20T17:31:30Z  last written 2026-08-21T03:52:27Z  (+37257s)
     at7-31-inventory-read-model.txt           stamped 2026-08-20T17:20:00Z  last written 2026-08-21T12:16:36Z  (+68196s)
     at7-37-list-surface-revived.txt           stamped 2026-08-20T22:00:39Z  last written 2026-08-21T03:52:27Z  (+21108s)
     at7-40-usage-ai-activity.txt              stamped 2026-08-21T01:26:32Z  last written 2026-08-21T03:52:27Z  (+8755s)
-    at7-41-lifecycle-head.txt                 stamped 2026-08-21T05:07:00Z  last written 2026-08-21T10:03:28Z  (+17788s)
     at7-43-veto-permalink-r26.txt             stamped 2026-08-21T04:55:41Z  last written 2026-08-21T07:46:02Z  (+10221s)
-    at7-44-last-seen-render.txt               stamped 2026-08-21T09:49:04Z  last written 2026-08-21T17:43:46Z  (+28482s)
-    at8-03-helm-equivalence.txt               stamped 2026-08-20T11:22:08Z  last written 2026-08-21T03:52:27Z  (+59419s)
-    at8-04-comment-fix.diff                   stamped 2026-08-21T18:37:39Z  last written 2026-08-21T18:37:49Z  (+10s)
-    at8-05-parity-check.txt                   stamped 2026-08-23T19:00:29Z  last written 2026-08-23T19:01:24Z  (+55s)
-    at8-06-keda-live.txt                      stamped 2026-08-23T18:58:18Z  last written 2026-08-23T19:48:36Z  (+3018s)
-    at8-07-instance-identity.diff             stamped 2026-08-18T19:41:33Z  last written 2026-08-21T03:52:27Z  (+202254s)
+    at7-49-recordings-index.txt               stamped 2026-08-24T02:38:42Z  last written 2026-08-24T02:38:43Z  (+1s)
+    at7-51-posture-reaffirm-headcode.txt      stamped 2026-08-24T02:26:52Z  last written 2026-08-24T02:39:29Z  (+757s)
     at8-08-render-drift.txt                   stamped 2026-08-20T06:24:55Z  last written 2026-08-21T03:52:27Z  (+77252s)
     at9-01-tf-validate.txt                    stamped 2026-08-23T19:04:50Z  last written 2026-08-23T19:46:06Z  (+2476s)
     at9-02-sqlrule-positive.txt               stamped 2026-08-23T19:04:50Z  last written 2026-08-23T19:46:06Z  (+2476s)
     at9-03-sqlrule-negative.txt               stamped 2026-08-23T19:04:50Z  last written 2026-08-23T19:46:06Z  (+2476s)
     at9-04-delivery-property.json             stamped 2026-08-23T19:04:50Z  last written 2026-08-23T19:48:47Z  (+2637s)
-    at9-05-roles.txt                          stamped 2026-08-23T19:04:50Z  last written 2026-08-23T19:46:06Z  (+2476s)
     at9-06-flux-config.txt                    stamped 2026-08-23T19:04:50Z  last written 2026-08-23T19:46:06Z  (+2476s)
     at9-07-key-match.txt                      stamped 2026-08-23T19:04:50Z  last written 2026-08-23T19:46:06Z  (+2476s)
     at9-08-credential-footprint.txt           stamped 2026-08-23T19:04:50Z  last written 2026-08-23T20:24:11Z  (+4761s)
     suite-red-lock-renewal.txt                stamped 2026-08-20T02:03:03Z  last written 2026-08-21T03:52:27Z  (+92964s)
     suite-red-without-implementation.txt      stamped 2026-08-18T20:06:23Z  last written 2026-08-21T03:52:27Z  (+200764s)
 
-footnote on the 20 rows whose stamp is a file mtime (they carry no stamp of their own).
+footnote on the 40 rows whose stamp is a file mtime (they carry no stamp of their own).
   The count and the list are the same object, so the "four/six/eight" disagreement an earlier
   version carried cannot recur. They are:
       at1-03-eventgrid-message.json
@@ -501,13 +506,33 @@ footnote on the 20 rows whose stamp is a file mtime (they carry no stamp of thei
       at10-02-image-check.txt
       at10-04-evidence-provenance.txt
       at10-04-ld-supersession-read.txt
+      at11-02-aws-lane-base.txt
+      at11-03-aws-lane-head.txt
+      at11-04-aws-lane-diff.txt
+      at6-04a-diff-created.txt
+      at6-04b-diff-matched.txt
+      at6-04c-diff-reingest-skip.txt
+      at6-07-transport-equivalence.txt
       at6-10-followup-ticket.txt
       at6-11-veto-permalink.txt
-      at7-42-lifecycle-followup-ticket.txt
-      at7-45-lifecycle-followup-ticket-r28.txt
-      at7-46-posture-followup-ticket-r30.txt
+      at6-19-closure-table.md
+      at7-legA-ui-results.json
+      at7-legA2-ui-results.json
+      at7-legA3-ui-results.json
+      at7-legB-ui-results.json
+      at7-legC-ui-results.json
+      at7-legD-ui-results.json
+      at7-legE-ui-results.json
+      at7-legF-ui-results.json
       at8-01-render-saas.txt
       at8-02-render-centerpoint.txt
+      at8-03-helm-equivalence.txt
+      at8-04-comment-fix.diff
+      at8-05-parity-check.txt
+      at8-06-keda-live.txt
+      at8-07-instance-identity.diff
+      at9-05-roles.txt
+      at9-09-least-privilege-runtime.txt
       r30-genone-reaffirm.txt
       research-r31-veto-permalink.txt
       research-r33-veto-permalink.txt
@@ -526,30 +551,35 @@ BINARY ARTIFACTS — screenshots and recordings, which carry no header to read
 Their provenance is the browser run that wrote them, and the check that they are THIS run's captures is
 at10-02, which compares the byte size served by the public host against the local file for each one.
 Timestamps below are file mtimes, read from disk by this script.
-    at7-10-ui-desktop-agent.png               2026-08-21T09:45:00Z  at7 present-phase browser run
-    at7-10b-ui-desktop-agent-detail.png       2026-08-21T09:44:20Z  at7 present-phase browser run
-    at7-11-ui-mcp.png                         2026-08-21T03:37:17Z  at7 present-phase browser run
-    at7-12-ui-skills.png                      2026-08-21T03:37:43Z  at7 present-phase browser run
-    at7-13-ui-subagents.png                   2026-08-21T03:37:56Z  at7 present-phase browser run
-    at7-14-ui-usage.png                       2026-08-21T09:42:55Z  at7 present-phase browser run
+    at7-10-ui-desktop-agent.png               2026-08-24T00:44:44Z  at7 present-phase browser run
+    at7-10a-ui-login-landing.png              2026-08-24T00:44:30Z  at7 present-phase browser run
+    at7-10b-ui-desktop-agent-detail.png       2026-08-24T00:44:55Z  at7 present-phase browser run
+    at7-11-ui-mcp.png                         2026-08-24T01:20:30Z  at7 present-phase browser run
+    at7-12-ui-skills.png                      2026-08-24T01:20:41Z  at7 present-phase browser run
+    at7-13-ui-subagents.png                   2026-08-24T01:20:52Z  at7 present-phase browser run
+    at7-14-ui-usage.png                       2026-08-24T01:03:17Z  at7 present-phase browser run
     at7-14b-ui-usage-route-404.png            2026-08-20T17:12:46Z  at7 present-phase browser run
-    at7-15-ui-lifecycle-mcp.png               2026-08-21T09:43:08Z  at7 lifecycle-phase browser run
-    at7-15b-ui-lifecycle-mcp-list.png         2026-08-19T17:27:37Z  at7 lifecycle-phase browser run
-    at7-16-ui-lifecycle-skills.png            2026-08-21T09:43:46Z  at7 lifecycle-phase browser run
-    at7-17-ui-lifecycle-subagents.png         2026-08-21T09:43:57Z  at7 lifecycle-phase browser run
-    at7-19-ui-tools.png                       2026-08-21T03:37:31Z  at7 present-phase browser run
-    at7-19b-ui-lifecycle-tools.png            2026-08-21T09:43:22Z  at7 lifecycle-phase browser run
-    at7-20-ui-posture.png                     2026-08-21T21:33:15Z  at7 present-phase browser run
-    at7-21-ui-lifecycle-agent.png             2026-08-21T21:58:04Z  at7 lifecycle-phase browser run
-    at7-21b-ui-lifecycle-agent-control.png    2026-08-21T21:58:17Z  at7 lifecycle-phase browser run
-    at7-22-ui-lifecycle-posture.png           2026-08-21T15:32:47Z  at7 lifecycle-phase browser run
-    at7-32-list-desktop-agent.png             2026-08-20T21:58:44Z  at7 present-phase browser run
-    at7-33-list-mcp.png                       2026-08-20T21:59:03Z  at7 present-phase browser run
-    at7-34-list-skill.png                     2026-08-21T09:45:17Z  at7 present-phase browser run
-    at7-35-list-subagent.png                  2026-08-20T21:59:40Z  at7 present-phase browser run
-    at7-36-list-hermes-usage.png              2026-08-20T21:59:58Z  at7 present-phase browser run
-    at7-38-ai-activity-list.png               2026-08-21T01:25:44Z  at7 present-phase browser run
-    at7-39-ai-activity-session.png            2026-08-21T01:25:57Z  at7 present-phase browser run
+    at7-14b-ui-usage-route.png                2026-08-24T01:41:36Z  at7 present-phase browser run
+    at7-15-ui-lifecycle-mcp.png               2026-08-24T01:38:16Z  at7 lifecycle-phase browser run
+    at7-15b-ui-lifecycle-mcp-list.png         2026-08-24T01:41:26Z  at7 lifecycle-phase browser run
+    at7-16-ui-lifecycle-skills.png            2026-08-24T01:38:27Z  at7 lifecycle-phase browser run
+    at7-17-ui-lifecycle-subagents.png         2026-08-24T01:38:37Z  at7 lifecycle-phase browser run
+    at7-19-ui-tools.png                       2026-08-24T00:45:52Z  at7 present-phase browser run
+    at7-19b-ui-lifecycle-tools.png            2026-08-24T01:38:17Z  at7 lifecycle-phase browser run
+    at7-20-ui-posture.png                     2026-08-24T01:53:16Z  at7 present-phase browser run
+    at7-21-ui-lifecycle-agent.png             2026-08-24T02:36:03Z  at7 lifecycle-phase browser run
+    at7-21b-ui-lifecycle-agent-control.png    2026-08-24T02:36:14Z  at7 lifecycle-phase browser run
+    at7-22-ui-lifecycle-posture.png           2026-08-24T02:24:22Z  at7 lifecycle-phase browser run
+    at7-22b-ui-lifecycle-posture-definition.png  2026-08-24T02:24:33Z  at7 lifecycle-phase browser run
+    at7-32-list-desktop-agent.png             2026-08-24T01:40:50Z  at7 present-phase browser run
+    at7-33-list-mcp.png                       2026-08-24T01:39:56Z  at7 present-phase browser run
+    at7-34-list-skill.png                     2026-08-24T01:40:13Z  at7 present-phase browser run
+    at7-35-list-subagent.png                  2026-08-24T01:40:32Z  at7 present-phase browser run
+    at7-36-list-hermes-usage.png              2026-08-24T01:41:09Z  at7 present-phase browser run
+    at7-37-list-surface-400.png               2026-08-24T01:21:10Z  at7 present-phase browser run
+    at7-38-ai-activity-list.png               2026-08-24T00:47:26Z  at7 present-phase browser run
+    at7-39-ai-activity-session.png            2026-08-24T00:48:05Z  at7 present-phase browser run
+    at7-FATAL-legC.png                        2026-08-24T01:53:44Z  at7 present-phase browser run
     setup-01-login-landing.png                2026-08-18T16:37:07Z  setup's own browser run, on the frozen pre-fix base
     setup-05-ui-ai-assets-list.png            2026-08-18T16:39:39Z  setup's own browser run, on the frozen pre-fix base
     setup-06-ui-ai-assets-playwright.png      2026-08-18T16:39:42Z  setup's own browser run, on the frozen pre-fix base
@@ -616,12 +646,44 @@ Timestamps below are file mtimes, read from disk by this script.
     recordings/at7-vr35-probe.webm            2026-08-22T12:39:54Z  at7 present-phase browser run
     recordings/at7-vr35.trace.zip             2026-08-22T12:43:00Z  at7 present-phase browser run
     recordings/at7-vr35.webm                  2026-08-22T12:43:00Z  at7 present-phase browser run
+    recordings/at7.legA2.trace.zip            2026-08-24T01:03:22Z  at7 present-phase browser run
+    recordings/at7.legA2.webm                 2026-08-24T01:03:22Z  at7 present-phase browser run
+    recordings/at7.legA3.trace.zip            2026-08-24T01:21:12Z  at7 present-phase browser run
+    recordings/at7.legA3.webm                 2026-08-24T01:21:13Z  at7 present-phase browser run
+    recordings/at7.lifecycle-agent-r52.trace.zip  2026-08-24T02:36:17Z  at7 lifecycle-phase browser run
+    recordings/at7.lifecycle-agent-r52.webm   2026-08-24T02:36:18Z  at7 lifecycle-phase browser run
     recordings/at7.lifecycle-agent.trace.zip  2026-08-23T18:29:34Z  at7 lifecycle-phase browser run
     recordings/at7.lifecycle-agent.webm       2026-08-23T18:29:34Z  at7 lifecycle-phase browser run
-    recordings/at7.lifecycle.trace.zip        2026-08-23T18:25:29Z  at7 lifecycle-phase browser run
-    recordings/at7.lifecycle.webm             2026-08-23T18:25:29Z  at7 lifecycle-phase browser run
-    recordings/at7.trace.zip                  2026-08-23T18:19:10Z  at7 present-phase browser run
-    recordings/at7.webm                       2026-08-23T18:19:10Z  at7 present-phase browser run
+    recordings/at7.lifecycle.trace.zip        2026-08-24T01:41:39Z  at7 lifecycle-phase browser run
+    recordings/at7.lifecycle.webm             2026-08-24T01:41:39Z  at7 lifecycle-phase browser run
+    recordings/at7.posture-post.trace.zip     2026-08-24T02:24:34Z  at7 present-phase browser run
+    recordings/at7.posture-post.webm          2026-08-24T02:24:35Z  at7 present-phase browser run
+    recordings/at7.posture-pre.trace.zip      2026-08-24T01:53:47Z  at7 present-phase browser run
+    recordings/at7.posture-pre.webm           2026-08-24T01:53:47Z  at7 present-phase browser run
+    recordings/at7.probe-search.trace.zip     2026-08-24T01:14:20Z  at7 present-phase browser run
+    recordings/at7.probe-search.webm          2026-08-24T01:14:20Z  at7 present-phase browser run
+    recordings/at7.probe2.trace.zip           2026-08-24T01:16:15Z  at7 present-phase browser run
+    recordings/at7.probe2.webm                2026-08-24T01:16:15Z  at7 present-phase browser run
+    recordings/at7.probe3.trace.zip           2026-08-24T01:18:50Z  at7 present-phase browser run
+    recordings/at7.probe3.webm                2026-08-24T01:18:50Z  at7 present-phase browser run
+    recordings/at7.r52probe.trace.zip         2026-08-24T02:17:54Z  at7 present-phase browser run
+    recordings/at7.r52probe.webm              2026-08-24T02:17:54Z  at7 present-phase browser run
+    recordings/at7.r52probe2.trace.zip        2026-08-24T02:18:58Z  at7 present-phase browser run
+    recordings/at7.r52probe2.webm             2026-08-24T02:18:58Z  at7 present-phase browser run
+    recordings/at7.r52probe3.trace.zip        2026-08-24T02:20:12Z  at7 present-phase browser run
+    recordings/at7.r52probe3.webm             2026-08-24T02:20:12Z  at7 present-phase browser run
+    recordings/at7.r52probe4.trace.zip        2026-08-24T02:34:24Z  at7 present-phase browser run
+    recordings/at7.r52probe4.webm             2026-08-24T02:34:24Z  at7 present-phase browser run
+    recordings/at7.trace.zip                  2026-08-24T00:48:10Z  at7 present-phase browser run
+    recordings/at7.webm                       2026-08-24T00:48:11Z  at7 present-phase browser run
+    recordings/at7vr40b-legA.trace.zip        2026-08-23T22:41:32Z  at7 present-phase browser run
+    recordings/at7vr40b-legA.webm             2026-08-23T22:41:32Z  at7 present-phase browser run
+    recordings/at7vr40b-legB.trace.zip        2026-08-23T22:50:05Z  at7 present-phase browser run
+    recordings/at7vr40b-legB.webm             2026-08-23T22:50:05Z  at7 present-phase browser run
+    recordings/at7vr40b-legC.trace.zip        2026-08-23T22:52:18Z  at7 present-phase browser run
+    recordings/at7vr40b-legC.webm             2026-08-23T22:52:18Z  at7 present-phase browser run
+    recordings/at7vr40b-legD.trace.zip        2026-08-23T22:54:11Z  at7 present-phase browser run
+    recordings/at7vr40b-legD.webm             2026-08-23T22:54:11Z  at7 present-phase browser run
     recordings/probe-list.trace.zip           2026-08-20T17:14:55Z  at7 present-phase browser run
     recordings/probe-list.webm                2026-08-20T17:14:55Z  at7 present-phase browser run
     recordings/probe2.trace.zip               2026-08-20T17:17:42Z  at7 present-phase browser run
@@ -695,7 +757,7 @@ is the point of it. Its own meta.json records the sha it was taken at:
     captures assert (config.py, service.py, consumer/, both gen-2 service packages) are byte-unchanged
     across that drift, so the "before" is faithful.
 
-counts by group: 10 lane-touching commit(s) landed after it: 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 2 · 12 lane-touching commit(s) landed after it: c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 2 · 13 lane-touching commit(s) landed after it: cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 5 · 2 lane-touching commit(s) landed after it: fb12b015be, 35127c77fd = 1 · 20 lane-touching commit(s) landed after it: 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none) = 1 · 21 lane-touching commit(s) landed after it: 988364c282, 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 2 · 22 lane-touching commit(s) landed after it: 153d29c86a, 988364c282, 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 2 · 25 lane-touching commit(s) landed after it: 4fa8a86e61, f16d1110a4, 20fa8d9553, 153d29c86a, 988364c282, 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none) = 2 · 4 lane-touching commit(s) landed after it: acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 1 · 5 lane-touching commit(s) landed after it: ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 1 · 6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 58 · 6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none) = 11 · 7 lane-touching commit(s) landed after it: a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 6 · 8 lane-touching commit(s) landed after it: f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 1 · 9 lane-touching commit(s) landed after it: ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 2 · CURRENT — 0 lane-touching commits landed after it = 52 · CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none) = 6
+counts by group: 10 lane-touching commit(s) landed after it: 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 1 · 12 lane-touching commit(s) landed after it: c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 2 · 13 lane-touching commit(s) landed after it: cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 5 · 2 lane-touching commit(s) landed after it: fb12b015be, 35127c77fd = 1 · 20 lane-touching commit(s) landed after it: 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none) = 1 · 21 lane-touching commit(s) landed after it: 988364c282, 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 1 · 22 lane-touching commit(s) landed after it: 153d29c86a, 988364c282, 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 2 · 25 lane-touching commit(s) landed after it: 4fa8a86e61, f16d1110a4, 20fa8d9553, 153d29c86a, 988364c282, 85c90a7518, b4f0b544e5, 23247bd494, c70493626a, 8342fed114, 0cfbd4240c, dfe23b9e83, cdcd725ebb, c225ba9cd9, cb96081d70, 3979910bde, ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none) = 2 · 4 lane-touching commit(s) landed after it: acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 1 · 5 lane-touching commit(s) landed after it: ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 1 · 6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 34 · 6 lane-touching commit(s) landed after it: 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd  (stamp is the file mtime; its own header carries none) = 7 · 7 lane-touching commit(s) landed after it: a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 6 · 8 lane-touching commit(s) landed after it: f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 1 · 9 lane-touching commit(s) landed after it: ce9ad09c30, f4b3e9dfb2, a2486bb33f, 8f8a02bd6c, ecf60f81c7, acd46e203c, 4ac8a3f538, fb12b015be, 35127c77fd = 2 · CURRENT — 0 lane-touching commits landed after it = 71 · CURRENT — 0 lane-touching commits landed after it  (stamp is the file mtime; its own header carries none) = 30
 
 ========================================================================================================================
 WHAT THE TABLE SUPPORTS, STATED AS THE TABLE SUPPORTS IT
@@ -714,18 +776,15 @@ artifact that is CURRENT — i.e. no functional commit of mine landed after it w
 
 Every artifact that pastes WRITER OUTPUT (row dumps, lane diffs) is on the head. What is NOT true —
 and an earlier version of this file said it was — is that no live runtime capture sits outside that
-group. 9 do, and here they all are, generated from the table rather than counted by hand:
+group. 6 do, and here they all are, generated from the table rather than counted by hand:
     at1-09-flag-verification.txt              2026-08-20T17:42:33Z  live-runtime (the LD server SDK, both contexts)
     at5-04-replay-scanner.txt                 2026-08-18T19:20:04Z  live-runtime (zero consumption)
     at5-05-replay-mcpgw.txt                   2026-08-18T19:20:04Z  live-runtime (zero consumption)
-    at7-00-isolation.txt                      2026-08-21T03:39:35Z  live-runtime (the isolation receipt, both ends)
-    at7-02-scan-payload-ref.txt               2026-08-21T17:49:05Z  live-runtime + db-rows
-    at7-07-db-rows-usage.txt                  2026-08-21T09:33:12Z  db-rows + live-runtime (the sessions step's own reason)
     at7-09-db-rows-tools-posture.txt          2026-08-21T03:39:18Z  db-rows + live-runtime (the posture bridge)
     at7-24-removal.txt                        2026-08-20T17:29:02Z  live-runtime (the uninstall, on the machine)
     setup-02-scan-transcript.txt              2026-08-19T12:22:26Z  live-runtime (setup's own proving run)
 
-Each of those 9 is accounted for individually below — superseded by a head-image capture,
+Each of those 6 is accounted for individually below — superseded by a head-image capture,
 or sound because the commits after it cannot reach what it asserts. The one exception is at8-06,
 the live KEDA arm, which is NOT superseded and is not claimed to be (see THE KEDA CLAIM below).
 
@@ -741,19 +800,6 @@ the live KEDA arm, which is NOT superseded and is not claimed to be (see THE KED
         ot consume
     at5-05-replay-mcpgw.txt
         as at5-04
-    at7-00-isolation.txt
-        the isolation receipt for the C2 window — a record of which pods were scaled to zero at a po
-        int in time. Later commits cannot retroactively change what was running then
-    at7-02-scan-payload-ref.txt
-        C2 row dumps. The writer commit after them, 8342fed114, only propagates scanner_version to S
-        EEDED connectors, and that value reaches a row only when protects_all_mcps is true — measure
-        d false for all 5 desktop_agent_users in every schema, so current_gw_version is NULL in both
-         lanes and no row it dumps can have moved
-    at7-07-db-rows-usage.txt
-        C2 usage/session row dumps taken inside the isolation window. The writer commit after them, 
-        8342fed114, only propagates scanner_version to SEEDED connector servers — a path that touche
-        s no usage or session row at all — and its value reaches a row only when protects_all_mcps i
-        s true, measured false for all 5 desktop_agent_users in every schema
     at7-09-db-rows-tools-posture.txt
         C2 tools + posture row dumps from the same window, same reasoning as at7-07: the commits aft
         er them touch the MCP-seeding and transport paths, not the tools/posture bridge, and the wri
@@ -1169,26 +1215,8 @@ moved — and one did: at9-06 asserted the lane's flux keys were published UNCON
 ~19 hours after infrastructure commit 3219b7ce made the publish conditional. Every artifact
 that names a sibling sha is now measured against that repo's own head as well.
 
-    8 artifact(s) carry a sibling-repo sha:
+    2 artifact(s) carry a sibling-repo sha:
       at1-08-config-provenance.txt              flux-fleet@a4493c1e5ac0  CURRENT
-      at8-01-render-saas.txt                    flux-fleet@a4493c1e5ac0  CURRENT
-      at8-02-render-centerpoint.txt             flux-fleet@a4493c1e5ac0  CURRENT
-      at8-03-helm-equivalence.txt               flux-fleet@68bdecfd1e70  201 commit(s) behind a4493c1e5ac0
-          changed since: .github/scripts/manifest_diff.py
-          changed since: .github/workflows/helm-diff.yaml
-          changed since: apps/ai-guard/azure/release.yaml
-          changed since: apps/ai-guard/image-policies-shared-infra.yaml
-          changed since: apps/ai-guard/images-shared-infra.yaml
-          changed since: apps/ai-guard/repository-shared-infra.yaml
-      at8-04-comment-fix.diff                   flux-fleet@cab40f0e42  132 commit(s) behind a4493c1e5ac0
-          changed since: .github/scripts/manifest_diff.py
-          changed since: .github/workflows/helm-diff.yaml
-          changed since: apps/ai-guard/azure/release.yaml
-          changed since: apps/ai-guard/image-policies-shared-infra.yaml
-          changed since: apps/ai-guard/images-shared-infra.yaml
-          changed since: apps/ai-guard/repository-shared-infra.yaml
-      at8-05-parity-check.txt                   flux-fleet@a4493c1e5ac0  CURRENT
-      at8-06-keda-live.txt                      flux-fleet@a4493c1e5ac0  CURRENT
       at8-08-render-drift.txt                   flux-fleet@e3fc1646ab2b  272 commit(s) behind a4493c1e5ac0
           changed since: .github/scripts/manifest_diff.py
           changed since: .github/workflows/helm-diff.yaml
