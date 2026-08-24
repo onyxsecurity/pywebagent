@@ -1,7 +1,7 @@
 # PRDCT-11935 at6-06 — the closure table, the transport-divergence ledger, and the OWNER-ACCEPTED GAP
-# FILE LAST WRITTEN 2026-08-24T00:44:00Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-24T00:58:43Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T00:44:00Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T00:58:43Z
 #
 # ROUND-50 CORRECTION BANNER — three false statements fixed, no measurement removed.
 # The round-48 header below correctly reframed sections A/B/C for the owner ruling, but the HISTORICAL
@@ -31,6 +31,33 @@
 #   had invented two settlement families; it is rewritten this round from the head source labels with all
 #   79 of its cites machine-verified). Two classes the old table omitted — record-level `unknown_tenant`
 #   and `ok` — are now rows.
+#
+#   SECOND PASS (same round, after a bundle-wide sweep). The first pass corrected sections A/B/C and the
+#   two historical dispositions but left PART 5 and its downstream index entries unswept. Also fixed:
+#
+#   4. PART 5's `processed_with_failures` closure row carried a full "DEMONSTRATED LIVE — ROUND 29"
+#      narrative and cited at6-15 as proof of a live class. WITHDRAWN, struck, with the proof commands
+#      (`grep -rn 'processed_with_failures' backend_python/src backend | wc -l` -> 0; object_processor.py
+#      is not in this PR's diff). The round-29 MEASUREMENT is kept legible — a disposition is withdrawn,
+#      not a record deleted.
+#   5. Every downstream entry that presented the class as live: the declared closure-index map
+#      (`agent_slices_dropped -> processed_with_failures`), the round-37 checker transcript (labelled as
+#      history, with the head's 24-vs-25 IN delta named), the round-28 derived closure table row, the
+#      post_inventory.go:204 gen-1 row (its "the new lane's answer is …" is now "gen-1 -> nothing, NOT
+#      CLOSED"), the 9-gen-1-rows summary sentence, and the "gen-1 spellings" list.
+#   6. Every citation of at6-15 re-pointed. That file now opens with a "RETAINED AS HISTORY — NOT
+#      EVIDENCE FOR THIS PR" banner saying explicitly not to cite it for d-c13-4; at6-06 now cites it
+#      only as the auditable record of a reverted capability. The two files agree.
+#   7. The `session_alerts published` row claimed "This whole family is introduced by the head commit
+#      itself". FALSE and now corrected: the family is PRE-EXISTING and byte-identical on origin/main and
+#      this head, and writers.py is not in this PR's diff at all. The only endpoint_asset_ingestion file
+#      this PR touches is metrics.py, whose entire diff is the SQS->queue HELP-text rewording the ruling
+#      told us to KEEP. The live counter reading (11/11) STANDS; only the attribution is withdrawn.
+#      (Mirrors the same correction the sweep made to at6-19-closure-table.md row 23.)
+#   8. The `session_alerts publish_failed` row cited, as its sole coverage, a unit test that is not in
+#      the tree (`git ls-files | grep -c 'test_session_alert_failure_is_metered'` -> 0) and a helper that
+#      is 0 hits. At head `publish_failed` is a GATEWAY-lane value only, so it is not a settlement class
+#      of the lane this AT covers and carries no closure obligation here.
 #
 # NOT CHANGED BY THIS ROUND: every other measurement, diff, counter reading and root-cause analysis in
 # this file. This was a correction of false statements and one over-claimed dependency, not a rewrite.
@@ -840,33 +867,47 @@ no_ingestible_object      new only     ADDED IN ROUND 20, closing a hole this ta
                                        for a scanner object at all. The cloud asymmetry is deliberate and
                                        lives in ONE named predicate, empty_parse_is_poison(cloud): the same
                                        empty parse on AWS is only ever an s3:TestEvent and is ACKED (D-6).
-processed_with_failures   new only     ADDED IN ROUND 20, and the class did not exist before it. An object
-                                       whose agent slice was abandoned by per-agent isolation used to meter
-                                       plain `processed` — the lane reported success for an object whose
-                                       rows had not all landed, which is precisely the settlement-with-no-
-                                       label clause 1 forbids. It still ACKs (redelivery cannot fix a
-                                       deterministic per-agent failure, and the voided marker already
-                                       schedules the retry) but under its own outcome, with the slices
-                                       counted on asset_ingestion_agent_slices_dropped_total.
-                                       LEDGERED: gen-1's counterpart is an activity error recorded against
-                                       the object while the workflow continues — same behaviour, made
-                                       countable here.
-                                       DEMONSTRATED LIVE — ROUND 29 (gate G2). The previous disposition
-                                       said this class was "proven by its unit tests and by the live label
-                                       set in at6-01". The round-26 gate was right to refuse that: a unit
-                                       test is not the e2e, the at6-01 half was false (the string appeared
-                                       there only as a source cite), and there were ZERO
-                                       agent_slices_dropped samples anywhere in the evidence tree. It is
-                                       now driven on the real lane: a real CHECK constraint scoped to one
-                                       detected runtime made exactly that agent's identity write fail with
-                                       a non-transient SQLSTATE (23514, deliberately absent from
-                                       pg_retry's retryable set), the isolation fired for app_name=codex
-                                       while its siblings landed, and BOTH series came into existence —
-                                       objects{outcome="processed_with_failures"} 0 -> 2 and
-                                       agent_slices_dropped_total 0 -> 2. Control: the constraint dropped
-                                       and the scan re-driven gives 0 isolation warnings, processed
-                                       14 -> 22, both failure counters unmoved at 2.
-                                       Receipt: at6-15-processed-with-failures.txt.
+~~processed_with~~         ~~new only~~ ROW WITHDRAWN — ROUND 50. THE CLASS DOES NOT EXIST AT HEAD.
+~~_failures~~                          WHAT THIS ROW SAID: "ADDED IN ROUND 20, and the class did not exist
+                                       before it … It still ACKs … but under its own outcome, with the
+                                       slices counted on asset_ingestion_agent_slices_dropped_total …
+                                       DEMONSTRATED LIVE — ROUND 29 (gate G2) … BOTH series came into
+                                       existence — objects{outcome="processed_with_failures"} 0 -> 2 and
+                                       agent_slices_dropped_total 0 -> 2 … Receipt:
+                                       at6-15-processed-with-failures.txt."
+                                       WHAT IS TRUE AT HEAD: the outcome value and its companion counter
+                                       were both REVERTED out of this PR by the round-45 owner ruling,
+                                       which put "ingestion/object_processor.py — the processed_with_
+                                       failures split and agent_slices_dropped" and "metrics.py PARTIAL —
+                                       drop the new 'processed_with_failures' outcome value,
+                                       AgentSlicesDroppedLabels and the agent_slices_dropped counter" on
+                                       its REVERT list. ObjectLabels.outcome declares FOUR values, not
+                                       five, and object_processor.py is not in this PR's diff at all.
+                                       THE PROOF COMMANDS:
+                                         $ grep -rn 'processed_with_failures' backend_python/src backend | wc -l
+                                         0
+                                         $ grep -rn 'agent_slices_dropped\|AgentSlicesDroppedLabels' backend_python/src | wc -l
+                                         0
+                                         $ sed -n '134p' backend_python/src/endpoint_asset_ingestion/metrics.py
+                                             outcome: Literal["processed", "skipped_flag_off", "skipped_unknown_tenant", "failed"] = "processed"
+                                         $ git diff --stat origin/main...HEAD -- backend_python/src/endpoint_asset_ingestion/ingestion/object_processor.py | wc -l
+                                         0
+                                       WHAT IS NOT WITHDRAWN: the ROUND-29 MEASUREMENT ITSELF. The CHECK
+                                       constraint on SQLSTATE 23514, the isolation firing for
+                                       app_name=codex while its siblings landed, both counters moving
+                                       0 -> 2, and the control leg (constraint dropped, 0 isolation
+                                       warnings, processed 14 -> 22, failure counters unmoved at 2) all
+                                       really happened. A disposition is being withdrawn, not a record
+                                       deleted.
+                                       CITATION RE-POINTED: at6-15-processed-with-failures.txt now opens
+                                       with a banner reading "RETAINED AS HISTORY — NOT EVIDENCE FOR THIS
+                                       PR", which states the capture branch (a2486bb33f, superseded) and
+                                       says explicitly that the class does not exist at head. This row no
+                                       longer cites it as proof of a live class; it cites it as the
+                                       auditable record of a reverted one. The two files now agree.
+                                       CLOSURE EFFECT: this class contributes NO closure obligation at
+                                       head — it is not in the at6-01 inventory, because at6-01 is now
+                                       derived from the head code labels. See section C.
 failed -> redeliver       new only     DEMONSTRATED live in at6-14-failed-redeliver.txt (round 25, head image):
                                        an ACCESS EXCLUSIVE lock on prdct11935_tb.mcp_ingestion_state makes the
                                        writer's read hit statement_timeout (QueryCanceledError), the object
@@ -947,25 +988,63 @@ unknown_tenant (RECORD)   new only     DEMONSTRATED live ON THE SHIPPED HEAD —
                                        the message was ACKED (not dead-lettered) — correct, since the key is
                                        deterministic and carries no tenant to attribute rows to.
                                        Receipt: at6-01 §DEMO. LEDGERED: gen-1 never parses an object key.
-session_alerts published  new only     DEMONSTRATED live — ADDED ROUND 28 (gate GAP-2). This whole family is
-                                       introduced by the head commit itself ("count the alert publishes it
-                                       loses"), so no capture taken before a2486bb33f could carry it.
+session_alerts published  PRE-EXISTING DEMONSTRATED live — ADDED ROUND 28 (gate GAP-2).
+                          (not new)    ATTRIBUTION CORRECTED — ROUND 50. This row said "This whole family is
+                                       introduced by the head commit itself ('count the alert publishes it
+                                       loses'), so no capture taken before a2486bb33f could carry it", and
+                                       closed with "which is precisely the asymmetry the head commit closes
+                                       on this lane". BOTH CLAUSES ARE FALSE at head. The session_alerts
+                                       family is PRE-EXISTING: it is byte-identical on origin/main and on
+                                       this head, and writers.py — where the scanner lane emits it — is not
+                                       in this PR's diff at all.
+                                         $ git diff --stat origin/main...HEAD -- \
+                                             backend_python/src/endpoint_asset_ingestion/ingestion/writers.py | wc -l
+                                         0
+                                         $ diff <(git show origin/main:.../metrics.py | sed -n '/session_alerts = Counter(/,/^    )/p') \
+                                                <(sed -n '/session_alerts = Counter(/,/^    )/p' .../metrics.py)
+                                         (no output — the Counter block is content-identical)
+                                       The ONLY endpoint_asset_ingestion file this PR touches is metrics.py,
+                                       and its whole diff is the SQS->queue HELP-TEXT rewording the round-45
+                                       ruling explicitly told us to KEEP ("KEEP the SQS->queue HELP-text
+                                       rewording; that one is Azure-correct") — 7 insertions, 5 deletions,
+                                       no instrument added, no label value added. The related claim that
+                                       `publish_failed` was made countable by the head commit is withdrawn
+                                       with the `_meter_session_alerts` revert; see the row below and
+                                       at6-01 §1(b), which records that at head the SCANNER lane reaches
+                                       only `published` and `skipped_no_queue`, and `publish_failed` is a
+                                       GATEWAY-lane value (gateway_writers.py:420).
+                                       WHAT STANDS, UNCHANGED: the measurement.
                                        asset_ingestion_session_alerts_total{outcome="published"} reads 11 on
-                                       onyx_security and 11 on prdct11935_tb in at6-01 §DEMO — i.e. the
-                                       fan-out is really running on both tenants on the shipped head.
+                                       onyx_security and 11 on prdct11935_tb in at6-01 §8 — the fan-out is
+                                       really running on both tenants on the shipped head. That is a live
+                                       reading of a real counter and it is not retracted; only the claim
+                                       that this PR introduced the counter is.
                                        LEDGERED: gen-1 publishes session alerts through its own Go path and
-                                       emits no equivalent counter, which is precisely the asymmetry the head
-                                       commit closes on this lane.
-session_alerts            new only     NAMED-NOT-RUN, with reason — ADDED ROUND 28 (gate GAP-2).
-  publish_failed                       Reaching it requires the alert-processing SEND to exhaust its retries
-                                       against a real Service Bus queue. The lab queue is healthy and the
-                                       grant is in place (that is what round 24's G15 fixed and
-                                       at11-01 evidences), so the failure cannot be induced here without
-                                       breaking the very grant this PR added. It is covered instead by the
-                                       unit test the head commit ships,
-                                       tests/endpoint_asset_ingestion/ingestion/test_session_alert_failure_is_metered.py,
-                                       which fails without _meter_session_alerts. Stated as not-run rather
-                                       than counted as a pass.
+                                       emits no equivalent counter. That asymmetry is real, PRE-DATES this
+                                       PR, and is not closed by it.
+session_alerts            GATEWAY LANE NOT A SCANNER-LANE CLASS AT HEAD — ROW CORRECTED ROUND 50.
+  publish_failed          ONLY         WHAT THIS ROW SAID: "NAMED-NOT-RUN, with reason … It is covered
+                                       instead by the unit test the head commit ships,
+                                       tests/.../test_session_alert_failure_is_metered.py, which fails
+                                       without _meter_session_alerts."
+                                       WHAT IS TRUE AT HEAD: `_meter_session_alerts` was REVERTED by the
+                                       round-45 ruling ("ingestion/writers.py — … and _meter_session_alerts"
+                                       on its REVERT list), and the named test went with it.
+                                         $ grep -rn '_meter_session_alerts' backend_python/src | wc -l
+                                         0
+                                         $ git ls-files | grep -c 'test_session_alert_failure_is_metered'
+                                         0
+                                       So the row cited, as its sole coverage, a test that is not in the
+                                       tree. The SCANNER lane does not reach `publish_failed` at head at
+                                       all — writers.py has no such call site; the value is emitted only on
+                                       the GATEWAY lane at gateway_writers.py:420 (at6-01 §1(b), §2).
+                                       DISPOSITION AT HEAD: not a settlement class of the lane this AT
+                                       covers, so it carries no closure obligation here. It remains
+                                       correctly NOT claimed as demonstrated. The original reason the row
+                                       gave for not driving it stands on its own terms and is kept: the lab
+                                       queue is healthy and the grant is in place (round 24's G15, evidenced
+                                       in at11-01), so a send-exhaustion cannot be induced without breaking
+                                       the very grant this PR added.
 session_alerts            new only     NAMED-NOT-RUN, with reason — ADDED ROUND 28 (gate GAP-2). Requires a
   skipped_no_queue                     writer with NO alert-processing producer configured. Every pod in this
                                        lab has one (alert_processing_asb is set in the shipping ConfigMap),
@@ -1176,9 +1255,18 @@ tenant scan settles       gen-1 only   THE CLASS THE NEW LANE EXISTS TO CLOSE. T
   suppressed                           settles SUCCESS with no assets, no issues and no risk, returning counts
   (post_inventory.go:204)              BYTE-IDENTICAL to a legitimately-empty scan. No metric, and the
                                        structured log records only the child failure, never how the scan
-                                       settled. DIRECTION: gen-1 -> new, CLOSED. The new lane's answer is
+                                       settled. DIRECTION CORRECTED — ROUND 50. This read "DIRECTION:
+                                       gen-1 -> new, CLOSED. The new lane's answer is
                                        objects{outcome="processed_with_failures"} + agent_slices_dropped,
-                                       DEMONSTRATED for real in at6-15-processed-with-failures.txt.
+                                       DEMONSTRATED for real in at6-15-processed-with-failures.txt."
+                                       At head the new lane HAS NO ANSWER to this class: both instruments
+                                       are 0 hits (see the withdrawn PART 5 row above for the commands),
+                                       reverted by the round-45 ruling. DIRECTION AT HEAD: gen-1 -> nothing,
+                                       NOT CLOSED. This is inside the owner-accepted gap of section A and
+                                       is tracked on PRDCT-12061; it is not a transport finding and not a
+                                       parity claim. at6-15 is cited only as the auditable record of the
+                                       reverted capability — it now opens with a "RETAINED AS HISTORY —
+                                       NOT EVIDENCE FOR THIS PR" banner and must not be cited for d-c13-4.
 bridge silently not       gen-1 only   No assets created -> the bridge is not dispatched, the tenant settles
   dispatched                           SUCCESS, and NOTHING is emitted — no log, no metric. Reachable both
   (post_inventory.go:232)              legitimately and pathologically (via :204), and the two are
@@ -1209,7 +1297,10 @@ activity output over the  gen-1 only   NON-RETRYABLE, and one of only TWO machin
 ## classes that simply do not exist in a push-driven lane and do not survive the cutover. Two —
 ## scannerScheduleDisabled and the payload filter — are the same class metered on the other side. One is a
 ## deliberate polarity change. And one, post_inventory.go:204, is the unlabelled silent-partial that
-## objects{outcome="processed_with_failures"} was added to close.
+## objects{outcome="processed_with_failures"} WAS ADDED TO CLOSE AND THEN REVERTED — corrected round 50:
+## this sentence used to end "was added to close", present tense. At head that outcome value does not
+## exist (0 hits), so the silent-partial remains OPEN on both lanes. It sits inside the owner-accepted gap
+## of section A, tracked on PRDCT-12061.
 
 ------------------------- ------------ ----------------------------------------------------------------
 
@@ -1384,7 +1475,11 @@ reingest_edges_           new only     DEMONSTRATED on the new lane — ADDED RO
 ## whole-word hit on the CLASS column. A new instrument can therefore be closed only by adding a row or an
 ## entry here — never by a word happening to appear in some sentence.
 ##
-##   closes: agent_slices_dropped           -> processed_with_failures      (the row's own capture moves agent_slices_dropped_total 0 -> 2, with a control)
+##   closes: agent_slices_dropped           -> WITHDRAWN ROUND 50: neither the instrument nor the class exists at head (both 0 hits;
+##                                             reverted by the round-45 ruling). The entry used to read "-> processed_with_failures
+##                                             (the row's own capture moves agent_slices_dropped_total 0 -> 2, with a control)". There
+##                                             is nothing left to close: agent_slices_dropped is no longer in the at6-01 IN set, so it
+##                                             raises no closure obligation. Kept as a struck entry so the map's history is auditable.
 ##   closes: agents_reingest_skipped        -> reingest-skip                (both reingest instruments settle under the single reingest-skip class)
 ##   closes: dead_letters                   -> unparseable -> DLQ           (the row's capture moves dead_letters_total 2 -> 3 and reads the message back out)
 ##   closes: dropped_bytes                  -> skipped_flag_off             (the byte-sized twin of the same flag-off drop; named in that row since round 36)
@@ -1394,6 +1489,20 @@ reingest_edges_           new only     DEMONSTRATED on the new lane — ADDED RO
 ## Verified by /tmp/prdct11935/r36/check-closure.py, whose output is pasted below this table.
 
 ## ---- OUTPUT OF THAT CHECK, re-run round 37, pasted verbatim ----------------------------------
+## READ THIS BLOCK AS A ROUND-37 TRANSCRIPT, NOT AS HEAD STATE — LABELLED ROUND 50. It was produced on the
+## PRE-REVERT branch a2486bb33f. Two of its lines therefore present a reverted class as live and are
+## superseded rather than edited (rewriting a transcript to fit a later head is the defect this round is
+## fixing):
+##   · its CLASS-column listing includes `processed_with_failures`;
+##   · its per-instrument result line "OK agent_slices_dropped … via declared index -> 'processed_with_
+##     failures'" closes an instrument that no longer exists against a class that no longer exists.
+## AT HEAD the same enumeration returns 24 IN instruments, not 25 — the single missing row is
+## `agent_slices_dropped`. That 25 -> 24 delta IS the mechanical signature of the revert, and the current
+## machine-generated table lives in at6-01 §3 (40 instruments · 32 Labels · 58 emissions · 24 IN ·
+## 0 unresolved · 0 cite-failures), re-runnable via
+## /tmp/prdct11935/r50/at6docs/enumerate-metrics-r50.py. Where this transcript and at6-01 §3 disagree,
+## §3 is head state and this is history.
+##
 ## The IN set went from 21 instruments to 25 this round: the enumerator behind it now walks EVERY metrics registry the
 ## lane emits from, not just endpoint_asset_ingestion/metrics.py (verify r32 F3 — see at6-01's
 ## ROUND 37 section). The four additions are the shared MCP asset-creation counters.
@@ -1456,7 +1565,9 @@ its reason and its call site.
 ##      failed                       YES        parse_err                    YES
 ##      mcp_servers_reingest_skipped YES        poison-ack FALLBACK          YES
 ##      processed                    YES        publish_failed               YES
-##      processed_with_failures      YES        published                    YES
+##      ~~processed_with_failures~~   n/a        published                    YES
+##        ^ WITHDRAWN ROUND 50 — not in the head inventory; the class was reverted, so it neither needs
+##          nor has a closure row. The round-28 count below is left as that round's transcript.
 ##      skipped_flag_off             YES        skipped_no_queue             YES
 ##      skipped_unknown_tenant       YES        unknown_tenant (RECORD)      YES
 ##      unparseable                  YES        wrong_source                 YES
@@ -1476,9 +1587,15 @@ its reason and its call site.
 ##
 ## The remaining gen-1 exits enumerated in at6-01 (workflow.go:181/:194/:275, tenant_workflow.go:208,
 ## post_inventory.go:58/:240, activities.go:187/:624/:834, object_workflow.go:70) are gen-1 spellings of
-## classes ALREADY carrying a row above — failed, processed_with_failures, skipped_unknown_tenant,
-## wrong_source, parse_err — and each is named in that row's "new lane" column rather than duplicated as
-## its own row. d-c13-4 is re-closed against the union inventory on that basis, in both directions.
+## classes ALREADY carrying a row above — failed, skipped_unknown_tenant, wrong_source, parse_err — and
+## each is named in that row's "new lane" column rather than duplicated as its own row.
+## CORRECTED ROUND 50: this list used to include `processed_with_failures`. It is removed because the
+## class does not exist at head, so the gen-1 exits that used to map onto it (workflow.go:194,
+## post_inventory.go:204/:240, activities.go:834) map onto NOTHING in the new lane. That is the
+## owner-accepted gap of section A, not a closure. Note also that the "union inventory" this sentence
+## invokes no longer exists as a derivation: at6's rescoped required_evidence makes the gen-1-union half a
+## RECORDED GAP, not an executed comparison (at6-01 §5), so d-c13-4 closes against the single writer's
+## head-derived inventory (section C), in one direction only.
 ##
 ## (agents_reingest_skipped and mcp_servers_reingest_skipped both settle under the single `reingest-skip`
 ## row; `created / matched` in at6-01's write-outcome block maps to the `created` and `matched` rows.)
