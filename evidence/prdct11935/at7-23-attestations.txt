@@ -1,203 +1,198 @@
-# PRDCT-11935 at7-23 — PER-CLASS ATTESTATION TABLE — the at7 per-class demands settled one at a time
-# FILE LAST WRITTEN 2026-08-21T23:08:30Z
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
-# captured 2026-08-21T23:08:30Z · tenant onyx_security
-#
-# GENERATED, NOT HAND-EDITED — /tmp/prdct11935/r31/gen-at7-23.py. Three consecutive gates (r26, r27, r28)
-# found this file settling a class on a citation the cited artifact does not contain: fabricated
-# timestamps "11:28:02"/"12:06:02"/"12:07:01" that existed nowhere else in the tree, an
-# `openclaw --version` print attributed to an artifact holding neither the command nor the string, a
-# skills identity "8b916171…" cited to a file carrying a different hash, and a posture row naming
-# instances that grep zero. Re-wording it a fourth time would not fix the class of defect. So the fix is
-# structural: every load-bearing literal below is DECLARED with the artifact that must contain it, and
-# the generator REFUSES TO EMIT ANY ROW whose declared literal greps zero in its named file. A citation
-# that does not resolve is now a build failure, not a reviewer's discovery. The resolution appendix at
-# the end prints every literal with its hit count, so the guard is auditable and not merely asserted.
-#
-# LIFECYCLE VOCABULARY (amendment_r26 + r28 + r30). No class settles as a product-visible stale or
-# deleted state — the product ships no such representation for any of them. Where a freshness contrast
-# exists it is a DATABASE fact and is claimed as nothing more. The posture class is the one class that
-# settles as a DEFECT (it re-affirms Open and shows deleted content as live Evidence) and is ledgered
-# and ticketed as such, never as acceptable behaviour.
-#
-# Columns per class: the DB rows · the annotated UI capture · the machine-tied fidelity value · the
-# lifecycle end state. "UI" means the surface a user actually reaches, with this run's row outlined in
-# the full surface (never an isolated crop).
+# PRDCT-11935 at7-23-attestations.txt — the PER-CLASS attestation table: the 28 per-class C2 demands settled INDIVIDUALLY
+# FILE LAST WRITTEN 2026-08-24T02:39:46Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T02:39:46Z
 
-=========================================================================================================
-CLASS: desktop agent            (d-c2-rows-agent / ui-agent / fid-agent / lc-agent)
-  rows       at7-03 — the class re-observed on this head; created_in_window is 0 for it and that is shown
-             rather than papered over (this machine was already inventoried by earlier windows)
-  ui         at7-10 (the /ai-assets inventory LIST located to OpenClaw by the table's own search) ·
-             at7-10b (OpenClaw's own DETAIL page, asset 10729) — both show a DESKTOP AGENT, both outlined,
-             needle asserted programmatically in the run's own JSON, not by eye. DISCLOSED: at7-10 is the
-             generic /ai-assets list search-filtered, not the plan's named /ai-assets/desktop-agents route;
-             that named route is captured by the lifecycle pair at7-21 / at7-21b.
-  fidelity   the version the product stored for asset 10729 is `2026.5.7 (eeef486)` (at7-03) — the runtime's
-             own version string. NOTE: no product surface renders a desktop agent's version, so this is a DB
-             fidelity value; at7-10b is captioned to the machine tie it DOES show (Device ip-10-10-6-254, OS
-             Linux, Sources "Endpoint Scanner"). Machine tie: serial ec255301bd4407d309fbce94811384b0 via
-             desktop_agent_users. ROUND-31 CORRECTION: a previous revision attributed this string to an
-             `openclaw --version` print "at install time (at7-01)"; at7-01 contains neither the command nor
-             the string, so the cite is re-pointed at the artifact that actually holds the value.
-  lifecycle  amendment_r28's four-part end-state as re-scoped by amendment_r31, DELIVERED.
-             SUPERSESSION, carried inline as amendment_r31 requires: amendment_r28's part-(2) FROZEN
-             wording is WITHDRAWN as unprovable-as-stated. Writer (w1) advances this column for ANY
-             ingested payload that lists the runtime, stamped with the INGEST wall-clock — including the
-             acceptance re-drives this contract itself requires every round — so the honest cross-window
-             property is a LAG, not an absolute freeze. Nothing in this run claims otherwise.
-             (1) not resurrected / not duplicated: one asset row per identity, is_deleted f.
-             (2a) single-scan staircase (at7-30): across the paired second scan (scan_run_id
-                  333b21ef-714b-4b8c-84ad-eaec81bc2799, agent list ["claude-code","claude","codex",
-                  "hermes-agent"], which omits the subject) OpenClaw holds
-                  2026-08-21 16:10:48.175539+00 byte-identical, while FOUR same-machine installed controls
-                  advance on that same scan to 17:22:17..17:22:23. Subject proven absent on-box three ways
-                  in the same capture. status and is_deleted carried as measured values — and reported
-                  honestly: this class carries status NULL on this tenant, not "Discovered", unchanged
-                  across the pair, as is is_deleted (f).
-                  ROUND-31 CORRECTION: a previous revision settled this cell on "11:28:02" versus
-                  "12:06:02-12:07:01" — three values that appeared nowhere in the artifacts tree except
-                  this file — and asserted an absolute freeze. Both are replaced by measured values.
-             (2b) the writer NAMED AND EVIDENCED (at7-48): the three-site writer inventory with file:line,
-                  plus a labelled MECHANISM attribution — the archived payload that does list the subject
-                  re-POSTed through the full Kong -> Blob -> Event Grid -> Service Bus chain, moving its
-                  last_scanned_at to 2026-08-21 17:58:27.571731+00 on demand while the controls held and
-                  nothing was created, duplicated or resurrected. Labelled a mechanism attribution, never
-                  a join of the historical advances, whose pods' logs no longer exist.
-             (3) honest render: at7-21 beside its control at7-21b — both render the IDENTICAL day-granular
-                 "Last Seen", because that column binds to updated_at, not last_scanned_at
-                 (instances-table.tsx:334-335). The staircase is a DATABASE measurement and is claimed as
-                 nothing else; no caption presents it as a product-visible stale state.
-             (4) ledgered + ticketed: the C3 C2-LC row carries this class as OVERTAKEN citing at7-44,
-                 PRDCT-12069's round-28 scope extension, the round-28 veto permalink, and — added this
-                 round — amendment_r31 with the round-31 veto permalink.
+window r50at7002800 · tenant onyx_security (61750f27-8fbd-42a4-80cf-4191cfb2371a)
+Re-derived for THIS window. The 2026-08-21 version of this file described a different (pre-revert) run and is
+fully replaced. There is deliberately NO single pass/fail line for at7: each of the seven discovered classes
+settles its own four cells (rows / UI / fidelity / lifecycle) = 28 per-class demands, listed one by one below.
 
-=========================================================================================================
-CLASS: MCP server               (d-c2-rows-mcp / ui-mcp / fid-mcp / lc-mcp)
-  rows       at7-04 — asset 131106, mcpb:onyx-lab-mcp::1.5.0, created inside the window; the surviving
-             sibling is 131552, mcpb:onyx-lab-sibling::1.0.0
-  ui         at7-11 (detail page, outlined) · at7-15 (the post-removal render)
-  fidelity   the bundle Anthropic's own mcpb CLI packed: version 1.5.0 from manifest.json; the asset's
-             unique_identifier carries 1.5.0 (at7-08). The sibling's manifest name/version match 131552.
-  lifecycle  amendment_r26's four-part end-state: exactly one row per identity, is_deleted f, row frozen
-             across the second scan, class re-covered (mcp_servers_total 4 -> 3), and the honest render —
-             still rendered live, status pill Discovered, no Deleted badge. The product ships no
-             stale/deleted representation for this class.
+HONESTY RULE APPLIED THROUGHOUT (amendment_r26 / r28 / r30 / r31 / r50, uniform across all six lifecycle-amended
+classes): a frozen DB row or an unchanged render is NEVER described here as a product-visible "stale" or
+"deleted" state. Where the product ships no stale/deleted representation, this table says exactly that and
+points at the C3 OVERTAKEN ledger row and its follow-up ticket.
 
-=========================================================================================================
-CLASS: MCP tools                (d-c2-rows-tools / ui-tools / fid-tools / lc-tools)
-  rows       at7-09 — tools 98-102 on asset 131106 and 103-105 on 131552, type ToolTypeMCPTool, all
-             is_active=t, written by upsert_mcp_tools (mcp_writer.py:1209 — S10 of the round-33
-                        joint stale-cite refresh; the file previously cited :1181, which at HEAD is
-                        `destination_asset_id=asset.asset_id`. Line-number-only, same call.)
-  ui         at7-19 (the server's detail page, lab_verify outlined) · at7-19b (the post-removal render with
-             the tools list IN-FRAME, so this cell is captured and not implied)
-  fidelity   all eight tool names are the ones the machines' own bundle manifests declare (at7-08); the
-             sibling's packed server answers tools/list with exactly its three
-  lifecycle  amendment_r26's four-part end-state. An absent server's tools are untouched BY DESIGN
-             (deactivate_tools_not_in_list requires the server present, activities.py:1766-1767), and
-             tools.is_active is rendered by no UI, so no surface exists on which a deactivated tool could
-             read differently. Re-coverage vehicle: the sibling MCP server, literally present in the second
-             scan's payload with its tool set intact.
+===============================================================================================================
+CLASS 1 — DESKTOP AGENT   (subject: OpenClaw, asset 10729; controls: Claude Code 23, Claude 10656, Codex 10727,
+                           Hermes Agent 55751 — all on the same machine)
+---------------------------------------------------------------------------------------------------------------
+ d-c2-rows-agent  ROWS      evidence/at7-03-db-rows-agent.txt — desktop_agent_applications + assets rows for the
+                            OpenClaw install produced by this window's front-door scan.                    SETTLED
+ d-c2-ui-agent    UI        evidence/at7-10-ui-desktop-agent.png (list) + at7-10b-ui-desktop-agent-detail.png,
+                            annotated, this run's row outlined in the full surface.                        SETTLED
+ d-c2-fid-agent   FIDELITY  `openclaw --version` -> OpenClaw 2026.5.7 (eeef486)  ==  assets.name 'OpenClaw (coder)',
+                            unique_identifier endpoint_openclaw::ec255301bd4407d309fbce94811384b0 (at7-08).SETTLED
+ d-c2-lc-agent    LIFECYCLE amendment_r28 as re-scoped by amendment_r31: the SINGLE-SCAN STAIRCASE — after
+                            `npm uninstall -g openclaw` (absence proven four ways, at7-18), the paired scan 2 left
+                            10729.last_scanned_at byte-identical at 2026-08-24 00:32:03.449330+00 while FOUR
+                            same-machine controls ADVANCED on that same scan (10727 -> 01:24:15.760806+00,
+                            23 -> 01:24:14.255375+00, 55751 -> 01:23:15.877409+00, 10656 -> 01:23:15.333524+00).
+                            status stays '' and is_deleted stays f — absence is not a delete. The cross-window
+                            statement is a LAG, never an absolute freeze (at7-48 names the writer). RENDER IS
+                            HONEST: 'Last Seen' binds updated_at and is DAY-GRANULAR (at7-44: last_scanned_at is
+                            rendered by NO UI, 0 grep hits), so at7-21 / at7-21b are captioned as the pair they
+                            are and the staleness claim rides the at7-30 DB staircase, never the render.
+                            C3: OVERTAKEN, citing PRDCT-12069 + amendment_r31 + the round-28/31 veto permalinks.
+                            RENDER RE-CAPTURED IN ROUND 52 — READ THIS: the at7-21 / at7-21b on disk before this
+                            round were shot on /ai-assets/desktop-agents/group/<id>, a route that DOES NOT RESOLVE
+                            on this build (both /ai-assets/desktop-agents and /ai-assets/desktop-agents/group/<id>
+                            render an error / Page-not-found page — measured live, at7-legF-ui-results.json). Both
+                            files were therefore error-page screenshots. They are REPLACED with captures on the
+                            route that does resolve: /ai-assets/desktop-agents/10729 (uninstalled subject) and
+                            /ai-assets/desktop-agents/10727 (still-installed control), HTTP 200, names asserted
+                            VISIBLE (OpenClaw x4, Codex x5), no Deleted badge, no stale vocabulary —
+                            at7-legF-ui-results.json, ALL-ASSERTIONS-PASS.
+                            OPEN GAP, STATED NOT PAPERED OVER: that detail surface does NOT render a 'Last Seen'
+                            field (DOM read '<Last Seen not rendered>' on BOTH subject and control), so
+                            amendment_r28 part 3's requirement that the rendered 'Last Seen' be IN-FRAME beside
+                            the control is NOT met by these two captures. The DB half (staircase + lag) is fully
+                            met and is what the staleness claim rides; the render half needs a surface on this
+                            build that actually binds updated_at. Routed back rather than claimed.
+                            C3: OVERTAKEN, citing PRDCT-12069 + amendment_r31 + the round-28/31 veto permalinks.
+                            Carriers: at7-18, at7-30, at7-41, at7-44, at7-48, at7-21/21b, at7-legF-ui-results.json.
+                                                                     DB HALF SETTLED · RENDER HALF NOT SETTLED
 
-=========================================================================================================
-CLASS: skills                   (d-c2-rows-skills / ui-skills / fid-skills / lc-skills)
-  rows       at7-05 — asset 131278, lab-w25-20260821033140, content-hash identity
-             091dffb345495cabb7547ba8c21ab306114bcff3c68389df23afbd5173bfebfb.
-             ROUND-31 CORRECTION: a previous revision printed this identity as "8b916171b151…a90f", which is a
-             real skill_md_hash in this tenant but belongs to a DIFFERENT asset and greps zero in at7-05. The
-             value above is the one at7-05 actually carries for 131278.
-  ui         at7-12 (detail, outlined) · at7-16 (the post-removal render) · at7-34 (located in the AI-Assets
-             LIST by the table's own search)
-  fidelity   the product recomputes the skill's own content hash independently from the payload and it equals
-             the value derived on disk (at7-08). Re-demonstrated in the HEAD window on a fresh subject: the
-             on-disk sha256sum of lab-r31-20260821170102/SKILL.md is
-             4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714 and the product stored the
-             identical value as agent_skills.skill_md_hash on asset 242558 (at7-01).
-  lifecycle  amendment_r26's four-part end-state. Re-coverage vehicle: skills_total 205 -> 134 across the
-             second scan; the directory proven absent from the machine. Honest render: no Deleted badge and NO
-             status pill, which is this surface's design (skills/-components/overview.tsx:147-154), so
-             absence-of-pill is the correct honest render rather than a miss.
+===============================================================================================================
+CLASS 2 — MCP SERVER   (subject: Onyx Lab R50 MCP, asset 442199 / mcp_servers 19792;
+                        sibling control: Onyx Sibling R50 MCP, asset 442200 / mcp_servers 19793)
+---------------------------------------------------------------------------------------------------------------
+ d-c2-rows-mcp    ROWS      evidence/at7-04-db-rows-mcp.txt                                                SETTLED
+ d-c2-ui-mcp      UI        evidence/at7-11-ui-mcp.png (list) + at7-33-list-mcp.png; detail asserted in
+                            at7-legA3-ui-results.json (/ai-assets/mcp/442199, HTTP 200, needle matched x3). SETTLED
+ d-c2-fid-mcp     FIDELITY  the packed .mcpb manifest (Anthropic packer shasum bd5c96dca1371a2e03efe36842df3f8c0ced7cd6)
+                            name/version onyx-lab-r50at7002800 1.0.0  ==  assets.unique_identifier
+                            mcpb:onyx-lab-r50at7002800::1.0.0 (at7-08).                                    SETTLED
+ d-c2-lc-mcp      LIFECYCLE amendment_r26 four-part: NOT resurrected / NOT duplicated (1 row per
+                            unique_identifier after scans 2 AND 3, min_id == max_id == 442199) and NOT refreshed
+                            (mcp_servers 19792 updated_at still 00:30:00.320436+00 == created_at). Class shown
+                            RE-COVERED by the literal vehicle: scan 2's payload still finds the SIBLING MCP on the
+                            still-detected control runtime. RENDER: no Deleted badge, status pill still Discovered
+                            — the product ships no stale/deleted representation for this class; at7-15/15b are
+                            captioned exactly that way. C3: OVERTAKEN citing PRDCT-12069.
+                            Carriers: at7-18, at7-41, at7-15, at7-15b, at7-42/45.                       SETTLED
 
-=========================================================================================================
-CLASS: subagents                (d-c2-rows-subagents / ui-subagents / fid-subagents / lc-subagents)
-  rows       at7-06 — the class's rows on this head. HEAD-WINDOW SUBJECT (round 31): asset 242613,
-             lab-r31-20260821170102, AssetTypeSubAgent.
-  ui         at7-13 (detail, outlined) · at7-17 (the post-removal render)
-  fidelity   the on-disk sha256sum of the subagent definition file, computed in the HEAD window by sha256sum,
-             is 066bb2f01784ee10a4abd215f62e7ed93a8994e56ef9f429189308985e66df6d, and the product
-             independently stored the identical value as agent_subagents.subagent_md_hash on asset 242613
-             (at7-01). ROUND-31 FIX: the previous head-window subagent digest was stated bare and captured
-             nowhere — at7-01 documented an earlier window — so d-c2-fid-subagents is re-tied to a digest this
-             round computed on disk and read back out of the product.
-  lifecycle  amendment_r26's four-part end-state; the removal leg is at7-17 with the post-removal render.
+===============================================================================================================
+CLASS 3 — SKILLS   (subject: r50at7002800-skill, asset 441993 / agent_skills 362069;
+                    sibling control: r50at7002800-sibskill, asset 442005 / agent_skills 362070)
+---------------------------------------------------------------------------------------------------------------
+ d-c2-rows-skills ROWS      evidence/at7-05-db-rows-skills.txt                                             SETTLED
+ d-c2-ui-skills   UI        evidence/at7-12-ui-skills.png + at7-34-list-skill.png; detail /ai-assets/skills/441993
+                            asserted HTTP 200 with the name matched x4 (at7-legA3-ui-results.json).        SETTLED
+ d-c2-fid-skills  FIDELITY  on-disk sha256 of SKILL.md 3b3e94d234b2801edbfabeb8a53f61cfb0759221e557a1865a4fceb6e7d5f1e8
+                            == agent_skills.skill_md_hash (at7-08).                                        SETTLED
+ d-c2-lc-skills   LIFECYCLE amendment_r26 four-part: 1 row per unique_identifier
+                            (72ee8d6b139cd83682b33064304d3ed2be6be53e570faf9f01e28b99584e9ca9, min==max==441993),
+                            updated_at still 00:29:58.896873+00 == created_at. Class RE-COVERED: scan 2 reports
+                            global_skills_count 214 including the sibling's dir-hash. RENDER: no Deleted badge and
+                            no status pill by design; at7-16 captioned accordingly. C3: OVERTAKEN / PRDCT-12069.
+                            Carriers: at7-18, at7-41, at7-16, at7-42/45.                                SETTLED
 
-=========================================================================================================
-CLASS: usage sessions           (d-c2-rows-usage / ui-usage / fid-usage / lc-usage)
-  rows       at7-07 — the session the runtime's own CLI printed, landed as a usage_sessions row
-  ui         at7-14 (the usage surface, outlined)
-  fidelity   session id 20260821_033142_faf0bc, printed by hermes into ~/.hermes/state.db, equals
-             usage_sessions 2396 external_id (at7-08)
-  lifecycle  sessions are append-only historical events with no on-machine artifact whose removal carries
-             lifecycle semantics; the plan pre-declares the removal half N/A. The not-duplicated half binds and
-             holds — no external_id repeats (at7-07, at7-40).
+===============================================================================================================
+CLASS 4 — SUBAGENTS   (subject: r50at7002800-sub, asset 442189 / agent_subagents 52911;
+                       sibling control: r50at7002800-sibsub, asset 442193 / agent_subagents 52912)
+---------------------------------------------------------------------------------------------------------------
+ d-c2-rows-subagents ROWS   evidence/at7-06-db-rows-subagents.txt                                          SETTLED
+ d-c2-ui-subagents   UI     evidence/at7-13-ui-subagents.png + at7-35-list-subagent.png; detail
+                            /ai-assets/subagents/442189 HTTP 200, name matched x4.                         SETTLED
+ d-c2-fid-subagents  FID    the identity IS the file hash: sha256(/home/coder/.claude/agents/r50at7002800-sub.md)
+                            = 2d2e397434cc739a831b9fabf8a4d19fd0a635ebf4cd3f19920704f26c11ed26 and
+                            assets.unique_identifier = 'subagent::' || that hash (at7-08 §1).              SETTLED
+ d-c2-lc-subagents   LC     amendment_r26 four-part: 1 row per unique_identifier (min==max==442189),
+                            agent_subagents 52911 updated_at still 00:29:59.603306+00 == created_at. Class
+                            RE-COVERED: scan 2 reports global_subagents_count 10 with the sibling .md on disk —
+                            the sibling is attached to the CONTROL runtime, which scan 2 still detects
+                            (agents_detected 4), so the re-coverage is real and not a dead scan. RENDER: no
+                            Deleted badge, no status pill by design (at7-17). C3: OVERTAKEN / PRDCT-12069.
+                            Carriers: at7-18, at7-41, at7-17, at7-42/45.                                SETTLED
 
-=========================================================================================================
-CLASS: posture                  (d-c2-rows-posture / ui-posture / fid-posture / lc-posture (amendment_r30))
-  rows       at7-09 — issue instances 1637 / 1638 / 1639 on asset 211819, one per firing definition
-             (44 / 45 / 48). ROUND-31 CORRECTION: a previous revision named instances "1373/1374 on assets
-             131106/131552" — values that grep zero in at7-09 — and settled the cell as "neither at a removed
-             one", which was false since 131106 is the MCP bundle this very file records as removed.
-  ui         at7-22-ui-lifecycle-posture.png — the drawer at
-             /posture-issues?issueDefinitionId=44&issueInstanceId=1637, DOM-read: subject rendered,
-             "Open" x16, "Resolved" 0, "Closed" 0, Evidence present with the deleted SKILL.md in frame,
-             carrying amendment_r30's provenance annotation verbatim.
-  fidelity   the posture rows reference THIS run's real asset identity — asset 211819, the subject whose
-             source this run deleted (at7-09).
-  lifecycle  amendment_r30's four-part end-state, and it settles as a DEFECT rather than as acceptable
-             behaviour. (1) not resurrected / duplicated / orphaned: same three ids, one per definition, each
-             still joining a live asset row; the subject's asset row count stayed 1 and total_risk_score held at
-             2.49. (2) re-affirmed Open, measured and attributed: updated_at 15:17:13.181372 ->
-             15:29:04.521424 across the paired real re-scan with resolve_state Open, closed_at NULL and
-             asset_posture_findings.classified_at FROZEN at 2026-08-21 13:44:18.531816+00 — the row was
-             re-written from a cached finding, not from a live artifact. (3) honest render: the capture above.
-             (4) ledgered + ticketed: the C3 row carries the defect framing, the round-30 veto permalink and
-             follow-up PRDCT-12071. ROUND-31 CORRECTION: a previous revision read "bridge ran, no issue" —
-             the plan's pre-declared fallback — which at7-09 explicitly refutes.
+===============================================================================================================
+CLASS 5 — MCP TOOLS   (subject tools 159-163 on asset 442199; sibling tools 164-165 on asset 442200)
+---------------------------------------------------------------------------------------------------------------
+ d-c2-rows-tools  ROWS      evidence/at7-09-db-rows-tools.txt                                              SETTLED
+ d-c2-ui-tools    UI        evidence/at7-19-ui-tools.png (MCP server detail with the tools list) and the
+                            POST-removal frame with the tools list IN-FRAME, at7-19b-ui-lifecycle-tools.png.SETTLED
+ d-c2-fid-tools   FIDELITY  the manifest's own tools[] array — r50__echo, r50__hostname, r50__search, r50__time,
+                            r50__verify — == tools.name for asset_id 442199, 5/5, type ToolTypeMCPTool (at7-08). SETTLED
+ d-c2-lc-tools    LIFECYCLE amendment_r26 four-part: the five tool rows keep is_active = t and updated_at
+                            00:30:00.348225+00 (unchanged) after scans 2 and 3 — not resurrected, not duplicated,
+                            not refreshed; the class is re-covered through the still-detected sibling server's own
+                            tools (164/165). RENDER: the post-removal server detail still lists the tools and
+                            ships no Deleted badge — captured as at7-19b and captioned as the product's ACTUAL
+                            vocabulary, never as a stale state. C3: OVERTAKEN / PRDCT-12069.
+                            Carriers: at7-18, at7-41, at7-19b.                                          SETTLED
 
-=========================================================================================================
-RESOLUTION APPENDIX — every declared literal, grepped in the artifact its row cites
-  31 declared citations · 31 resolve · 0 unresolved (the generator cannot emit otherwise)
+===============================================================================================================
+CLASS 6 — USAGE SESSIONS   (usage_sessions id 7555, external_id 20260824_002925_7185b3, app_id 55751)
+---------------------------------------------------------------------------------------------------------------
+ d-c2-rows-usage  ROWS      evidence/at7-07-db-rows-usage.txt                                              SETTLED
+ d-c2-ui-usage    UI        evidence/at7-14-ui-usage.png — the /ai-activity per-session render (amendment_r24
+                            surface), the located session row + opened detail panel; plus at7-36-list-hermes-usage.png
+                            and at7-38/at7-39 for the AI-activity list and session views. The 404
+                            /ai-assets/usage route is NOT used (at7-14b documents it).                     SETTLED
+ d-c2-fid-usage   FIDELITY  the hermes CLI printed "Session: 20260824_002925_7185b3" on the box  ==
+                            usage_sessions.external_id (at7-08).                                           SETTLED
+ d-c2-lc-usage    LIFECYCLE PRE-DECLARED N/A for removal semantics (a session that happened cannot un-happen);
+                            the binding half is NOT DUPLICATED, and it holds: exactly ONE row for
+                            external_id 20260824_002925_7185b3 after three scans (at7-18).              SETTLED
 
-  class            hits  artifact                                 literal
-  desktop agent       1  at7-03-db-rows-agent.txt                 2026.5.7 (eeef486)
-  desktop agent       1  at7-03-db-rows-agent.txt                 10729
-  desktop agent       5  at7-03-db-rows-agent.txt                 ec255301bd4407d309fbce94811384b0
-  desktop agent       4  at7-30-agent-lifecycle-control.txt       16:10:48.175539
-  desktop agent       2  at7-30-agent-lifecycle-control.txt       17:22:17
-  desktop agent       2  at7-30-agent-lifecycle-control.txt       17:22:23
-  desktop agent       1  at7-30-agent-lifecycle-control.txt       333b21ef-714b-4b8c-84ad-eaec81bc2799
-  desktop agent       2  at7-48-lastscanned-writer.txt            17:58:27.571731
-  desktop agent       1  at7-44-last-seen-render.txt              instances-table.tsx:334-335
-  MCP server          1  at7-04-db-rows-mcp.txt                   131106
-  MCP server          1  at7-09-db-rows-tools.txt                 131552
-  MCP server          1  at7-04-db-rows-mcp.txt                   mcpb:onyx-lab-mcp::1.5.0
-  MCP server          1  at7-08-fidelity.txt                      1.5.0
-  MCP tools           9  at7-09-db-rows-tools.txt                 ToolTypeMCPTool
-  MCP tools           1  at7-08-fidelity.txt                      lab_verify
-  skills              1  at7-05-db-rows-skills.txt                091dffb345495cabb7547ba8c21ab306114bcff3c68389df23afbd5173bfebfb
-  skills              1  at7-05-db-rows-skills.txt                131278
-  skills              4  at7-01-real-install.txt                  4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714
-  skills              2  at7-01-real-install.txt                  242558
-  subagents           4  at7-01-real-install.txt                  066bb2f01784ee10a4abd215f62e7ed93a8994e56ef9f429189308985e66df6d
-  subagents           2  at7-01-real-install.txt                  242613
-  usage sessions      1  at7-08-fidelity.txt                      20260821_033142_faf0bc
-  usage sessions      1  at7-08-fidelity.txt                      2396
-  posture             4  at7-09-db-rows-posture.txt               1637
-  posture             3  at7-09-db-rows-posture.txt               1638
-  posture             3  at7-09-db-rows-posture.txt               1639
-  posture             8  at7-09-db-rows-posture.txt               211819
-  posture             4  at7-09-db-rows-posture.txt               15:29:04.521424
-  posture             1  at7-09-db-rows-posture.txt               13:44:18.531816
-  posture             2  at7-09-db-rows-posture.txt               2.49
-  posture             2  at7-46-posture-followup-ticket-r30.txt   PRDCT-12071
+===============================================================================================================
+CLASS 7 — POSTURE   (subject: r50at7002800-posture, assets 447772 + 448472, instances 6721/6722/6725/6726/6729/
+                     6732/6733; in-window CREATED controls: r50at7002800-posturectl 447740+448499 and
+                     r50at7002800-posturectl2 450716 — the amendment_r50 c4 control)
+---------------------------------------------------------------------------------------------------------------
+ d-c2-rows-posture ROWS     evidence/at7-09-db-rows-posture.txt — the assets, the issue_instances joined to their
+                            definitions, the frozen asset_posture_findings, the source-status, the agent-pair rows.
+                            Re-captured at head in this window (the 2026-08-21 file is replaced).          SETTLED
+ d-c2-ui-posture   UI       PRE-removal evidence/at7-20-ui-posture.png; POST-removal
+                            evidence/at7-22-ui-lifecycle-posture.png (issue drawer open: Status **Open**, the
+                            DELETED file's line rendered verbatim as live Evidence, the removed subject named)
+                            and at7-22b-ui-lifecycle-posture-definition.png (the subject's OWN definition #45:
+                            Status Open, the removed skill still listed under Skills, exact-text matched so the
+                            still-installed controls cannot satisfy it). Programmatic assertions behind both:
+                            evidence/at7-legE-ui-results.json (ALL-ASSERTIONS-PASS).                       SETTLED
+ d-c2-fid-posture  FIDELITY the issue rows reference THIS run's real asset identity: the subject's on-disk
+                            SKILL.md sha256 1116c348c2d5efc2f143629e2ebabcf737f2b0d136f3bb26afee222663a48ee2
+                            is the content_hash on asset_posture_source_status for asset 448472, and the control2
+                            asset's unique_identifier begins d941118c536d — byte-identical to the dir-hash the
+                            scanner's own payload printed for that skill. The Evidence text rendered in the
+                            product is the deleted file's own line, verbatim (at7-08, at7-09, at7-22).     SETTLED
+ d-c2-lc-posture   LIFECYCLE amendment_r30 part 1 AS RE-SCOPED BY amendment_r50 part 2 —
+                            **STILL-OPEN / RE-EVALUATED / DIFF-GUARDED-FROZEN**, measured in
+                            evidence/at7-51-posture-reaffirm-headcode.txt:
+                              · membership UNCHANGED (same 7 instance ids, 4 definitions x 2 asset rows), NONE
+                                resurrected, NONE duplicated, NONE orphaned (every row joins an existing asset);
+                                risk half row-stable (total_risk_score is a column on those rows).
+                              · across THREE consecutive covered post-removal front-door scans (0c7eef83 /
+                                5eec516a / f8aac578) the rows stayed BYTE-FROZEN: Open, closed_at NULL,
+                                updated_at 2026-08-24 01:44:50.117728+00, all five evidence-column md5s
+                                unchanged, asset_posture_findings.classified_at unchanged.
+                              · the no-op is COUNTED, not inferred: issue_records_written_total
+                                {lane="legacy-detection",outcome="unchanged",tenant_schema="onyx_security"}
+                                126,744 -> 170,920 across reads bracketing exactly those scans, with NO
+                                issue_evidence_refreshes_total series for ANY skill-* definition.
+                              · coverage is literal per scan (c1 scan_run_id->blob->bridge, c2 owning agent 23 in
+                                the link input, c3 live AgentToSkill edge + source-status complete=t) and per
+                                window (c4: control2's instances 6748-6751 CREATED by counted scan A's own
+                                covered, identity-pinned run).
+                              · the executing worker is byte-pinned to head (at7-51 §2) and every counted run's
+                                Temporal-history identity is 15@temporal-python-worker-678758dc4f-8cq6g.
+                            The RETIRED r30 observable (an updated_at re-touch) is NOT claimed; none occurred.
+                            RENDER IS HONEST: the product ships no stale/deleted representation for this class;
+                            at7-22 is captioned with amendment_r50's part-3 text verbatim and is NEVER presented
+                            as a stale/resolved state, as correct or acceptable lifecycle handling, or as
+                            azure-lane-specific. C2 clause 5's stale-half is NOT claimed satisfied for this class.
+                            C3: OVERTAKEN with the r50 defect framing, citing PRDCT-12071 (86bbj56qh) +
+                            PRDCT-12069 + BOTH veto permalinks + the evidence pair (r30-genone HISTORICAL /
+                            at7-51 head) + the at7-52 ticket-currency correction.                       SETTLED
+
+===============================================================================================================
+TALLY
+---------------------------------------------------------------------------------------------------------------
+  7 classes x 4 cells (rows / UI / fidelity / lifecycle) = 28 per-class demands, each with its own carrier file
+  named above. No cell is settled by another cell's evidence, and no single pass/fail line stands for the AT.
+  27 of the 28 cells are SETTLED. The ONE that is not is d-c2-lc-agent's RENDER half (amendment_r28 part 3's
+  'Last Seen' in-frame): the DB half of that same cell is settled, and the shortfall is stated in full in the
+  CLASS 1 block above rather than smoothed over.
+  Classes with an amended (not literally-met) lifecycle end-state — desktop agent, MCP server, skills, subagents,
+  MCP tools, posture — each carry their own C3 OVERTAKEN ledger row and follow-up ticket; usage sessions is the
+  one pre-declared-N/A cell and its binding not-duplicated half is met literally.
