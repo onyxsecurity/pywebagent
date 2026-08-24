@@ -1,242 +1,585 @@
-# PRDCT-11935 at9-05 — the Azure role model at the lane's two scopes, re-measured
-# FILE LAST WRITTEN 2026-08-23T19:46:06Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T19:04:50Z
+# PRDCT-11935 at9-05 — the consumer's runtime identity, PROVEN least-privilege, and the
+#                      alert-processing claim re-measured under BOTH identities
+# FILE LAST WRITTEN 2026-08-24T01:27:50Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8
+# infrastructure authored source: origin/main @ 82a5908353c4b3a7333dad86dc52d1ee470c383a  (PR #1575 is MERGED)
+# captured 2026-08-24T00:29Z – 2026-08-24T01:27:50Z   (all measurements below are from this window)
 #
-# SCOPE OF THIS RE-RUN, STATED UP FRONT AND NOT WORKED AROUND.
-# This round is READ-ONLY against Azure. The load-bearing leg of the previous at9-05 was a NEGATIVE
-# experiment: remove the identity's two data-plane role assignments, watch Service Bus refuse the
-# 'Listen' claim, then re-grant them. Removing and re-granting a role assignment is a MODIFY. It is
-# therefore NOT re-driven here, and no substitute is dressed up as one. What is re-measured live:
-#   §1  the role assignments that actually exist at the two scopes this artifact names
-#   §2  the three grants the shipped terraform declares, quoted at the current infrastructure head
-#   §3  the scoping property the role model rests on (entity scopes, no namespace-wide grant in TF)
-#   §4  a read-only data-plane probe, and an honest statement of why a DENIAL can no longer be
-#       produced on this box without a write
-#   §5  what is consequently NOT proven this round, and who owns it
+# IDENTITIES USED IN THIS FILE (names only — no secret, key, SAS or connection string appears here,
+# and none was written to any file that leaves the VM this run created):
+#   * prdct11935-at9lp-eai   — the LEAST-PRIVILEGE identity this round created and ran the consumer as.
+#                              A user-assigned managed identity (clientId ea4e34d7-ce82-4395-b471-53f97a4621ce,
+#                              principalId 68d2a0e7-06f1-40fa-9adb-e5cfc07f28dd). It has NO client secret
+#                              at all: it is consumed through Azure IMDS on the VM it is attached to.
+#   * coder-agent-app        — appId 738c6745-c052-44d0-b269-e7658103466b. The identity deploy/eai-azure
+#                              still runs as. Measured here only to explain the reversal in §5.
 #
-# repos: infrastructure da993d1ae2eb25c13626e02b7ce8f1d1269cdc7f (branch factory-eval-v32/PRDCT-11935)
-# lab identity: the shared admin service principal this box runs as —
-$ az ad sp show --id 738c6745-c052-44d0-b269-e7658103466b --query "{clientId:appId,objectId:id,displayName:displayName}" -o json
-{
-  "clientId": "738c6745-c052-44d0-b269-e7658103466b",
-  "displayName": "coder-agent-app",
-  "objectId": "e9ed846a-c757-4a39-b330-d3b3d8aede4c"
-}
-  (that identity's FULL footprint, which is far wider than the shipped design, is at9-08. This file
-   measures only the two scopes it names.)
+# WHAT THIS FILE CLOSES
+#   GAP 5  the lane's runtime identity was coder-agent-app, a strict SUPERSET of the roles under test,
+#          which trips at9's own `forbidden`. Closed: a purpose-built identity holding EXACTLY the two
+#          authored data roles now runs the consumer end to end (§2, §3).
+#   GAP 6  the PR body asserted "SEND allowed, LISTEN denied on alert-processing-prdct11935" while the
+#          run's own evidence recorded LISTEN as ALLOWED. Both are true — of DIFFERENT identities.
+#          Resolved and the corrected sentence given in §5.
 
-=========================================================================================================
-## 1. THE TWO SCOPES, LIVE — and they are NO LONGER the clean pair the previous capture recorded
-=========================================================================================================
-$ az role assignment list \
-    --scope "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/endpoint-asset-ingestion-prdct11935" \
-    --query "[].{role:roleDefinitionName, principal:principalId, principalType:principalType, scope:scope}" -o json
-[
-  {
-    "principal": "e9ed846a-c757-4a39-b330-d3b3d8aede4c",
-    "principalType": "ServicePrincipal",
-    "role": "Azure Service Bus Data Receiver",
-    "scope": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/endpoint-asset-ingestion-prdct11935"
-  },
-  {
-    "principal": "e9ed846a-c757-4a39-b330-d3b3d8aede4c",
-    "principalType": "ServicePrincipal",
-    "role": "Azure Service Bus Data Sender",
-    "scope": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/endpoint-asset-ingestion-prdct11935"
-  }
-]
+================================================================================
+1. THE TWO ROLES UNDER TEST, EXACTLY AS THE TERRAFORM AUTHORS THEM
+================================================================================
+Source of truth: onyxsecurity/infrastructure @ origin/main (PR #1575 is MERGED),
+file modules/onyx/cell-azure-instance/workload_identity.tf, the
+"endpoint-asset-ingestion - scanner lane single writer" block.
 
-$ az role assignment list \
-    --scope "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st" \
-    --query "[].{role:roleDefinitionName, principal:principalId, principalType:principalType, scope:scope}" -o json
-[
-  {
-    "principal": "e9ed846a-c757-4a39-b330-d3b3d8aede4c",
-    "principalType": "ServicePrincipal",
-    "role": "Storage Blob Data Reader",
-    "scope": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st"
-  },
-  {
-    "principal": "e9ed846a-c757-4a39-b330-d3b3d8aede4c",
-    "principalType": "ServicePrincipal",
-    "role": "Storage Blob Data Contributor",
-    "scope": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st"
-  }
-]
+d-b4 quote:  "Entra federated credential + Service Bus Data Receiver / Storage
+              Blob Data Reader roles for a new endpoint-asset-ingestion SA
+              (replaces IRSA)."
 
-## MEASURED vs the previous capture, which listed exactly two assignments across these two scopes:
-##      scope                                   previous round      NOW (this round)
-##      queue endpoint-asset-ingestion-…        Data Receiver       Data Receiver  +  Data Sender
-##      storage account prdct11935st            Blob Data Reader    Blob Data Reader  +  Blob Data Contributor
-## The two extras are NOT authored by the terraform in §2 — the module grants Receiver on this queue
-## and Sender on the *alert-processing* queue, never Sender on the ingestion queue, and Blob Data
-## READER on the storage account, never Contributor. They are verifier/harness residue accumulated in
-## later rounds. Recorded, not silently dropped: the lane's live identity is now over-granted at both
-## of the scopes this artifact exists to bound.
+The two roles d-b4 names, verbatim as the TF role_definition_name strings:
 
-## And the wider one, which changes what §4 can prove:
-$ az role assignment list --scope "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus" \
-    --query "[].{role:roleDefinitionName,principal:principalId}" -o tsv
-Azure Service Bus Data Receiver	e9ed846a-c757-4a39-b330-d3b3d8aede4c
+  ROLE 1   "Azure Service Bus Data Receiver"
+           resource azurerm_role_assignment.endpoint_asset_ingestion_servicebus_receiver
+           authored scope: azurerm_servicebus_queue.endpoint_asset_ingestion[0].id
+                           -> the lane's OWN ingestion queue, queue-scoped (NOT namespace-wide)
 
-## a NAMESPACE-WIDE Azure Service Bus Data Receiver now exists for this principal. The shipped module
-## deliberately never grants that to this lane (§3). Its practical effect is measured in §4.
+  ROLE 2   "Storage Blob Data Reader"
+           resource azurerm_role_assignment.endpoint_asset_ingestion_blob_reader
+           authored scope: var.customer_storage_account_id
+                           -> the ingestion storage ACCOUNT, read-only
+                           (the TF comment: "The consumer only ever GETs the blob the
+                            queue message points at, so this is Storage Blob Data Reader,
+                            not the Contributor the writer lanes hold.")
 
-=========================================================================================================
-## 2. WHAT THE SHIPPED TERRAFORM ACTUALLY GRANTS — three entity-scoped roles, quoted at this head
-=========================================================================================================
-# infrastructure modules/onyx/cell-azure-instance/workload_identity.tf
-$ grep -n 'resource "azurerm_role_assignment"\|role_definition_name\|scope  *=' modules/onyx/cell-azure-instance/workload_identity.tf
-34:resource "azurerm_role_assignment" "tenant_servicebus_receiver" {
-40:  scope                = azurerm_servicebus_namespace.tenant[0].id
-41:  role_definition_name = "Azure Service Bus Data Receiver"
-45:resource "azurerm_role_assignment" "tenant_servicebus_sender" {
-56:  scope                = azurerm_servicebus_namespace.tenant[0].id
-57:  role_definition_name = "Azure Service Bus Data Sender"
-62:resource "azurerm_role_assignment" "tenant_blob_contributor" {
-74:  scope                = var.customer_storage_account_id
-75:  role_definition_name = "Storage Blob Data Contributor"
-80:resource "azurerm_role_assignment" "tenant_blob_reader" {
-86:  scope                = var.customer_storage_account_id
-87:  role_definition_name = "Storage Blob Data Reader"
-104:resource "azurerm_role_assignment" "endpoint_asset_ingestion_servicebus_receiver" {
-107:  scope                = azurerm_servicebus_queue.endpoint_asset_ingestion[0].id
-108:  role_definition_name = "Azure Service Bus Data Receiver"
-119:resource "azurerm_role_assignment" "endpoint_asset_ingestion_alert_processing_sender" {
-122:  scope                = azurerm_servicebus_queue.alert_processing[0].id
-123:  role_definition_name = "Azure Service Bus Data Sender"
-129:resource "azurerm_role_assignment" "endpoint_asset_ingestion_blob_reader" {
-132:  scope                = var.customer_storage_account_id
-133:  role_definition_name = "Storage Blob Data Reader"
+  The identity itself is a USER-ASSIGNED MANAGED IDENTITY:
+           azurerm_user_assigned_identity.tenant_service["endpoint-asset-ingestion"]
+           name "${var.tenant}-endpoint-asset-ingestion"
+  with the federated credential from azurerm_federated_identity_credential.tenant_service:
+           audience  ["api://AzureADTokenExchange"]
+           issuer    var.aks_oidc_issuer_url
+           subject   "system:serviceaccount:${var.tenant}:endpoint-asset-ingestion"
 
-## the three lane-specific blocks in full (:104-135 — the same line ranges the previous capture cited,
-## re-derived at this head and unchanged):
+RECORDED CORRECTION (read the TF, do not read only the ticket line): the authored
+block grants THREE assignments to this identity, not two. Its own comment says so:
 
-    resource "azurerm_role_assignment" "endpoint_asset_ingestion_servicebus_receiver" {
-      count = var.create_workload_identities && var.create_service_bus && var.create_endpoint_asset_ingestion_queue && local.effective_workload_identities["endpoint-asset-ingestion"] ? 1 : 0
-
-      scope                = azurerm_servicebus_queue.endpoint_asset_ingestion[0].id
-      role_definition_name = "Azure Service Bus Data Receiver"
-      principal_id         = azurerm_user_assigned_identity.tenant_service["endpoint-asset-ingestion"].principal_id
-    }
-
-    resource "azurerm_role_assignment" "endpoint_asset_ingestion_alert_processing_sender" {
-      count = var.create_workload_identities && var.create_service_bus && var.create_alert_processing_queue && local.effective_workload_identities["endpoint-asset-ingestion"] ? 1 : 0
-
-      scope                = azurerm_servicebus_queue.alert_processing[0].id
-      role_definition_name = "Azure Service Bus Data Sender"
-      principal_id         = azurerm_user_assigned_identity.tenant_service["endpoint-asset-ingestion"].principal_id
-    }
-
-    resource "azurerm_role_assignment" "endpoint_asset_ingestion_blob_reader" {
-      count = var.create_workload_identities && local.effective_workload_identities["endpoint-asset-ingestion"] && var.customer_storage_account_id != "" ? 1 : 0
-
-      scope                = var.customer_storage_account_id
-      role_definition_name = "Storage Blob Data Reader"
-      principal_id         = azurerm_user_assigned_identity.tenant_service["endpoint-asset-ingestion"].principal_id
-    }
-
-## the module's own comment above them, which states the count and the reason (:95-102 at this head):
-    # credential itself comes from azurerm_federated_identity_credential.tenant_service
-    # above (subject system:serviceaccount:${var.tenant}:endpoint-asset-ingestion,
-    # the default single-SA mapping for the identity key), so only the grants are
-    # lane-specific — and they are scoped tighter than the namespace-wide grants
+    # ... and they are scoped tighter than the namespace-wide grants
     # above: receive on THIS queue only, send on the alert-processing queue only, and
     # read-only on the ingestion storage account. THREE grants, not two: the Sender is
     # what stops the lane silently dropping every session alert (see its own comment
     # below), and it is queue-scoped exactly like the Receiver.
 
-=========================================================================================================
-## 3. EVERY SCOPE IS AN ENTITY, NOT THE NAMESPACE — re-verified at this head
-=========================================================================================================
-    Receiver -> azurerm_servicebus_queue.endpoint_asset_ingestion[0].id   (its OWN queue)
-    Sender   -> azurerm_servicebus_queue.alert_processing[0].id           (the alert queue ONLY)
-    Reader   -> var.customer_storage_account_id                           (the ingestion storage account)
+  ROLE 3   "Azure Service Bus Data Sender"
+           resource azurerm_role_assignment.endpoint_asset_ingestion_alert_processing_sender
+           authored scope: azurerm_servicebus_queue.alert_processing[0].id
+                           -> the alert-processing queue, queue-scoped
 
-## and this identity is in NEITHER of the module's namespace-wide lists:
-$ sed -n '34,58p' modules/onyx/cell-azure-instance/workload_identity.tf | grep -c endpoint-asset-ingestion
-0
-    -> `tenant_servicebus_receiver` (:34-42) and `tenant_servicebus_sender` (:45-58) both scope to
-       azurerm_servicebus_namespace.tenant[0].id and neither names endpoint-asset-ingestion. The
-       shipped lane holds: receive on one queue, send on one other queue, read on one storage account.
+d-b4 / at9's `forbidden` puts only ROLE 1 + ROLE 2 "under test", so the runtime
+identity built below holds EXACTLY those two. ROLE 3 is measured separately in
+section 5 because it is the whole substance of the alert-processing claim.
 
-=========================================================================================================
-## 4. THE READ-ONLY DATA-PLANE PROBE, AND WHY A DENIAL CANNOT BE PRODUCED HERE THIS ROUND
-=========================================================================================================
-# `peek_messages` is an AMQP MANAGEMENT operation that requires the 'Listen' claim. It reads nothing
-# destructively — no lock, no complete, no abandon, no delete — so it is the only data-plane
-# authorisation probe available under a read-only mandate.
-#
-# $ /tmp/at9venv/bin/python /tmp/at9_peek2.py alert-processing-prdct11935 posture-issue-verdicts-prdct11935
-# peek_messages(max_message_count=1) on alert-processing-prdct11935  at 2026-08-23T19:02:59.088353+00:00
-#   peek is an AMQP management op that requires the 'Listen' claim
-  ALLOWED — peeked 1 message(s)
-# peek_messages(max_message_count=1) on posture-issue-verdicts-prdct11935  at 2026-08-23T19:03:01.155710+00:00
-#   peek is an AMQP management op that requires the 'Listen' claim
-  DENIED — ServiceBusAuthenticationError: Service Bus has encountered an error. Error condition: amqp:client-error.
+================================================================================
+2. THE RUNTIME IDENTITY BUILT FOR THIS RUN — AND THE PROOF IT HOLDS EXACTLY TWO
+================================================================================
+Created (ARM only; see §6 for why an app registration was not available):
 
-## READ BOTH RESULTS HONESTLY — neither is the negative this artifact needs.
-##
-## (a) alert-processing-prdct11935 was ALLOWED even though its QUEUE-SCOPED grant is Sender only:
-$ az role assignment list --scope ".../namespaces/prdct11935bus/queues/alert-processing-prdct11935" --query "[].{role:roleDefinitionName,principal:principalId}" -o tsv
-Azure Service Bus Data Sender	e9ed846a-c757-4a39-b330-d3b3d8aede4c
-##     The Listen claim came from the NAMESPACE-WIDE Data Receiver measured in §1. This directly
-##     REVERSES the previous round's result on the same queue ("LISTEN on alert-processing-prdct11935:
-##     DENIED"). The lab identity has since acquired a namespace-wide grant, so no queue in
-##     prdct11935bus can now produce a Listen denial for it.
-##
-## (b) posture-issue-verdicts-prdct11935 raised an error, but it is NOT an RBAC denial and is not
-##     presented as one — that queue DOES NOT EXIST:
-$ az servicebus queue list -g prdct11935-rg --namespace-name prdct11935bus --query "[].name" -o tsv | sort
-alert-processing-prdct11935
-endpoint-asset-ingestion-prdct11935
-endpoint-asset-ingestion-r39b
-ingestion-prdct11935
-mcp-gateway-events-prdct11935
-r39c-eai
-scanner-events-prdct11935
-sensor-events-prdct11935
-vr28-at2-eai
-vr28-flagoff-q
-vr28sub-g2r-mcpgw
-vr28sub-g2r-scanner
-vr28-tap
-vr28v-negrole
-vr29sub-eai
-vr29sub-tap
-vr33-at2-q
-vr33-flagoff-q
-vr33-tap
-vr39a-flagoff-q
-##     the SDK surfaces the missing entity as a CBS token failure:
-##       condition='amqp:client-error'  inner=TokenAuthFailure('CBS Token authentication failed.\nStatus code: None')
-##     That is entity absence, not a Listen refusal. It is printed here so the §4 output cannot be
-##     misread as the negative.
-##
-## (c) NO READ-ONLY NEGATIVE IS AVAILABLE ON THIS BOX. Every Service Bus entity in prdct11935bus is
-##     covered by the namespace-wide Receiver; all three storage accounts in prdct11935-rg carry a blob
-##     data role for this principal (at9-08 §1). Producing a denial requires removing an assignment —
-##     a write. It was not done.
+  $ az identity create -g prdct11935-rg -n prdct11935-at9lp-eai -l eastus2
+      clientId     = ea4e34d7-ce82-4395-b471-53f97a4621ce
+      principalId  = 68d2a0e7-06f1-40fa-9adb-e5cfc07f28dd
 
-=========================================================================================================
-## 5. WHAT THIS ROUND DOES AND DOES NOT ESTABLISH
-=========================================================================================================
-  ESTABLISHED, MEASURED NOW:
-    · the shipped terraform grants this lane exactly three roles, each scoped to a single entity, and
-      never the namespace (§2, §3)
-    · the two scopes this artifact names both carry the authored role, live (§1)
+It is the SAME identity TYPE the terraform authors (azurerm_user_assigned_identity), and it carries
+no client secret of any kind — the consumer obtains its token from IMDS.
 
-  NOT ESTABLISHED THIS ROUND, and NOT asserted from the earlier capture:
-    · the RBAC negative — that removing the data-plane roles makes Service Bus refuse 'Listen'. It
-      requires a role removal, which this read-only round forbids. The previous round's measurement of
-      it stands on its own file history; it is deliberately not restated here as if re-taken.
-    · that the SHIPPED workload identity in a real cell holds only the three grants. Not provable on
-      this box — the lane runs as the lab's shared admin SP (at9-08).
+SCOPE MAPPING — authored scope vs. the run-scoped instance actually used, stated plainly:
 
-  ALSO RECORDED AS A REGRESSION IN THE LAB, not in the product:
-    · the identity is now over-granted at BOTH scopes this file bounds (Data Sender on the ingestion
-      queue, Blob Data Contributor on the ingestion storage account) and holds a namespace-wide Data
-      Receiver. None of the three is authored anywhere in the terraform. They are round-over-round
-      probe residue and should be cleaned up before the next role measurement is taken, because they
-      are exactly what makes §4 unable to produce a denial.
+  role                              AUTHORED scope (TF)                        SCOPE USED THIS RUN
+  --------------------------------  -----------------------------------------  --------------------------------
+  Azure Service Bus Data Receiver   azurerm_servicebus_queue                   .../queues/at9lp-eai
+                                    .endpoint_asset_ingestion[0].id            (this run's OWN instance of the
+                                    = the lane's own ingestion queue           lane's ingestion queue)
+  Storage Blob Data Reader          var.customer_storage_account_id            .../storageAccounts/prdct11935st
+                                    = the ingestion storage ACCOUNT            /blobServices/default/containers
+                                                                               /ingestion
+                                                                               (the container — TIGHTER than the
+                                                                               authored account scope, never wider)
+
+  WHY a run-scoped queue and not the shared `endpoint-asset-ingestion-prdct11935`: five other legs are
+  driving this box concurrently, and a second consumer on the shared queue steals messages from
+  deploy/eai-azure and destroys their attribution — the exact orphan-competing-consumer defect already
+  recorded in this run (evidence/at1-10-competing-consumer.txt). So this round created its OWN queue
+  `at9lp-eai` plus its OWN byoc-events subscription `at9lp-only-mcp-scanner` (same SQL-rule shape as the
+  shipped `only-mcp-scanner`), and granted Data Receiver on THAT queue. That is still exactly the two
+  authored roles — just at this run's own instance of the ingestion queue. Both are deleted in §8.
+
+$ az role assignment list --assignee-object-id 68d2a0e7-06f1-40fa-9adb-e5cfc07f28dd --all
+  COUNT = 2  <-- EXACTLY TWO. No RG role. No namespace-wide role. Nothing else.
+
+  Azure Service Bus Data Receiver   /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus/queues/at9lp-eai
+  Storage Blob Data Reader          /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st/blobServices/default/containers/ingestion
+
+FOR CONTRAST — the identity the lane USED to run as (coder-agent-app, 738c6745). This is GAP 5:
+  TOTAL ASSIGNMENTS: 46
+  
+  The SUPERSET assignments that make coder-agent-app unusable as the identity under test:
+    Storage Blob Data Reader            /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st
+    Onyx Foundry Agents Read (PRDCT-12014 collection) /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/rg-coderagent-foundry/providers/Microsoft.CognitiveServices/accounts/coderagent-foundry
+    Reader                              /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749
+    User Access Administrator           /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749
+    Contributor                         /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg
+    Storage Blob Data Contributor       /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/d19prdct11935st
+    Onyx Cloud Agent Kill Switch (PRDCT-12014) /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/rg-coderagent-foundry/providers/Microsoft.CognitiveServices/accounts/coderagent-foundry
+    Storage Blob Data Reader            /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/vr28vneg29558
+    Azure Service Bus Data Receiver     /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.ServiceBus/namespaces/prdct11935bus
+    Storage Blob Data Contributor       /subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st
+  Of these, the two that decide everything in §5 are:
+    Contributor                      on resourceGroup prdct11935-rg      (RG-wide)
+    Azure Service Bus Data Receiver  on namespace prdct11935bus          (NAMESPACE-WIDE -> Listen on
+                                                                          EVERY queue in the namespace)
+    Storage Blob Data Contributor    on storageAccount prdct11935st      (write, not the authored read-only)
+  A strict superset of the two roles under test. at9 `forbidden` bars exactly this.
+
+================================================================================
+3. THE LANE RUNNING UNDER THAT IDENTITY — REAL SCAN THROUGH KONG, END TO END
+================================================================================
+Consumer clone: the SAME image deploy/eai-azure runs
+(localhost:5001/onyx/endpoint-asset-ingestion:r46b-head, digest
+sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25), run on an Azure VM
+(prdct11935-rg/at9lp-vm) that has ONLY the user-assigned identity above attached, so the process
+literally cannot authenticate as anything else. Its Postgres/Temporal reach the box's cluster over an
+SSH reverse tunnel; every Azure hop (Blob, Event Grid, Service Bus) is the real one.
+
+The consumer picked the identity up through the product's own credential path — no override, no key:
+
+  2026-08-24T00:57:40.715527Z [info] DefaultAzureCredential acquired a token from ManagedIdentityCredential
+  2026-08-24T00:57:40.291268Z [info] ASB client connected  namespace=prdct11935bus.servicebus.windows.net
+  2026-08-24T00:57:40.737837Z [info] Link state changed: <LinkState.ATTACH_SENT: 1> -> <LinkState.ATTACHED: 3>
+
+WRITE PATH — api-through-kong, as at9 declares:
+  onyx-scanner --endpoint http://ingest-onyx:8080/mcp-scanner --api-key <redacted>
+    -> Kong (key-auth, consumer ingestion@11935a18-0000-4000-8000-0000000018a1)
+    -> vector azure_blob sink -> lab Blob container prdct11935st/ingestion
+    -> Event Grid system topic -> Service Bus topic byoc-events
+    -> SQL-filtered subscription at9lp-only-mcp-scanner -> queue at9lp-eai
+    -> THIS clone, authenticating as prdct11935-at9lp-eai
+    -> tenant schema prdct11935_ta18
+
+  scan started 2026-08-24T01:20:08Z; the scanner reports its own send:
+    "Scan run completed" {"payloads_sent": 8, ...}
+
+THE CLONE'S OWN outcome=processed, naming the real Event-Grid-delivered object:
+
+  2026-08-24T01:20:57.675816Z [info] asset_ingestion_record_handled  outcome=processed
+      object_age_seconds=0.40651
+      s3_key='tenant=11935a18-0000-4000-8000-0000000018a1/source=mcp-scanner/date=2026-08-24/1787534435-c7f6f621-4c3f-4054-89f6-0b8921c128a8.log'
+      tenant_uuid=11935a18-0000-4000-8000-0000000018a1
+
+  2026-08-24T01:22:17.726381Z [info] asset_ingestion_record_handled  outcome=processed
+      object_age_seconds=0.417898
+      s3_key='tenant=11935a18-0000-4000-8000-0000000018a1/source=mcp-scanner/date=2026-08-24/1787534509-eee24940-ac35-4873-b056-d1db238f5223.log'
+      tenant_uuid=11935a18-0000-4000-8000-0000000018a1
+
+  Both roles are load-bearing in that one line: Data Receiver is what let the clone RECEIVE the message
+  off at9lp-eai, and Storage Blob Data Reader is what let it GET the blob the message points at. Strip
+  either and the line cannot be produced (the broker/storage errors that result are quoted verbatim in §4).
+
+THE TENANT DB, with the fidelity hashes:
+  --- assets count before/after the least-privilege clone's run ---
+  BEFORE=153  AFTER=438
+  
+  --- the marker skills this run created, as ASSET rows written by the LP clone ---
+   id  |           name           |      type      |          created_at           
+  -----+--------------------------+----------------+-------------------------------
+   285 | at9lp-r50b-010438        | AssetTypeSkill | 2026-08-24 01:20:36.876859+00
+   289 | at9lp-r50-20260824T0100Z | AssetTypeSkill | 2026-08-24 01:20:36.876859+00
+   292 | at9lp-r50c-011140        | AssetTypeSkill | 2026-08-24 01:20:36.876859+00
+   301 | at9lp-r50d-012008        | AssetTypeSkill | 2026-08-24 01:20:36.876859+00
+  (4 rows)
+  
+  --- their FIDELITY HASHES (agent_skills.skill_md_hash / skill_dir_hash) ---
+   asset_id |           name           |                          skill_md_hash                           |                          skill_dir_hash                          
+  ----------+--------------------------+------------------------------------------------------------------+------------------------------------------------------------------
+        285 | at9lp-r50b-010438        | c105cac99eadaa005df38e7b960740ee429102d174665e4cb854d2a408a6a00f | 8f0cf2fef6ce26ecca8761987921ddf2af3350cc12ebae436697d756e3992a78
+        289 | at9lp-r50-20260824T0100Z | 9fdb2b535d44d44b048cea74c70ec3b1165e7dd2bf2b15a76b0f5020d0f186a2 | a5b25aca1913fd9149bf44165820c4d08555b2dea793cc9c37f982f7ddcde057
+        292 | at9lp-r50c-011140        | 82848c9c3f2a2ed8d37eec434208ab83b23475b13ef7ff9626d4fea734011cab | bb655af292e7c611ad66ae7b37fcae8c2857576cf3ff4798b542acad26f7e376
+        301 | at9lp-r50d-012008        | ff4b883d9e8513b0b21515a2bdb615ecd48d2a8764cbc2b7392ffef6addc67d5 | e43a5287b1e982299ff99e392baf60f757abd2ca38b4647778d43c271cc5ca7e
+  (4 rows)
+  
+
+  The four `at9lp-r50*` rows are the marker skills this round created on the box specifically so the
+  scanner's send-dedup could not suppress this window's payload; they are content this run authored,
+  scanned through Kong, and read back out of the tenant schema — so the row provenance is unambiguous.
+
+  STATED HONESTLY: the shipped `only-mcp-scanner` subscription also delivers a copy of the same object
+  to deploy/eai-azure, which performs the same idempotent upsert. That is by design and was NOT changed
+  — this round's subscription is purely ADDITIVE (§8). What is attributable to the least-privilege clone
+  alone is its own `outcome=processed` lines above, which it could only emit by holding both roles.
+
+================================================================================
+4. THE REAL NEGATIVES UNDER THAT IDENTITY — BROKER/STORAGE ERRORS, VERBATIM
+================================================================================
+All of the following were produced by prdct11935-at9lp-eai (the exactly-two identity) from the VM, in
+one run, alongside the ALLOWED controls. Nothing is paraphrased.
+
+--- OP=LISTEN(receive) TARGET=at9lp-eai IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=ALLOWED
+    link established; peek returned 1 message(s)
+
+--- OP=SEND TARGET=at9lp-eai IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    ServiceBusAuthorizationError: Unauthorized access. 'Send' claim(s) are required to perform this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/at9lp-eai'. TrackingId:7bb3cb3388074235a5a2a50580bccf56_G34, SystemTracker:gateway10, Timestamp:2026-08-24T00:49:24 Error condition: amqp:unauthorized-access.
+
+--- OP=LISTEN(receive) TARGET=alert-processing-prdct11935 IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    ServiceBusAuthorizationError: Unauthorized access. 'Listen' claim(s) are required to perform this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/alert-processing-prdct11935'. TrackingId:40a6fc811b244be586a8962ed9e3f195_G0, SystemTracker:gateway10, Timestamp:2026-08-24T00:49:25 Error condition: amqp:unauthorized-access.
+
+--- OP=SEND TARGET=alert-processing-prdct11935 IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    ServiceBusAuthorizationError: Unauthorized access. 'Send' claim(s) are required to perform this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/alert-processing-prdct11935'. TrackingId:7d653fc3abe9496ebf76cd5d313e17a2_G17, SystemTracker:gateway10, Timestamp:2026-08-24T00:49:26 Error condition: amqp:unauthorized-access.
+
+--- OP=LISTEN(receive) TARGET=endpoint-asset-ingestion-prdct11935 IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    ServiceBusAuthorizationError: Unauthorized access. 'Listen' claim(s) are required to perform this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/endpoint-asset-ingestion-prdct11935'. TrackingId:8be5afc524a34b3cb35105633e0929d6_G15, SystemTracker:gateway10, Timestamp:2026-08-24T00:49:27 Error condition: amqp:unauthorized-access.
+
+--- OP=BLOB LIST TARGET=prdct11935st/ingestion IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=ALLOWED
+    first blobs: ['liveness/check-20260823T190855Z-1341322.txt', 'liveness/check-20260823T190920Z-1342155.txt', 'liveness/check-20260823T191008Z-1343490.txt']
+
+--- OP=BLOB LIST TARGET=prdct11935st/vector IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    HttpResponseError: This request is not authorized to perform this operation using this permission.
+    RequestId:ab9fe106-c01e-0061-6262-334688000000
+    Time:2026-08-24T00:49:30.3653382Z
+    ErrorCode:AuthorizationPermissionMismatch
+    Content: <?xml version="1.0" encoding="utf-8"?><Error><Code>AuthorizationPermissionMismatch</Code><Message>This request is not authorized to perform this operation using this permission.
+    RequestId:ab9fe106-c01e-0061-6262-334688000000
+    Time:2026-08-24T00:49:30.3653382Z</Message></Error>
+
+--- OP=BLOB LIST TARGET=d19prdct11935st/ingestion IDENTITY=prdct11935-at9lp-eai (UAMI, clientId ea4e34d7…) — exactly 2 roles RESULT=DENIED
+    HttpResponseError: This request is not authorized to perform this operation using this permission.
+    RequestId:38a33065-601e-0020-7f62-33c17d000000
+    Time:2026-08-24T00:49:30.4384385Z
+    ErrorCode:AuthorizationPermissionMismatch
+    Content: <?xml version="1.0" encoding="utf-8"?><Error><Code>AuthorizationPermissionMismatch</Code><Message>This request is not authorized to perform this operation using this permission.
+    RequestId:38a33065-601e-0020-7f62-33c17d000000
+    Time:2026-08-24T00:49:30.4384385Z</Message></Error>
+
+
+================================================================================
+5. THE alert-processing CLAIM, RE-MEASURED UNDER BOTH IDENTITIES  (this is GAP 6)
+================================================================================
+Queue under test: alert-processing-prdct11935. Three postures were measured on the live broker.
+
+-------------------------------------------------------------------------------
+(a) coder-agent-app  — the identity deploy/eai-azure ACTUALLY RUNS AS today
+-------------------------------------------------------------------------------
+--- OP=LISTEN(receive) TARGET=alert-processing-prdct11935 IDENTITY=coder-agent-app (738c6745) — the CURRENT eai-azure runtime identity RESULT=ALLOWED
+    link established; peek returned 1 message(s)
+
+--- OP=SEND TARGET=alert-processing-prdct11935 IDENTITY=coder-agent-app (738c6745) — the CURRENT eai-azure runtime identity RESULT=ALLOWED
+    message accepted by broker
+
+--- OP=LISTEN(receive) TARGET=endpoint-asset-ingestion-prdct11935 IDENTITY=coder-agent-app (738c6745) — the CURRENT eai-azure runtime identity RESULT=ALLOWED
+    link established; peek returned 0 message(s)
+
+  WHY: SEND is supplied by a queue-scoped "Azure Service Bus Data Sender" on
+       .../queues/alert-processing-prdct11935.
+       LISTEN is supplied by a NAMESPACE-WIDE "Azure Service Bus Data Receiver" on
+       .../namespaces/prdct11935bus — which confers the Listen claim on EVERY queue in the
+       namespace, alert-processing included. That namespace-wide grant is harness residue; the
+       shipped module never grants it to this lane (workload_identity.tf restricts the
+       namespace-wide Receiver list to ingestion-vector / extension-stats-consumer /
+       alert-processor / extension / sensor-service / entity-writer — endpoint-asset-ingestion
+       is deliberately NOT in it).
+
+-------------------------------------------------------------------------------
+(b) prdct11935-at9lp-eai holding ONLY the two roles under test (Receiver on its own
+    ingestion queue + Blob Data Reader). The authored Sender is ABSENT here.
+-------------------------------------------------------------------------------
+  --- OP=SEND   TARGET=alert-processing-prdct11935  RESULT=DENIED
+      ServiceBusAuthorizationError: Unauthorized access. 'Send' claim(s) are required to perform
+      this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/alert-processing-prdct11935'.
+      TrackingId:7d653fc3abe9496ebf76cd5d313e17a2_G17, SystemTracker:gateway10,
+      Timestamp:2026-08-24T00:49:26 Error condition: amqp:unauthorized-access.
+
+  --- OP=LISTEN TARGET=alert-processing-prdct11935  RESULT=DENIED
+      ServiceBusAuthorizationError: Unauthorized access. 'Listen' claim(s) are required to perform
+      this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/alert-processing-prdct11935'.
+      TrackingId:40a6fc811b244be586a8962ed9e3f195_G0, SystemTracker:gateway10,
+      Timestamp:2026-08-24T00:49:25 Error condition: amqp:unauthorized-access.
+
+  This is the direct live confirmation of the terraform's own comment on the Sender grant
+  ("Without this the lane runs healthy and drops every alert: the send fails with
+   `amqp:unauthorized-access — 'Send' claim(s) are required`"). The authored third grant is
+  load-bearing, and the two roles d-b4 names do NOT supply it.
+
+-------------------------------------------------------------------------------
+(c) THE AUTHORED POSTURE — the same identity with the authored THIRD grant added
+    (queue-scoped "Azure Service Bus Data Sender" on alert-processing-prdct11935),
+    then removed again to restore exactly-two (see §2 and §8).
+-------------------------------------------------------------------------------
+--- OP=SEND TARGET=alert-processing-prdct11935 IDENTITY=prdct11935-at9lp-eai (UAMI) WITH the authored 3rd grant (queue-scoped Data Sender on alert-processing) RESULT=ALLOWED
+    message accepted by broker
+
+--- OP=LISTEN(receive) TARGET=alert-processing-prdct11935 IDENTITY=prdct11935-at9lp-eai (UAMI) WITH the authored 3rd grant (queue-scoped Data Sender on alert-processing) RESULT=DENIED
+    ServiceBusAuthorizationError: Unauthorized access. 'Listen' claim(s) are required to perform this operation. Resource: 'sb://prdct11935bus.servicebus.windows.net/alert-processing-prdct11935'. TrackingId:a0143e57ba5c49daa8e35796668b58b7_G43, SystemTracker:gateway10, Timestamp:2026-08-24T00:51:29 Error condition: amqp:unauthorized-access.
+  RBAC took ~20s past creation to reach the Service Bus data plane; the first two probes after the
+  grant still returned DENIED and are not presented as the result — the bounded re-probe loop above
+  is. The grant was deleted immediately afterwards and §2's list re-confirmed COUNT = 2.
+
+-------------------------------------------------------------------------------
+THE RESOLUTION, AND THE CORRECTED SENTENCE FOR THE PR BODY
+-------------------------------------------------------------------------------
+The PR body and the previous artifact were not measuring the same identity. Both readings are real:
+
+    identity                                      SEND      LISTEN
+    --------------------------------------------  --------  --------
+    authored endpoint-asset-ingestion role set     ALLOWED   DENIED     <- what the PR body meant
+    coder-agent-app (lab runtime, superset)        ALLOWED   ALLOWED    <- what was measured at verify
+    the two roles under test, alone                DENIED    DENIED     <- why grant 3 exists
+
+The body's sentence is true of the AUTHORED identity and false of the identity the lab was running.
+It must therefore name the identity. Paste this:
+
+    On `alert-processing-prdct11935` the authored endpoint-asset-ingestion identity gets SEND and
+    not LISTEN: the queue-scoped `Azure Service Bus Data Sender` supplies the Send claim, and with
+    no Receiver at that scope a receive is refused with `'Listen' claim(s) are required`. Measured
+    live on a purpose-built identity holding exactly the authored grants. The lab's previous runtime
+    identity (`coder-agent-app`) shows LISTEN as *allowed* only because it separately holds a
+    namespace-wide `Azure Service Bus Data Receiver` on `prdct11935bus`, which the module never
+    grants this lane — that superset, not the authored design, is what produced the earlier reading.
+
+================================================================================
+6. THE FEDERATED WORKLOAD-IDENTITY HALF — A BOUNDED, EVIDENCED LIMITATION
+================================================================================
+d-b4 also names the "Entra federated credential". Stated plainly: THE FEDERATION EXCHANGE CANNOT BE
+EXERCISED IN THIS LAB. It is not proven, and nothing here is dressed up as proving it. What IS
+mechanically established, with the literal outputs:
+
+(1) There is no AKS cluster in the lab subscription, so there is no managed OIDC issuer.
+    $ az aks list -o json
+    []
+    $ az provider show -n Microsoft.ContainerService --query registrationState -o tsv
+    NotRegistered
+
+(2) Federated-credential SUPPORT for the identity type actually used is PRESENT and was exercised —
+    Azure accepted the resource against the user-assigned managed identity:
+    $ az identity federated-credential create --name at9lp-fedcred \
+        --identity-name prdct11935-at9lp-eai -g prdct11935-rg \
+        --issuer "https://kubernetes.default.svc.cluster.local" \
+        --subject "system:serviceaccount:onyxd:at9lp-fed-probe" \
+        --audiences "api://AzureADTokenExchange"
+    {
+      "audiences": ["api://AzureADTokenExchange"],
+      "id": ".../userAssignedIdentities/prdct11935-at9lp-eai/federatedIdentityCredentials/at9lp-fedcred",
+      "issuer": "https://kubernetes.default.svc.cluster.local",
+      "subject": "system:serviceaccount:onyxd:at9lp-fed-probe",
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials"
+    }
+
+(3) The blocker is the ISSUER, and it was proven by attempting the real exchange with a REAL projected
+    ServiceAccount token (kubectl TokenRequest, audience api://AzureADTokenExchange) — not a synthesised
+    assertion. The box's kind cluster advertises a cluster-internal issuer:
+    $ kubectl get --raw /.well-known/openid-configuration
+    {"issuer":"https://kubernetes.default.svc.cluster.local",
+     "jwks_uri":"https://172.18.0.3:6443/openid/v1/jwks", ...}
+    SA token claims: {"iss":"https://kubernetes.default.svc.cluster.local",
+                      "sub":"system:serviceaccount:onyxd:at9lp-fed-probe",
+                      "aud":["api://AzureADTokenExchange"]}
+
+    First attempt, subject deliberately not yet matching — Entra reaches the RECORD lookup:
+      AADSTS700213: No matching federated identity record found for presented assertion subject
+      'system:serviceaccount:onyxd:at9lp-fed-probe'.
+
+    Second attempt, with the federated credential's subject corrected to match exactly:
+      AADSTS501661: Request to External OIDC endpoint failed.
+      Trace ID: 4d70dd95-7758-49c2-9d9d-70ad7da3c500
+
+    AADSTS501661 is Entra failing to FETCH the issuer's OIDC discovery document. It cannot: the issuer
+    is `kubernetes.default.svc.cluster.local`, a cluster-internal DNS name with no public HTTPS
+    endpoint. Making it work would require changing the kube-apiserver's --service-account-issuer to a
+    publicly resolvable URL — a cluster-wide change that invalidates every existing ServiceAccount
+    token on a box currently running five other legs. That was NOT done.
+
+VERDICT: federated workload identity is UNPROVEN in this lab and remains so. The identity type, the
+federated-credential resource, and the token-exchange call path are all real and were exercised; only
+the OIDC issuer is unavailable. Ownership: it can be proven on any cluster with a public OIDC issuer
+(AKS with --enable-oidc-issuer, or a self-managed issuer published to a public HTTPS endpoint).
+NOTE what was NOT done to paper over it: no superset credential was substituted anywhere, and the
+runtime identity in §2/§3 is secretless precisely so no client secret had to stand in for federation.
+
+================================================================================
+7. WHAT THIS ROUND DID *NOT* DISTURB — the concurrency contract
+================================================================================
+Five other legs (an at7 window, an at6 leg, at11 base/head, a parity leg) were live throughout.
+Everything this round created is ADDITIVE and separately named; nothing shared was modified.
+
+  * deploy/eai-azure          — NOT touched. Not scaled, not re-imaged, not reconfigured. Its config
+                                still names the SHARED queue (captured below).
+  * queue endpoint-asset-ingestion-prdct11935 — NO second consumer was ever attached to it. The
+                                least-privilege identity is in fact DENIED on it (§4), which is
+                                itself the proof it could not have competed.
+  * subscription only-mcp-scanner and its rule — untouched, still `sys.Label LIKE '%source=mcp-scanner/%'`.
+  * tenant 11935a26 / prdct11935_ta26 — initially selected as an idle tenant, then ABANDONED on
+                                discovering vector carries an `at6r50` route claiming it
+                                (`."x-consumer-username" == "ingestion@11935a26-…" && ."x-source-type" == "mcp-scanner"`).
+                                That is the live at6 leg. This round moved to prdct11935_ta18, which no
+                                vector route and no running deployment references.
+  * 17 messages drained from at9lp-eai before the clone started: these were copies the additive
+                                subscription had accumulated for OTHER legs' tenants while the rule was
+                                still broad. They were copies on THIS round's own queue with no consumer
+                                attached — the originals were delivered to eai-azure via only-mcp-scanner
+                                as normal. Draining them is what guaranteed the clone could never process
+                                another leg's object. The rule was then narrowed to this round's tenant.
+
+=== eai-azure + all shared eai-*/at6/at7/at11 deployments (untouched check) ===
+NAME                                      READY    DESIRED   IMAGE                                                                         AGE
+eai-at11-base                             1        1         localhost:5001/onyx/endpoint-asset-ingestion:r45c-base                        2026-08-23T19:00:38Z
+eai-at11-head                             1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-23T19:00:38Z
+eai-at6-aws                               1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-24T00:42:14Z
+eai-at6-azure                             1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-24T00:42:14Z
+eai-aws-refuse-asb                        <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-18T19:08:58Z
+eai-azure                                 1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-18T19:08:58Z
+eai-azure-r39a                            1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-23T18:06:55Z
+eai-azure-r39b                            <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-23T18:02:12Z
+eai-azure-refuse-s3                       <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-18T19:08:58Z
+endpoint-asset-ingestion                  1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-18T16:07:32Z
+endpoint-asset-ingestion-azure-prefix-a   <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:tilt-ff53d0cd666384ee            2026-08-18T16:49:26Z
+endpoint-asset-ingestion-azure-prefix-b   <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:tilt-ff53d0cd666384ee            2026-08-18T16:49:59Z
+endpoint-swg-ingestion                    1        1         localhost:5001/onyx/endpoint-asset-ingestion:tilt-276b0538818d18e7            2026-08-18T05:45:47Z
+mcp-gateway-event-consumer                1        1         localhost:5001/onyx/mcp-gateway-event-consumer:r46b-head                      2026-08-18T05:42:50Z
+mcp-gateway-event-consumer-azure-prefix   <none>   0         localhost:5001/onyx/mcp-gateway-event-consumer:prdct11935-r26                 2026-08-18T16:47:00Z
+r31-at4-aws-asb                           <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-22T03:52:49Z
+r31-at4-azure-noqueue                     <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-22T03:52:49Z
+r31-at4-azure-s3                          <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-22T03:52:49Z
+r31-at5-mcpgw-aws                         <none>   0         localhost:5001/onyx/mcp-gateway-event-consumer:prdct11935-r26                 2026-08-22T03:58:32Z
+r31-at5-mcpgw-azure                       <none>   0         localhost:5001/onyx/mcp-gateway-event-consumer:prdct11935-r26                 2026-08-22T03:58:32Z
+r31-at5-scanner-aws                       <none>   0         localhost:5001/onyx/scanner-event-consumer:prdct11935-r26                     2026-08-22T03:58:32Z
+r31-at5-scanner-azure                     <none>   0         localhost:5001/onyx/scanner-event-consumer:prdct11935-r26                     2026-08-22T03:58:32Z
+r39c-at4-aws-asb                          <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-23T18:01:59Z
+r39c-at4-azure-noblob                     <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-23T18:08:08Z
+r39c-at4-azure-ok                         <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-23T18:01:59Z
+r39c-at4-azure-s3                         <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head                        2026-08-23T18:01:59Z
+r39c-at5-mcpgw-azure                      <none>   0         localhost:5001/onyx/mcp-gateway-event-consumer:r46b-head                      2026-08-23T18:02:59Z
+r39c-at5-scanner-azure                    <none>   0         localhost:5001/onyx/scanner-event-consumer:r46b-head                          2026-08-23T18:02:59Z
+scanner-event-consumer                    1        1         localhost:5001/onyx/scanner-event-consumer:r46b-head                          2026-08-18T05:48:50Z
+scanner-event-consumer-azure-prefix       <none>   0         localhost:5001/onyx/scanner-event-consumer:prdct11935-r26                     2026-08-18T16:47:00Z
+vr26-eai-flagoff                          <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-21T11:24:51Z
+vr28-at2-eai                              <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-21T16:32:45Z
+vr28-eai-flagoff                          <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-21T16:24:14Z
+vr28sub-g2r-mcpgw                         <none>   0         localhost:5001/onyx/mcp-gateway-event-consumer:vboot-base67b4096f             2026-08-21T16:33:31Z
+vr28sub-g2r-scanner                       <none>   0         localhost:5001/onyx/scanner-event-consumer:vboot-base67b4096f                 2026-08-21T16:33:30Z
+vr29sub-at4-01                            <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-21T20:02:11Z
+vr29sub-at4-02                            <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-21T20:02:11Z
+vr29sub-at4-03                            <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-21T20:10:33Z
+vr29sub-at5-mcpgw-aws                     <none>   0         localhost:5001/onyx/mcp-gateway-event-consumer:prdct11935-r26                 2026-08-21T20:07:16Z
+vr29sub-at5-mcpgw-azure                   <none>   0         localhost:5001/onyx/mcp-gateway-event-consumer:prdct11935-r26                 2026-08-21T20:07:16Z
+vr29sub-at5-scanner-aws                   <none>   0         localhost:5001/onyx/scanner-event-consumer:prdct11935-r26                     2026-08-21T20:07:15Z
+vr29sub-at5-scanner-azure                 <none>   0         localhost:5001/onyx/scanner-event-consumer:prdct11935-r26                     2026-08-21T20:07:15Z
+vr30-flagoff                              <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-21T23:55:24Z
+vr33-at2                                  <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-22T08:00:44Z
+vr33-flagoff                              <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26                   2026-08-22T07:53:18Z
+
+=== eai-azure config (unchanged: still points at the SHARED ingestion queue) ===
+asset_ingestion_asb:
+  fully_qualified_namespace: "prdct11935bus.servicebus.windows.net"
+  queue_name: "endpoint-asset-ingestion-prdct11935"
+
+=== byoc-events subscriptions (mine is ADDITIVE; only-mcp-scanner untouched) ===
+at9lp-only-mcp-scanner	at9lp-eai
+only-mcp-scanner	endpoint-asset-ingestion-prdct11935
+to-ingestion	ingestion-prdct11935
+to-mcp-gateway-events	mcp-gateway-events-prdct11935
+to-scanner-events	scanner-events-prdct11935
+to-sensor-events	sensor-events-prdct11935
+vr28-at2	vr28-at2-eai
+vr28-flagoff	vr28-flagoff-q
+vr28sub-g2r-mcpgw	vr28sub-g2r-mcpgw
+vr28sub-g2r-scanner	vr28sub-g2r-scanner
+vr28-tap	vr28-tap
+vr28v-tap-all	None
+vr28v-tap-scanner	None
+vr39a-flagoff	vr39a-flagoff-q
+
+=== only-mcp-scanner rule (shipped, untouched) ===
+mcp-scanner-rule	sys.Label LIKE '%source=mcp-scanner/%'
+
+================================================================================
+8. TEARDOWN AND RESTORE PROOF   (captured 2026-08-24T01:35:41Z)
+================================================================================
+Everything this round created has been deleted. The identity was NOT kept: both of its scopes were
+run-scoped (its Receiver pointed at the queue that is now gone), so leaving a dangling identity behind
+would have been worse than removing it. Every command needed to rebuild it in ~2 minutes is recorded
+verbatim in §2 and §6, so the evidence stays reproducible.
+
+CREATED THIS ROUND -> DELETED
+  Azure  user-assigned managed identity  prdct11935-at9lp-eai        -> deleted
+  Azure  role assignment  Azure Service Bus Data Receiver @ queues/at9lp-eai   -> deleted
+  Azure  role assignment  Storage Blob Data Reader @ prdct11935st/…/ingestion  -> deleted
+  Azure  federated identity credential   at9lp-fedcred               -> deleted
+  Azure  Service Bus queue               at9lp-eai                   -> deleted
+  Azure  byoc-events subscription        at9lp-only-mcp-scanner      -> deleted
+  Azure  VM + disk + NIC + public IP + NSG + VNET  at9lp-vm*         -> deleted
+  Azure  role assignment  Data Sender @ alert-processing (temporary, §5c)      -> deleted (before §3)
+  Kong   consumer ingestion@11935a18-0000-4000-8000-0000000018a1 + key-auth    -> deleted (HTTP 204)
+  k8s    serviceaccount onyxd/at9lp-fed-probe                        -> deleted
+  box    marker skills at9lp-r50{,b,c,d}                             -> removed
+  box    ssh keypair, Kong key files, VM env file                    -> shredded
+  local  reverse SSH tunnel + both kubectl port-forwards             -> killed
+
+$ az resource list -g prdct11935-rg --query "[?contains(name,'at9lp')].{n:name,t:type}" -o table
+  
+  <no rows — nothing named at9lp remains in the resource group>
+
+$ az servicebus queue list -g prdct11935-rg --namespace-name prdct11935bus --query "[?contains(name,'at9lp')].name" -o tsv
+  <empty>
+
+$ az servicebus topic subscription list … --topic-name byoc-events   (mine is gone; the shipped ones are intact)
+  only-mcp-scanner	endpoint-asset-ingestion-prdct11935
+  to-ingestion	ingestion-prdct11935
+  to-mcp-gateway-events	mcp-gateway-events-prdct11935
+  to-scanner-events	scanner-events-prdct11935
+  to-sensor-events	sensor-events-prdct11935
+  vr28-at2	vr28-at2-eai
+  vr28-flagoff	vr28-flagoff-q
+  vr28sub-g2r-mcpgw	vr28sub-g2r-mcpgw
+  vr28sub-g2r-scanner	vr28sub-g2r-scanner
+  vr28-tap	vr28-tap
+  vr28v-tap-all	None
+  vr28v-tap-scanner	None
+  vr39a-flagoff	vr39a-flagoff-q
+
+$ az servicebus topic subscription rule list … --subscription-name only-mcp-scanner   (UNTOUCHED)
+  mcp-scanner-rule	sys.Label LIKE '%source=mcp-scanner/%'
+
+$ curl -s http://<kong-admin>/consumers   (the consumer this round added is gone; the pre-existing ones are intact)
+   anonymous
+   backoffice
+   ingestion@11935a26-0000-4000-8000-000000000a26
+   ingestion@11935dea-0000-4000-8000-00000000dead
+   ingestion@11935f18-0000-4000-8000-000000000101
+   ingestion@11935f18-0000-4000-8000-000000000102
+   ingestion@61750f27-8fbd-42a4-80cf-4191cfb2371a
+   kong-consumer
+   mcp-gateway@61750f27-8fbd-42a4-80cf-4191cfb2371a
+   onyx-extension@61750f27-8fbd-42a4-80cf-4191cfb2371a
+
+SHARED DEPLOYMENTS — eai-azure and every eai-*/at6/at7/at11 leg, still exactly as found:
+  NAME                                      READY    DESIRED   IMAGE
+  eai-at11-base                             1        1         localhost:5001/onyx/endpoint-asset-ingestion:r45c-base
+  eai-at11-head                             1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+  eai-at6-aws                               1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+  eai-at6-azure                             1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+  eai-aws-refuse-asb                        <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+  eai-azure                                 1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+  eai-azure-r39a                            1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+  eai-azure-r39b                            <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+  eai-azure-refuse-s3                       <none>   0         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+  endpoint-asset-ingestion                  1        1         localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+  mcp-gateway-event-consumer                1        1         localhost:5001/onyx/mcp-gateway-event-consumer:r46b-head
+  scanner-event-consumer                    1        1         localhost:5001/onyx/scanner-event-consumer:r46b-head
+
+  eai-azure config still names the SHARED queue (never repointed by this round):
+    asset_ingestion_asb:
+      fully_qualified_namespace: "prdct11935bus.servicebus.windows.net"
+      queue_name: "endpoint-asset-ingestion-prdct11935"
+
+  vector pod (shared, restarted mid-round by ANOTHER leg, not by this one):
+    onyx-onyxd-vector-0   1/1   Running   0     24m
+
+  ONE SIDE EFFECT, RECORDED RATHER THAN HIDDEN: the SEND probes in §5(a) and §5(c) each put one
+  message on the shared alert-processing-prdct11935 queue (4 in total). An attempt to receive-and-
+  complete exactly those four found the queue already holds 8,347 messages — the accumulated output of
+  every prior round, since nothing in this lab consumes that queue. The sweep sampled 300, matched none
+  of mine, and abandoned all 300 back (delivery count +1 on those 300, against maxDeliveryCount=3);
+  it was then STOPPED rather than compounded. Net state: 4 additional probe messages on a queue that
+  already had thousands and has no consumer. No message was deleted, no DLQ entry was created, and no
+  other leg reads this queue.
