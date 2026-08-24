@@ -1,11 +1,22 @@
 # PRDCT-11935 at7-09 — DB rows, classes MCP TOOLS and POSTURE
-# FILE LAST WRITTEN 2026-08-21T23:10:00Z
+# FILE LAST WRITTEN 2026-08-24T05:37:18Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+#
+# ⚠️ SUPERSEDED — READ THIS FIRST (round 53, 2026-08-24T05:37:18Z).
+#   This is the 2026-08-21 COMBINED tools+posture capture, taken on the PRE-REVERT image
+#   (branch a2486bb33f / :prdct11935-r26). It is retained as history and MUST NOT be cited as
+#   current evidence for either class. The head-build captures that replace it, both taken in
+#   window r50at7002800 on onyx head 2b60fdc4df25188104e737e6311087681355eff8, are:
+#       evidence/at7-09-db-rows-tools.txt     (MCP TOOLS)
+#       evidence/at7-09-db-rows-posture.txt   (POSTURE)
+#   The three filenames deliberately share the at7-09 stem, which is how a PROSE citation of
+#   'at7-09' became ambiguous; at7-23 now cites both current files by full name for that reason.
+#
 #
 # ROUND-33 CITE REFRESH (S10, line-number-only). `mcp_writer.py:1181` -> `mcp_writer.py:1209` — `upsert_mcp_tools`; :1181 at HEAD is `destination_asset_id=asset.asset_id`. Mirrored from the plan's
 # CORRECTION LOG under the orchestrator-authorized joint S1-S12 refresh (plan re-frozen at
 # sha256 7f26074e90cf643d...); the corrected line was re-read with sed at HEAD before this edit.
 # Nothing else in this file changed. Full mirror record: evidence/at10-07-stale-cite-refresh.txt.
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T03:39:18Z · tenant onyx_security
 #
 # RE-CAPTURED ON THE HEAD-EXACT IMAGE (gate G7). Round 23's gate found 19 of 21 at7 artifacts still
