@@ -1,0 +1,82 @@
+{
+  "_file_last_written": "2026-08-24T01:51:22.074Z",
+  "stamp": "2026-08-24T01:51:22.074Z",
+  "window": "r50at7002800",
+  "head": "2b60fdc4df25188104e737e6311087681355eff8",
+  "leg": "C posture pre-removal + agent pair",
+  "steps": [
+    {
+      "route": "/ai-assets/desktop-agents/group/507",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/group/507?tab=overview&instanceType=endpoint&containerView=grouped"
+    },
+    {
+      "route": "/ai-assets/desktop-agents/group/3630",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/group/3630?tab=overview&instanceType=endpoint&containerView=grouped"
+    },
+    {
+      "route": "/posture-issues",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues"
+    }
+  ],
+  "assertions": [
+    {
+      "where": "desktop-agent GROUP surface, uninstalled SUBJECT (appDefinitionId 507)",
+      "needle": "OpenClaw",
+      "locator": "page.getByText(\"OpenClaw\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 20000ms exceeded."
+    },
+    {
+      "where": "desktop-agent GROUP surface, still-installed CONTROL (appDefinitionId 3630)",
+      "needle": "Codex",
+      "locator": "page.getByText(\"Codex\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 20000ms exceeded."
+    },
+    {
+      "where": "/posture-issues list — a definition that fired on THIS run's skill asset",
+      "needle": "secret",
+      "locator": "page.getByText(\"secret\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 3
+    }
+  ],
+  "captures": [
+    {
+      "name": "at7-21-ui-lifecycle-agent.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/group/507?tab=overview&instanceType=endpoint&containerView=grouped",
+      "label": "uninstalled subject group surface, Last Seen in frame",
+      "state_fp": "69b8b0e165ccf267",
+      "png_sha256": "97e0854b4061d1b7a22d73a1b59809467602d6afb7b18a885b0a6a964df3f536"
+    },
+    {
+      "name": "at7-21b-ui-lifecycle-agent-control.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/group/3630?tab=overview&instanceType=endpoint&containerView=grouped",
+      "label": "still-installed control group surface, same surface",
+      "state_fp": "d989acd59e2deac9",
+      "png_sha256": "3e4398d32b0e9aa90092e645bb427dab6303f8f63c01615efaef718ae4aa24c9"
+    },
+    {
+      "name": "at7-20-ui-posture.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=hardcoded+secrets",
+      "label": "/posture-issues list, pre-removal",
+      "state_fp": "9a20622ce45a2e9f",
+      "png_sha256": "1a1d0b565ae976cf8916805c14f39f8c3b7aaabee5921315021847fad2abfa87"
+    }
+  ],
+  "login": {
+    "ok": true,
+    "url_after_login": "http://ui.onyxd.svc.cluster.local:8080/overview",
+    "identity": "coder-agent@onyx.security"
+  },
+  "last_seen_subject": "<Last Seen not rendered>",
+  "last_seen_control": "<Last Seen not rendered>",
+  "fatal": "TimeoutError: locator.click: Timeout 22000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByPlaceholder(/search/i).first()\u001b[22m\n\u001b[2m    - locator resolved to <input data-rac=\"\" type=\"search\" value=\"hardcoded secrets\" placeholder=\"Search issues\" class=\"m-0 w-full bg-transparent text-primary outline-hidden ring-0 placeholder:text-placeholder autofill:rounded-lg autofill:text-primary disabled:cursor-not-allowed [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-cancel-button]:[-webkit-appearance:none] px-3 py-2 pl-10 text-md\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m ",
+  "distinct_captures": true,
+  "verdict": "SOME-ASSERTIONS-FAILED"
+}
