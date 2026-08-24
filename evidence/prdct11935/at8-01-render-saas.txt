@@ -1,126 +1,262 @@
-# PRDCT-11935 at8-01 — the lane's RENDERED objects on the saas instance, RE-RENDERED on the shipped heads
-# FILE LAST WRITTEN 2026-08-23T19:01:24Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# flux-fleet branch factory-eval-v32/PRDCT-11935 @ a4493c1e5ac0 · onyx head 2b60fdc4df25188104e737e6311087681355eff8 · re-rendered 2026-08-23T18:57:57Z
+# PRDCT-11935 at8-01 — the lane's RENDERED objects on the saas instance, re-rendered at the CURRENT heads
+# FILE LAST WRITTEN 2026-08-24T01:44:03Z
+# PROVENANCE — every sha this capture depends on, named:
+#   onyx head        2b60fdc4df25188104e737e6311087681355eff8  (branch factory-eval-v32/PRDCT-11935)
+#   flux-fleet       a4493c1e5ac0545fdf7fcd2f349060288111c42c  (PR onyxsecurity/flux-fleet#2307 head — the PR is OPEN, NOT merged;
+#                    fetched this round into a FRESH clone at /tmp/prdct11935/r51/at8/ff, never the box checkout)
+#   flux merge-base with origin/main   2c8ad2f2d4250763880752b1f39f29cbd2ebeadf
+#   image actually running in the cluster (deploy/eai-azure — the azure-mode consumer of the lab queue,
+#                    the same image the live KEDA arm in at8-06 was driven against)
+#                    localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+#   capture time     2026-08-24T01:44:03Z
 #
-# WHY IT WAS RE-RENDERED. The round-39 gate found this capture stamped on onyx a2486bb33f — 50
-# commits and two owner rulings behind the shipped head — and flux-fleet#2307 was CONFLICTING at
-# the time. Both moved: flux-fleet's branch merged main (conflict in versions.yaml resolved by
-# taking main's 1.1.874 -> 1.1.877 bump AND carrying this lane's new pin forward with it), and the
-# onyx chart is the one this PR ships. This is the render of those two heads.
+# WHY RE-EMITTED (round 51). The round-40 gate re-proved every conclusion in the at8 family at head and
+# found the substance sound, but flagged the family's PROVENANCE. This file is a clean re-render from a
+# fresh clone of flux-fleet#2307's current head against the onyx chart this PR ships. Nothing below is
+# hand-edited; every block is the literal tool output.
 
 ## $ kustomize build --load-restrictor LoadRestrictionsNone clusters/ox-az-p-eus2-c02/instances/saas/onyx-app
-##   | yq '…HelmRelease onyx-app .spec.values."endpoint-asset-ingestion"'
-  configMap:
-    data:
-      alert_processing_asb:
-        fully_qualified_namespace: ${servicebus_namespace}
-        queue_name: ${alert_processing_queue_name}
-      asset_ingestion_asb:
-        fully_qualified_namespace: ${endpoint_asset_ingestion_servicebus_namespace}
-        queue_name: ${endpoint_asset_ingestion_queue_name}
-      asset_ingestion_s3:
-        aws_region: ""
-        endpoint: ""
-      blob:
-        account_url: ${blob_account_url}
-        container_name: ${blob_container_name}
-      cloud: azure
-      concurrency: 5
-      database:
-        host: ${rds_endpoint}
-        name: postgres
-        port: 5432
-        ssl_mode_disabled: false
-      error_backoff_seconds: 5
-      logging:
-        level: INFO
-        render_json: true
-      max_messages: 10
-      releases_kvs:
-        kvs_arn: ${releases_kvs_arn:=}
-        writer_role_arn: ${releases_kvs_writer_role_arn:=}
-      telemetry:
-        otlp_endpoint: groundcover-sensor.groundcover.svc.cluster.local:4317
-        service_name: endpoint-asset-ingestion
-      temporal_server:
-        host: temporal-frontend.mgmt.svc.cluster.local
-        namespace: ${temporal_namespace}
-        port: 7233
-  enabled: true
-  env:
-    - name: ONYX__DATABASE__USER
-      valueFrom:
-        secretKeyRef:
-          key: username
-          name: operational-rds-credentials
-    - name: ONYX__DATABASE__PASSWORD
-      valueFrom:
-        secretKeyRef:
-          key: password
-          name: operational-rds-credentials
-    - name: ONYX__FEATURE_FLAGS__LAUNCHDARKLY_SDK_KEY
-      valueFrom:
-        secretKeyRef:
-          key: sdk-key
-          name: launchdarkly-sdk-key
-    - name: ONYX__DOCS_PORTAL__MCP_GATEWAY_KEY_SECRET
-      valueFrom:
-        secretKeyRef:
-          key: key-secret
-          name: mcp-gateway-key-secret
-          optional: true
-  envFrom: []
-  externalAutoscaling:
+##     exit=0, 3536 lines
+## $ helm template onyx-app /home/coder/onyx/infra/helm/onyx-app -n placeholder -f <that HelmRelease's spec.values>
+##     exit=0, 6151 lines
+##   (chart = the onyx repo chart this PR ships; the overlay pins onyx-app chart 1.0.34, lane image tag 1.1.877)
+
+=== 1. THE LANE IS ENABLED, AND IT IS AZURE — HelmRelease spec.values."endpoint-asset-ingestion"
+    configMap:
+      data:
+        alert_processing_asb:
+          fully_qualified_namespace: ${servicebus_namespace}
+          queue_name: ${alert_processing_queue_name}
+        asset_ingestion_asb:
+          fully_qualified_namespace: ${endpoint_asset_ingestion_servicebus_namespace}
+          queue_name: ${endpoint_asset_ingestion_queue_name}
+        asset_ingestion_s3:
+          aws_region: ""
+          endpoint: ""
+        blob:
+          account_url: ${blob_account_url}
+          container_name: ${blob_container_name}
+        cloud: azure
+        concurrency: 5
+        database:
+          host: ${rds_endpoint}
+          name: postgres
+          port: 5432
+          ssl_mode_disabled: false
+        error_backoff_seconds: 5
+        logging:
+          level: INFO
+          render_json: true
+        max_messages: 10
+        releases_kvs:
+          kvs_arn: ${releases_kvs_arn:=}
+          writer_role_arn: ${releases_kvs_writer_role_arn:=}
+        telemetry:
+          otlp_endpoint: groundcover-sensor.groundcover.svc.cluster.local:4317
+          service_name: endpoint-asset-ingestion
+        temporal_server:
+          host: temporal-frontend.mgmt.svc.cluster.local
+          namespace: ${temporal_namespace}
+          port: 7233
     enabled: true
-    fallback:
-      behavior: static
-      failureThreshold: 3
-      replicas: 5
-    maxReplicaCount: 20
-    minReplicaCount: 1
-    triggers:
-      - authenticationRef:
-          name: keda-trigger-auth-servicebus
-        metadata:
-          messageCount: "10"
-          queueName: ${endpoint_asset_ingestion_queue_name}
-        type: azure-servicebus
-  fullnameOverride: endpoint-asset-ingestion
-  image:
-    repository: ${ecr_registry_url}/onyx/endpoint-asset-ingestion
-    tag: 1.1.877
-  nodeSelector:
-    kubernetes.io/arch: amd64
-  podLabels:
-    azure.workload.identity/use: "true"
-  resources:
-    limits:
-      memory: 1Gi
-    requests:
-      cpu: 500m
-      memory: 512Mi
-  serviceAccount:
-    annotations:
-      azure.workload.identity/client-id: ${endpoint_asset_ingestion_client_id}
-    create: true
-    name: endpoint-asset-ingestion
-  team: discovery
+    env:
+      - name: ONYX__DATABASE__USER
+        valueFrom:
+          secretKeyRef:
+            key: username
+            name: operational-rds-credentials
+      - name: ONYX__DATABASE__PASSWORD
+        valueFrom:
+          secretKeyRef:
+            key: password
+            name: operational-rds-credentials
+      - name: ONYX__FEATURE_FLAGS__LAUNCHDARKLY_SDK_KEY
+        valueFrom:
+          secretKeyRef:
+            key: sdk-key
+            name: launchdarkly-sdk-key
+      - name: ONYX__DOCS_PORTAL__MCP_GATEWAY_KEY_SECRET
+        valueFrom:
+          secretKeyRef:
+            key: key-secret
+            name: mcp-gateway-key-secret
+            optional: true
+    envFrom: []
+    externalAutoscaling:
+      enabled: true
+      fallback:
+        behavior: static
+        failureThreshold: 3
+        replicas: 5
+      maxReplicaCount: 20
+      minReplicaCount: 1
+      triggers:
+        - authenticationRef:
+            name: keda-trigger-auth-servicebus
+          metadata:
+            messageCount: "10"
+            queueName: ${endpoint_asset_ingestion_queue_name}
+          type: azure-servicebus
+    fullnameOverride: endpoint-asset-ingestion
+    image:
+      repository: ${ecr_registry_url}/onyx/endpoint-asset-ingestion
+      tag: 1.1.877
+    nodeSelector:
+      kubernetes.io/arch: amd64
+    podLabels:
+      azure.workload.identity/use: "true"
+    resources:
+      limits:
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+    serviceAccount:
+      annotations:
+        azure.workload.identity/client-id: ${endpoint_asset_ingestion_client_id}
+      create: true
+      name: endpoint-asset-ingestion
+    team: discovery
 
-## the decisive keys, called out
-     enabled                              : true
-     configMap.data.cloud                 : azure
-     asset_ingestion_asb.namespace        : ${endpoint_asset_ingestion_servicebus_namespace}
-     asset_ingestion_asb.queue_name       : ${endpoint_asset_ingestion_queue_name}
-     blob.account_url                     : ${blob_account_url}
-     image.tag                            : 1.1.877
-     asset_ingestion_sqs present?         : false   <- the AWS-only leaf drop-aws-only-values.yaml removes
-     eks role-arn anywhere in the render  : 2
+=== 2. THE RENDERED ScaledObject (helm template output — the object the cluster would receive)
+    # Source: onyx-app/charts/endpoint-asset-ingestion/templates/scaledobject.yaml
+    apiVersion: keda.sh/v1alpha1
+    kind: ScaledObject
+    metadata:
+      name: endpoint-asset-ingestion
+      labels:
+        helm.sh/chart: endpoint-asset-ingestion-0.0.0
+        app.kubernetes.io/name: endpoint-asset-ingestion
+        app.kubernetes.io/instance: onyx-app
+        app.kubernetes.io/version: "0.0.0"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: endpoint-asset-ingestion
+      minReplicaCount: 1
+      maxReplicaCount: 20
+      pollingInterval: 30
+      cooldownPeriod: 300
+      fallback:
+        behavior: static
+        failureThreshold: 3
+        replicas: 5
+      triggers:
+        - authenticationRef:
+            name: keda-trigger-auth-servicebus
+          metadata:
+            messageCount: "10"
+            queueName: ${endpoint_asset_ingestion_queue_name}
+          type: azure-servicebus
 
-## the workloads this actually renders (helm template of the onyx-app chart at this onyx head)
-     helm template exit                   : 0   (6151 lines)
-     ServiceAccount         endpoint-asset-ingestion
-     ConfigMap              endpoint-asset-ingestion
-     Service                endpoint-asset-ingestion
-     Deployment             endpoint-asset-ingestion
-     ScaledObject           endpoint-asset-ingestion
+=== 3. THE SAS TriggerAuthentication + its Secret (instance overlay, kustomize output)
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: servicebus-connection
+      namespace: saas
+    stringData:
+      connection: ${servicebus_connection_string}
+    apiVersion: keda.sh/v1alpha1
+    kind: TriggerAuthentication
+    metadata:
+      name: keda-trigger-auth-servicebus
+      namespace: saas
+    spec:
+      secretTargetRef:
+        - key: connection
+          name: servicebus-connection
+          parameter: connection
+
+=== 4. THE RENDERED ServiceAccount — Azure workload-identity client-id only, no IRSA role-arn
+    # Source: onyx-app/charts/endpoint-asset-ingestion/templates/serviceaccount.yaml
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: endpoint-asset-ingestion
+      labels:
+        helm.sh/chart: endpoint-asset-ingestion-0.0.0
+        app.kubernetes.io/name: endpoint-asset-ingestion
+        app.kubernetes.io/instance: onyx-app
+        app.kubernetes.io/version: "0.0.0"
+        app.kubernetes.io/managed-by: Helm
+      annotations:
+        azure.workload.identity/client-id: ${endpoint_asset_ingestion_client_id}
+    automountServiceAccountToken: true
+
+=== 5. THE RENDERED /app/config.yaml THE POD WOULD READ (full ConfigMap payload, verbatim)
+    alert_processing_asb:
+      fully_qualified_namespace: ${servicebus_namespace}
+      queue_name: ${alert_processing_queue_name}
+    alert_processing_sqs:
+      aws_region: ""
+      endpoint: ""
+      queue_url: ""
+    asset_ingestion_asb:
+      fully_qualified_namespace: ${endpoint_asset_ingestion_servicebus_namespace}
+      queue_name: ${endpoint_asset_ingestion_queue_name}
+    asset_ingestion_s3:
+      aws_region: ""
+      endpoint: ""
+    asset_ingestion_sqs:
+      aws_region: ""
+      dlq_url: ""
+      endpoint: ""
+      queue_url: ""
+      visibility_timeout: 600
+      wait_time_seconds: 20
+    blob:
+      account_url: ${blob_account_url}
+      container_name: ${blob_container_name}
+    cloud: azure
+    concurrency: 5
+    database:
+      host: ${rds_endpoint}
+      name: postgres
+      port: 5432
+      ssl_mode_disabled: false
+    error_backoff_seconds: 5
+    logging:
+      level: INFO
+      render_json: true
+    max_messages: 10
+    releases_kvs:
+      kvs_arn: ${releases_kvs_arn:=}
+      writer_role_arn: ${releases_kvs_writer_role_arn:=}
+    telemetry:
+      otlp_endpoint: groundcover-sensor.groundcover.svc.cluster.local:4317
+      service_name: endpoint-asset-ingestion
+    temporal_server:
+      host: temporal-frontend.mgmt.svc.cluster.local
+      namespace: ${temporal_namespace}
+      port: 7233
+
+=== 6. THE GUARDS, measured over THIS instance's rendered objects
+    every externalAutoscaling trigger in this instance's HelmRelease, with its service's enabled flag:
+    endpoint-asset-ingestion         enabled=True  trigger=azure-servicebus
+    endpoint-gateway-ingestion       enabled=False trigger=aws-sqs-queue
+    extension-ingest-consumer        enabled=True  trigger=azure-servicebus
+    extension-learner-consumer       enabled=True  trigger=azure-servicebus
+    mcp-gateway-event-consumer       enabled=False trigger=aws-sqs-queue
+    scanner-event-consumer           enabled=False trigger=aws-sqs-queue
+    temporal-general-worker          enabled=True  trigger=temporal
+    temporal-mcp-gateway-worker      enabled=True  trigger=temporal
+    temporal-python-worker           enabled=True  trigger=temporal
+    temporal-red-teaming-worker      enabled=True  trigger=temporal
+    temporal-scanner-worker          enabled=True  trigger=temporal
+      -> aws-sqs-queue triggers on an ENABLED service: 0
+         (the three aws-sqs-queue entries above all sit on services with enabled=false, so they render
+          no object at all on this cell; the lane under test renders azure-servicebus)
+    aws-sqs-queue anywhere in the HELM-RENDERED objects   : 0
+    podIdentity in any TriggerAuthentication              : 0
+    eks.amazonaws.com/role-arn on the lane's ServiceAccount: 0
+    asset_ingestion_sqs key present in lane spec.values   : False
+    asset_ingestion_s3.aws_region in lane spec.values     : ""
+    cloud in lane spec.values                             : azure
+    minReplicaCount / maxReplicaCount                     : 1 / 20
+
+=== 7. WHAT IS **NOT** CLAIMED
+    This is a render of an OPEN pull request. Merging flux-fleet#2307 and letting Flux reconcile it onto
+    the production c02 cells is human-gated and did NOT happen in this run.
