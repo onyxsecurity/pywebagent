@@ -1,18 +1,19 @@
-# PRDCT-11935 at8-05 — flux-fleet's own gates, re-run on the MERGED branch head
-# FILE LAST WRITTEN 2026-08-23T19:01:24Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx head a4493c1e5ac0545fdf7fcd2f349060288111c42c · flux-fleet factory-eval-v32/PRDCT-11935 @ a4493c1e5ac0 · captured 2026-08-23T19:00:29Z
+# PRDCT-11935 at8-05 — flux-fleet's OWN gates, re-run on the PR head from a fresh clone
+# FILE LAST WRITTEN 2026-08-24T01:46:19Z
+# PROVENANCE — every sha this capture depends on, named:
+#   onyx head        2b60fdc4df25188104e737e6311087681355eff8  (branch factory-eval-v32/PRDCT-11935)
+#   flux-fleet       a4493c1e5ac0545fdf7fcd2f349060288111c42c  (PR onyxsecurity/flux-fleet#2307 head — the PR is OPEN, NOT merged;
+#                    fetched this round into a FRESH clone at /tmp/prdct11935/r51/at8/ff, never the box checkout)
+#   flux merge-base with origin/main   2c8ad2f2d4250763880752b1f39f29cbd2ebeadf
+#   image actually running in the cluster (deploy/eai-azure, the azure-mode consumer of the lab queue)
+#                    localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+#   capture time     2026-08-24T01:46:19Z
 #
-# The round-39 gate found flux-fleet#2307 OPEN with mergeable: CONFLICTING / mergeStateStatus: DIRTY
-# and approval-gate = failure, while it carries ticket deliverable C. The conflict is resolved (one
-# file, versions.yaml, on both instances — main bumped the cell's tags 1.1.874 -> 1.1.877 while this
-# branch added one more pinned key beside them; resolved by taking main's bump AND moving the new
-# endpoint-asset-ingestion pin to the same tag, because that key's own comment says
-# bump-flux-fleet.py only rewrites keys that ALREADY pin a tag — a new key that lands stale stays
-# stale). These are the repo's own gates re-run on the merged head.
+# WHY RE-EMITTED (round 51). The shipped at8-05's header read "onyx head a4493c1e5ac0…" — that sha is
+# the FLUX-FLEET head, mislabelled as the onyx head. The measurements were sound; the provenance line
+# was wrong. Re-run here from the fresh clone, with each repo's sha named as itself.
 
-=== every gate the repo ships, on this head ===
-    gate                         result
+=== EVERY GATE THE REPO SHIPS, RUN ON THIS HEAD
     check_tenant_parity.py       EXIT=0   ✓ ox-az-p-eus2-c02 onyx-app AWS-only value removals
     check_substitutions.py       EXIT=0   29 overlay(s) skipped (no postBuild.substituteFrom).
     check_paths_exist.py         EXIT=0   ✅ no stale path references
@@ -21,35 +22,298 @@
     check_docs.py                EXIT=0   docs OK — 0 warning(s).
     find_orphans.py              EXIT=0   0 unreachable of 835 YAML files (21 intentional, hidden)
 
-=== check_tenant_parity.py in full — the gate that owns this change ===
+    note on check_substitutions.py: it exits 0 and reports 51 overlays "NOT CHECKED" because the SSM
+    parameter tree for those clusters lives in an AWS account this box's profile cannot read. That is
+    the script's own documented non-finding, not a suppressed failure — its text is quoted below.
+
+=== check_tenant_parity.py IN FULL — the gate that owns this change
       ✓ ox-az-p-eus2-c02 onyx-app cloud delta (per-tenant values come from ${…})
       ✓ ox-az-p-eus2-c02 onyx-app AWS-only value removals
 
-=== kustomize build, both Azure instances, on the merged head ===
-    saas         exit=0  3536 lines  endpoint-asset-ingestion refs=6  cloud: azure=7  image.tag=1.1.877
-    centerpoint  exit=0  3536 lines  endpoint-asset-ingestion refs=6  cloud: azure=7  image.tag=1.1.877
-=== the PR's live state after the merge ===
-    #2307 OPEN   mergeable=MERGEABLE   mergeStateStatus=BLOCKED   reviewDecision=REVIEW_REQUIRED
-    head=a4493c1e5ac0545fdf7fcd2f349060288111c42c
-    BEFORE this round it was: OPEN  mergeable=CONFLICTING  mergeStateStatus=DIRTY  approval-gate=failure
+=== check_substitutions.py IN FULL
+    
+    • clusters/ai-prod/onyx-vllm
+       cluster=ai-prod  secrets=cluster-config
+       3 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-prod/onyx-vllm-ml
+       cluster=ai-prod  secrets=cluster-config
+       3 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-prod/onyx-vllm-mlora
+       cluster=ai-prod  secrets=cluster-config
+       3 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-prod/onyx-vllm-offline
+       cluster=ai-prod  secrets=cluster-config
+       3 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-prod/onyx-vllm-offline-mlora
+       cluster=ai-prod  secrets=cluster-config
+       3 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-prod/onyx-vllm-pi
+       cluster=ai-prod  secrets=cluster-config
+       3 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-prod/onyx-vllm-pi-offline
+       cluster=ai-prod  secrets=cluster-config
+       3 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-prod/triton
+       cluster=ai-prod  secrets=cluster-config
+       9 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-staging/infrastructure
+       cluster=ai-staging  secrets=cluster-config
+       8 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-staging/litellm
+       cluster=ai-staging  secrets=cluster-config
+       19 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-staging/onyx-vllm
+       cluster=ai-staging  secrets=cluster-config
+       2 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-staging/onyx-vllm-mlora
+       cluster=ai-staging  secrets=cluster-config
+       3 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-staging/onyx-vllm-pi
+       cluster=ai-staging  secrets=cluster-config
+       2 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ai-staging/triton
+       cluster=ai-staging  secrets=cluster-config
+       9 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/development/apps
+       cluster=development  secrets=cluster-config
+       31 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/development/infrastructure
+       cluster=development  secrets=cluster-config
+       7 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c01/apps
+       cluster=ox-aws-p-use1-c01  secrets=cluster-config
+       11 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c01/infrastructure
+       cluster=ox-aws-p-use1-c01  secrets=cluster-config
+       8 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c01/instances/bamfunds/onyx
+       cluster=ox-aws-p-use1-c01  secrets=cluster-config,instance-config-bamfunds
+       17 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c01/instances/bamfunds/onyx-app
+       cluster=ox-aws-p-use1-c01  secrets=cluster-config,instance-config-bamfunds
+       32 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c01/instances/bamfunds/pganalyze
+       cluster=ox-aws-p-use1-c01  secrets=cluster-config,instance-config-bamfunds
+       1 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c01/instances/intuit/onyx
+       cluster=ox-aws-p-use1-c01  secrets=cluster-config,instance-config-intuit
+       17 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c01/instances/intuit/onyx-app
+       cluster=ox-aws-p-use1-c01  secrets=cluster-config,instance-config-intuit
+       35 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c01/instances/intuit/pganalyze
+       cluster=ox-aws-p-use1-c01  secrets=cluster-config,instance-config-intuit
+       2 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c01/instances/saas/onyx
+       cluster=ox-aws-p-use1-c01  secrets=cluster-config,instance-config-saas
+       17 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c01/instances/saas/onyx-app
+       cluster=ox-aws-p-use1-c01  secrets=cluster-config,instance-config-saas
+       31 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c03/apps
+       cluster=ox-aws-p-use1-c03  secrets=cluster-config,cluster-config-c03
+       16 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c03/apps-onyx
+       cluster=ox-aws-p-use1-c03  secrets=cluster-config
+       47 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c03/infrastructure
+       cluster=ox-aws-p-use1-c03  secrets=cluster-config,cluster-config-c03
+       11 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c03/instances/saas/onyx-app
+       cluster=ox-aws-p-use1-c03  secrets=cluster-config,instance-config-saas
+       45 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c03/node-pools
+       cluster=ox-aws-p-use1-c03  secrets=cluster-config
+       2 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c04/apps
+       cluster=ox-aws-p-use1-c04  secrets=cluster-config
+       11 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c04/infrastructure
+       cluster=ox-aws-p-use1-c04  secrets=cluster-config
+       8 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c04/instances/saas/onyx
+       cluster=ox-aws-p-use1-c04  secrets=cluster-config,instance-config-saas
+       17 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c04/instances/saas/onyx-app
+       cluster=ox-aws-p-use1-c04  secrets=cluster-config,instance-config-saas
+       31 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-p-use1-c04/instances/saas/pganalyze
+       cluster=ox-aws-p-use1-c04  secrets=cluster-config,instance-config-saas
+       4 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-s-use1-c01/apps
+       cluster=ox-aws-s-use1-c01  secrets=cluster-config
+       13 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-s-use1-c01/image-policies
+       cluster=ox-aws-s-use1-c01  secrets=cluster-config
+       1 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-s-use1-c01/infrastructure
+       cluster=ox-aws-s-use1-c01  secrets=cluster-config
+       8 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-s-use1-c01/instances/saas/onyx
+       cluster=ox-aws-s-use1-c01  secrets=cluster-config,instance-config-saas
+       18 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-aws-s-use1-c01/instances/saas/onyx-app
+       cluster=ox-aws-s-use1-c01  secrets=cluster-config,instance-config-saas
+       42 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-az-p-eus2-c02/apps
+       cluster=ox-az-p-eus2-c02  secrets=cluster-config
+       6 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-az-p-eus2-c02/infrastructure
+       cluster=ox-az-p-eus2-c02  secrets=cluster-config
+       14 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx
+       cluster=ox-az-p-eus2-c02  secrets=cluster-config,instance-config-centerpoint
+       20 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app
+       cluster=ox-az-p-eus2-c02  secrets=cluster-config,instance-config-centerpoint
+       38 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-az-p-eus2-c02/instances/saas/onyx
+       cluster=ox-az-p-eus2-c02  secrets=cluster-config,instance-config-saas
+       20 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/ox-az-p-eus2-c02/instances/saas/onyx-app
+       cluster=ox-az-p-eus2-c02  secrets=cluster-config,instance-config-saas
+       38 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/shared-infra-staging/apps
+       cluster=shared-infra-staging  secrets=cluster-config
+       2 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/shared-infra-staging/infrastructure
+       cluster=shared-infra-staging  secrets=cluster-config
+       8 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/shared-infra/apps
+       cluster=shared-infra  secrets=cluster-config
+       16 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    • clusters/shared-infra/infrastructure
+       cluster=shared-infra  secrets=cluster-config
+       18 required vars — NOT CHECKED (could not read the parameter tree)
+         ! aws ssm get-parameters-by-path…: aws: [ERROR]: The config profile (infra-staging-admin) could not be found
+    
+    checked 0 overlay(s): 0 with unresolvable variables
+    51 overlay(s) NOT CHECKED — the parameter tree was unreadable with --profile infra-staging-admin. This is not a finding; SSM lives in a different account for some clusters. Re-run with the profile whose account backs that cluster's aws-parameter-store ClusterSecretStore.
+    29 overlay(s) skipped (no postBuild.substituteFrom).
 
-    --- checks on that head (Actions runs API + commit status; the App token has no checks:read,
-        a standing instrument gap disclosed in env_setup.md §14) ---
-      success      Approval Policy
-      success      Docs Check
-      success      Helm Diff Preview
-      success      Kustomize Build
-      success      PR Title Validation
-      skipped      Topaz
-      success      Validate · pull_request · factory-eval-v32/PRDCT-11935
-      total workflow runs: 7 {'success': 6, 'skipped': 1}
-      combined status: failure  (1 context(s))
-        failure    approval-gate  Approval policy not satisfied — see run summary
+=== make build — every kustomization in the repo, built and schema-validated
+    ✅ make build passed (164 kustomizations built)
+    EXIT=0
 
-    Reading the approval-gate failure, because it is easy to misread as a broken check: the
-    "Approval Policy" WORKFLOW succeeded (all 11 steps green, run 32659600045) — its last step
-    "Publish approval-gate status" then published `failure` because the policy it evaluated found no
-    CODEOWNER approval on the PR yet. It is the human review gate expressing itself as a commit
-    status, the same thing onyx#12329's mergeStateStatus=BLOCKED says. It is not a failing test and
-    it is not something an author can clear by pushing code. What WAS an author's to clear — the
-    CONFLICTING/DIRTY state that made the PR unmergeable — is cleared.
+=== kustomize build, both Azure instances, on this head
+    saas         exit=0  3536 lines
+    centerpoint  exit=0  3536 lines
+    (the per-instance render contents are at8-01 / at8-02)
