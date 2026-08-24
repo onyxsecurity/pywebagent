@@ -1,39 +1,38 @@
 # PRDCT-11935 at10-02 — anonymous receipt for every image embedded in the PR body
-# FILE LAST WRITTEN 2026-08-24T03:34:38Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# FILE LAST WRITTEN 2026-08-24T03:36:37Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T03:36:37Z
 #
-# Each URL was fetched with NO credentials (GH_TOKEN and GITHUB_TOKEN removed from the environment).
-# A URL only goes in the PR body if it answers 200 with an image/* content-type AND the bytes it
-# serves hash to the same sha256 as the local file. Byte SIZE was the previous check and it is too
-# weak: two captures of the same page can share a size, so a stale CDN copy of an older frame could
-# pass it unnoticed — which matters here, because three of these frames were re-captured this round.
+# Each URL is fetched with NO credentials (GH_TOKEN and GITHUB_TOKEN removed from the environment).
+# A URL only belongs in the PR body if it answers 200 with an image/* content-type AND the bytes it
+# serves hash to the same sha256 as the local file. Byte SIZE was the old check and it is too weak:
+# two captures of one page can share a size, so a stale CDN copy of an older frame could pass it.
 #
-# HOST: raw.githubusercontent.com on the org's PUBLIC repo onyxsecurity/pywebagent, branch prdct11935-evidence,
-# path evidence/prdct11935/. Why not this repo's own releases — measured:
-#   onyxsecurity/onyx (PRIVATE) published-release asset -> HTTP 404 text/plain; charset=utf-8 => unusable
-#   a PUBLIC repo's release asset -> 200, but the CDN forces content-disposition: attachment and
-#     response-content-type=application/octet-stream, which GitHub's image proxy will not render inline.
-#   raw.githubusercontent.com serves the real image/png, and the branch outlives this run's Azure lab.
+# ALL FIFTEEN FRAMES WERE RE-CAPTURED on head 2b60fdc4df in window r50at7002800 (2026-08-24), so every
+# hash in any earlier revision of this receipt describes bytes that no longer exist.
 #
-# Refreshed on the host this round: (none — host already byte-current)
+# HOST: raw.githubusercontent.com on the org's PUBLIC repo onyxsecurity/pywebagent, branch
+# prdct11935-evidence, path evidence/prdct11935/.
+#
+# command per row:
+#   env -u GH_TOKEN -u GITHUB_TOKEN curl -sSL -o /tmp/dl.png -w '%{http_code} %{content_type}' <url>
+#   sha256sum /tmp/dl.png   vs   sha256sum $AGENT_FACTORY_ARTIFACTS/evidence/<file>
 
-FILE                                   HTTP  TYPE        BYTES     sha256 SERVED      sha256 LOCAL       SAME     VERDICT
-# RE-GENERATED 2026-08-24T03:34:37Z — every image below was RE-CAPTURED on head 2b60fdc4df in window r50at7002800,
-#   so any earlier receipt's hashes describe bytes that no longer exist. This is the current receipt.
+IMAGE                                        HTTP  TYPE       SERVED sha256      LOCAL sha256       VERDICT
+at7-10b-ui-desktop-agent-detail.png          200   image/png  6f89ec65de5ca346   6f89ec65de5ca346   PASS
+at7-11-ui-mcp.png                            200   image/png  5701befed5267697   5701befed5267697   PASS
+at7-12-ui-skills.png                         200   image/png  6e7f73bf08127669   6e7f73bf08127669   PASS
+at7-13-ui-subagents.png                      200   image/png  60d2f1d7ccd40720   60d2f1d7ccd40720   PASS
+at7-14-ui-usage.png                          200   image/png  e1d6b4e710d7626d   e1d6b4e710d7626d   PASS
+at7-15-ui-lifecycle-mcp.png                  200   image/png  e465f9df5ec14969   e465f9df5ec14969   PASS
+at7-16-ui-lifecycle-skills.png               200   image/png  7984d22c47b97c1a   7984d22c47b97c1a   PASS
+at7-17-ui-lifecycle-subagents.png            200   image/png  5e0ec58b7d1e2f4c   5e0ec58b7d1e2f4c   PASS
+at7-19-ui-tools.png                          200   image/png  90f1dc402b9f49dc   90f1dc402b9f49dc   PASS
+at7-19b-ui-lifecycle-tools.png               200   image/png  636686ef6f6a0c57   636686ef6f6a0c57   PASS
+at7-20-ui-posture.png                        200   image/png  1a1d0b565ae976cf   1a1d0b565ae976cf   PASS
+at7-21-ui-lifecycle-agent.png                200   image/png  f79293e771cdd944   f79293e771cdd944   PASS
+at7-21b-ui-lifecycle-agent-control.png       200   image/png  9562790c5677c8ba   9562790c5677c8ba   PASS
+at7-22-ui-lifecycle-posture.png              200   image/png  0db4ef5823526757   0db4ef5823526757   PASS
+at7-34-list-skill.png                        200   image/png  3b3d189865367596   3b3d189865367596   PASS
 
-IMAGE                                          HTTP   CONTENT-TYPE sha256 local  ·  served==local?
-at7-10b-ui-desktop-agent-detail.png            200    image/png    6f89ec65de5ca34680dacf62…  MISMATCH served=a199b99474ced619
-at7-11-ui-mcp.png                              200    image/png    5701befed5267697a6a836b4…  MATCH
-at7-12-ui-skills.png                           200    image/png    6e7f73bf081276696f481fc8…  MATCH
-at7-13-ui-subagents.png                        200    image/png    60d2f1d7ccd40720602464cf…  MATCH
-at7-14-ui-usage.png                            200    image/png    e1d6b4e710d7626dbe7584ad…  MISMATCH served=1745dc7e4163d848
-at7-15-ui-lifecycle-mcp.png                    200    image/png    e465f9df5ec149696b68a229…  MATCH
-at7-16-ui-lifecycle-skills.png                 200    image/png    7984d22c47b97c1a77af3765…  MATCH
-at7-17-ui-lifecycle-subagents.png              200    image/png    5e0ec58b7d1e2f4c1d0f2259…  MATCH
-at7-19-ui-tools.png                            200    image/png    90f1dc402b9f49dc3fabcf01…  MISMATCH served=d35e799664b1ab7d
-at7-19b-ui-lifecycle-tools.png                 200    image/png    636686ef6f6a0c5700e2886c…  MATCH
-at7-20-ui-posture.png                          200    image/png    1a1d0b565ae976cf8916805c…  MATCH
-at7-21-ui-lifecycle-agent.png                  200    image/png    f79293e771cdd944e596de6c…  MATCH
-at7-21b-ui-lifecycle-agent-control.png         200    image/png    9562790c5677c8ba41e442e5…  MATCH
-at7-22-ui-lifecycle-posture.png                200    image/png    0db4ef58235267579131c4aa…  MATCH
-at7-34-list-skill.png                          200    image/png    3b3d189865367596a3563261…  MATCH
+  rows: 15 · every row must read PASS for the body's images to be
+  citable; a row is PASS only when the anonymous fetch is 200 image/* AND served sha256 == local sha256.
