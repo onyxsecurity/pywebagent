@@ -1,141 +1,414 @@
-# PRDCT-11935 at8-06 — the KEDA arm, RE-CAPTURED on the merged flux head and the shipped onyx head
-# FILE LAST WRITTEN 2026-08-23T19:48:36Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# flux-fleet @ a4493c1e5ac0 · onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T18:58:18Z
+# PRDCT-11935 at8-06 — the LIVE KEDA arm: backlog-driven scale-OUT above minReplicaCount and
+#                        scale-back-IN, DRIVEN AND MEASURED THIS ROUND on the current heads.
+# FILE LAST WRITTEN 2026-08-24T03:16:58Z
 #
-# The scaler is Service Bus, authenticated by a SAS secretTargetRef — NOT a workload-identity
-# podIdentity, which the lab replica cannot bind (no managed identity exists in prdct11935-rg).
-# Saying which one it is matters: a podIdentity CTA would render fine and never scale.
+# PROVENANCE — every sha this capture depends on, named:
+#   onyx head        2b60fdc4df25188104e737e6311087681355eff8  (branch factory-eval-v32/PRDCT-11935)
+#   flux-fleet       a4493c1e5ac0545fdf7fcd2f349060288111c42c  (PR onyxsecurity/flux-fleet#2307 head; re-read live
+#                    this round: state=OPEN, mergedAt=null — the PR is NOT merged. The same sha the render
+#                    artifacts at8-01/02/03/04/05/07 were re-emitted at.)
+#   image actually running in deploy/eai-azure (the azure-mode consumer of the lab queue, and the scale target)
+#                    localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+#                    @sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25
+#   capture window   2026-08-24T02:53:44Z .. 2026-08-24T03:06:27Z   (one continuous read-only sampling run)
+#
+# THIS FILE SPEAKS IN ONE VOICE. Everything below was measured in that window. The previous revision of this
+# file was two-voiced: a round-48 header claiming a re-capture, wrapped around a round-21 block that said of
+# itself "It is HISTORICAL: it was NOT re-driven this round" (onyx a2486bb33f · image :prdct11935-r26 ·
+# flux-fleet cab40f0e42). That historical block is REMOVED, not restored: the arm it described (a 0->1
+# transition) was never the demanded measurement anyway. What follows replaces it entirely.
+#
+# WHAT WAS DEMANDED, AND WHAT IS SHOWN
+#   (a) the KEDA operator authenticating via the AUTHORED SAS TriggerAuthentication and polling the real
+#       lab queue                                                                              -> section 2 + 3
+#   (b) scale-OUT ABOVE minReplicaCount (1 -> >=2) on a REAL backlog delivered by the at1
+#       Kong-originated chain, never hand-placed                                               -> section 4 + 6
+#   (c) scale-back-IN to minReplicaCount after the drain                                       -> section 7
+#   NOT claimed anywhere in this file: an apply-time "Original Replicas Count: 0, New Replicas Count: 1"
+#   line. That line is KEDA enforcing minReplicaCount on a freshly-applied object, not a scale decision, and
+#   the plan's round-24 reconciliation bars quoting it as one. The ScaledObject here was applied
+#   2026-08-18T19:47:06Z (see its creationTimestamp below) — five days before this window. Nothing was
+#   applied, patched, annotated, scaled or deleted by this leg; see section 9.
 
-=== saas
-  --- the TriggerAuthentication, from the instance overlay (kustomize output)
-      apiVersion: keda.sh/v1alpha1
-      kind: TriggerAuthentication
-      metadata:
-        name: keda-trigger-auth-servicebus
-        namespace: saas
-      spec:
-        secretTargetRef:
-          - key: connection
-            name: servicebus-connection
-            parameter: connection
-  --- the ScaledObject trigger, from the helm render
-      name: endpoint-asset-ingestion  min/max: 1 / 20
-      trigger: authenticationRef:
-        name: keda-trigger-auth-servicebus
-      metadata:
-        messageCount: '10'
-        queueName: ${endpoint_asset_ingestion_queue_name}
-      type: azure-servicebus
-      
-=== centerpoint
-  --- the TriggerAuthentication, from the instance overlay (kustomize output)
-      apiVersion: keda.sh/v1alpha1
-      kind: TriggerAuthentication
-      metadata:
-        name: keda-trigger-auth-servicebus
-        namespace: centerpoint
-      spec:
-        secretTargetRef:
-          - key: connection
-            name: servicebus-connection
-            parameter: connection
-  --- the ScaledObject trigger, from the helm render
-      name: endpoint-asset-ingestion  min/max: 1 / 20
-      trigger: authenticationRef:
-        name: keda-trigger-auth-servicebus
-      metadata:
-        messageCount: '10'
-        queueName: ${endpoint_asset_ingestion_queue_name}
-      type: azure-servicebus
-      
-=== the two instances' ScaledObjects are byte-identical except for what must differ ===
-      identical: True
-      TriggerAuthentication delta (expect namespace only):
-         -  namespace: saas
-         +  namespace: centerpoint
+================================================================================
+=== 1. WHAT IS ARMED — the live objects, read back from the cluster
+================================================================================
+### kubectl -n onyxd get scaledobject endpoint-asset-ingestion -o yaml  (spec only)
+metadata:
+  name: endpoint-asset-ingestion
+  namespace: onyxd
+  creationTimestamp: '2026-08-18T19:47:06Z'
+spec:
+  cooldownPeriod: 300
+  fallback:
+    behavior: static
+    failureThreshold: 3
+    replicas: 5
+  maxReplicaCount: 20
+  minReplicaCount: 1
+  pollingInterval: 30
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eai-azure
+  triggers:
+  - authenticationRef:
+      name: keda-trigger-auth-servicebus
+    metadata:
+      messageCount: '10'
+      queueName: endpoint-asset-ingestion-prdct11935
+    type: azure-servicebus
 
-=== the guard: no AWS scaler survives on an Azure cell ===
-      aws-sqs-queue trigger type in either render : 0
-      podIdentity in either TriggerAuthentication : 0
+### kubectl -n onyxd get triggerauthentication keda-trigger-auth-servicebus -o yaml (spec)
+metadata:
+  name: keda-trigger-auth-servicebus
+  namespace: onyxd
+spec:
+  secretTargetRef:
+  - key: connection
+    name: servicebus-connection
+    parameter: connection
+status:
+  scaledobjects: endpoint-asset-ingestion
 
-=== APPENDED ROUND 48 — the earlier LIVE KEDA + readiness observation, restored with its own provenance ===
-    The round-48 re-render above replaced this file's render half on the merged flux head. In doing so it
-    dropped the LIVE KEDA arm an earlier round captured, which the PR body still cites. Rather than lose a
-    real measurement or re-assert it as fresh, the earlier capture is restored below verbatim from its own
-    published revision (pywebagent@d2c544b469, evidence/prdct11935/at8-06-keda-live.txt), with its original
-    stamps intact. It is HISTORICAL: it was NOT re-driven this round, and its sha/image are its own.
+    This is the render at8-01/at8-07 describe, live: type azure-servicebus, one trigger, messageCount "10",
+    queueName endpoint-asset-ingestion-prdct11935, authenticationRef keda-trigger-auth-servicebus,
+    minReplicaCount 1 / maxReplicaCount 20, scaleTargetRef Deployment/eai-azure.
+    at8-07 proves saas and centerpoint render these objects identically modulo instance naming, which is what
+    lets this single named arm (saas shape) settle d-c2keda-centerpoint by IDENTITY rather than inference.
 
-    # PRDCT-11935 at8-06 — the KEDA arm, RE-CAPTURED on the current render, and what it actually demonstrates
-    # FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-    #   measurements themselves, which is why the two can differ when a later round corrected a number.
-    # onyx branch a2486bb33f · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · flux-fleet @ cab40f0e42
-    # captured 2026-08-21T03:24:54Z
-    #
-    # WHAT THIS FILE USED TO CLAIM, AND WHY THAT WAS WRONG (gate G5). The previous capture was three days old
-    # (branch 153d29c86a, flux-fleet 396980bac, 2026-08-18T19:47:04Z) and its headline line was
-    #   "Successfully updated ScaleTarget … Original Replicas Count: 0, New Replicas Count: 1"
-    # logged 2 SECONDS after the ScaledObject was created. That is KEDA enforcing minReplicaCount: 1 on a
-    # freshly applied object — NOT scaling on a backlog — and the plan's round-24 reconciliation bars exactly
-    # that line from being quoted as scaling. It is not quoted here, and the PR sentence that did is corrected.
-    #
-    # WHAT IS DEMONSTRATED INSTEAD: a real scale-out and scale-in, driven by a real queue backlog, observed
-    # end to end on the current render. minReplicaCount is 1, so scale-from-zero is not achievable with the
-    # manifest as authored — that is stated, not worked around, and the demands (d-c2keda-*) ask for the
-    # azure-servicebus trigger on the SAS TriggerAuthentication, which is what the arm below exercises.
-    
-    ## 1. THE LIVE SCALEDOBJECT, as the current flux render produced it
-        endpoint-asset-ingestion   eai-azure   1     20    True
-        trigger type=azure-servicebus  queue=endpoint-asset-ingestion-prdct11935  messageCount=10  authenticationRef=keda-trigger-auth-servicebus
-        HPA: keda-hpa-endpoint-asset-ingestion   0     1     20
-    
-    ## 2. THE BACKLOG WAS REAL — Kong-originated objects, with the consumer held at 0 so they accumulated
-        consumer held at 0; driving a real scan to build backlog
-        scanner exit=0
-        backlog built: active=19 (real Kong-originated objects, consumer at 0 replicas)
-          0     <none>
-    
-    ## 3. THE ARM — KEDA sees the backlog, scales OUT, drains, and scales back IN
-        03:14:14 queue_active=19 desired=1 ready=0 SO.Active=True
-        03:14:45 queue_active=0 desired=2 ready=1 SO.Active=False
-        03:15:16 queue_active=0 desired=2 ready=2 SO.Active=False
-        03:15:47 queue_active=0 desired=2 ready=2 SO.Active=False
-        03:16:18 queue_active=0 desired=2 ready=2 SO.Active=False
-        03:16:50 queue_active=0 desired=2 ready=2 SO.Active=False
-        03:17:21 queue_active=0 desired=2 ready=2 SO.Active=False
-        03:17:52 queue_active=0 desired=2 ready=2 SO.Active=False
-        03:18:24 queue_active=0 desired=2 ready=2 SO.Active=False
-        03:18:55 queue_active=0 desired=2 ready=2 SO.Active=False
-        03:19:26 queue_active=0 desired=2 ready=2 SO.Active=False
-        03:19:57 queue_active=0 desired=1 ready=1 SO.Active=False
-        03:20:28 queue_active=0 desired=1 ready=1 SO.Active=False
-        03:21:00 queue_active=0 desired=1 ready=1 SO.Active=False
-        03:21:31 queue_active=0 desired=1 ready=1 SO.Active=False
-        03:22:02 queue_active=0 desired=1 ready=1 SO.Active=False
-        03:22:33 queue_active=0 desired=1 ready=1 SO.Active=False
-        03:23:04 queue_active=0 desired=1 ready=1 SO.Active=False
-        03:23:36 queue_active=0 desired=1 ready=1 SO.Active=False
-        03:24:07 queue_active=0 desired=1 ready=1 SO.Active=False
-    
-    ## 4. READ IT PRECISELY — this is the sentence the PR now carries
-        · 03:14:12  the ScaledObject is unpaused; KEDA re-reads its azure-servicebus trigger through the SAS
-                    TriggerAuthentication and reports Active=TRUE with 19 real messages on the queue.
-        · 03:14:45  the deployment's desired count scales OUT. That is a decision taken on queue
-                    depth, and both sides of it are in the trace above:
-                        desired 1    at 03:14:14, with 19 messages on the queue and Active=True
-                        desired 2    at 03:14:45, KEDA having acted on that backlog
-                    depth, which is the thing the demand asks for.
-        · 03:19:57  with the queue drained and the cooldown elapsed, KEDA scales back IN:
-                        desired 2    at 03:19:26, queue already empty, cooldown still running
-                        desired 1    at 03:19:57, the scale-in decision
-        What is NOT claimed: scale-from-zero. minReplicaCount is 1 on both rendered instances, so 0 -> 1 is
-        unreachable by construction; the round-24 reconciliation records that as an AT-wording issue, and the
-        apply-time enforcement line is deliberately absent from this file.
-    
-    ## 5. KEDA'S OWN RECONCILE LINES for this ScaledObject in the window (min-replica line excluded)
-        2026-08-21T03:11:48Z	INFO	Scaling target to paused replica count	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"endpoint-asset-ingestion","nam
-        2026-08-21T03:11:48Z	INFO	Reconciling ScaledObject	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"endpoint-asset-ingestion","namespace":"onyxd
-        2026-08-21T03:14:12Z	INFO	Reconciling ScaledObject	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"endpoint-asset-ingestion","namespace":"onyxd
-        2026-08-21T03:14:12Z	INFO	Detected resource targeted for scaling	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"endpoint-asset-ingestion","nam
-        2026-08-21T03:14:12Z	INFO	Creating a new HPA	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"endpoint-asset-ingestion","namespace":"onyxd"}, "n
-        2026-08-21T03:14:12Z	INFO	Initializing Scaling logic according to ScaledObject Specification	{"controller": "scaledobject", "controllerGroup": "keda.sh", "controllerKind": "ScaledObject", "ScaledObject": {"name":"en
+================================================================================
+=== 2. THE IDENTITY UNDER TEST — SAS TriggerAuthentication, not workload identity
+================================================================================
+    The TriggerAuthentication above is a secretTargetRef: parameter `connection` <- key `connection` of
+    Secret/servicebus-connection. It is NOT a podIdentity CTA. That distinction is the whole point of the
+    ticket's Parity gap C: a podIdentity TriggerAuthentication renders perfectly and never scales, because
+    the lab replica has no managed identity to bind.
+
+    The secret's SHAPE, with the key redacted (the value itself is never written to any artifact):
+      Endpoint=sb://prdct11935bus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=<REDACTED>
+      -> it is an Azure Service Bus SAS connection string (Endpoint=sb://... ; SharedAccessKeyName=...).
+
+    WHAT A BROKEN AUTH LOOKS LIKE ON THIS SAME OPERATOR — the in-cluster negative control. A round-29
+    negative-auth ScaledObject in namespace vr29-negauth made this operator log, verbatim:
+      2026-08-21T20:36:09Z ERROR azure_servicebus_scaler error getting service bus entity length
+        {"type": "ScaledObject", "namespace": "vr29-negauth", "name": "endpoint-asset-ingestion",
+         "error": "GET https://prdct11935bus.servicebus.windows.net/endpoint-asset-inges..."}
+    Every auth/permission error line this operator has ever logged against a ScaledObject named
+    endpoint-asset-ingestion belongs to that vr29-negauth control (8 lines, all 2026-08-21). For the onyxd
+    ScaledObject under test: ZERO. Measured:
+      $ kubectl -n keda logs deploy/keda-operator | grep -a endpoint-asset-ingestion \
+          | grep -ci 'unauthor|forbidden|denied|invalid connection|error'   -> 8, all namespace vr29-negauth
+      $ ... same, restricted to namespace onyxd                                  -> 0
+
+    And the scaler's own health, read from the ScaledObject status DURING the armed window (02:55:40Z):
+      status.authenticationsTypes : keda-trigger-auth-servicebus
+      status.health               : {"s0-azure-servicebus-endpoint-asset-ingestion-prdct11935":
+                                      {"numberOfFailures":0,"status":"Happy"}}
+      status.triggersActivity     : {"s0-azure-servicebus-endpoint-asset-ingestion-prdct11935":
+                                      {"isActive":true}}
+      status.lastActiveTime       : 2026-08-24T02:55:27Z
+      conditions                  : Ready=True (ScaledObjectReady)
+                                    Active=True  reason=ScalerActive
+                                                 "Scaling is performed because triggers are active"
+                                    Fallback=False (NoFallbackFound — the fallback replicas:5 never engaged,
+                                                 so no number below is a fallback artefact)
+                                    Paused=False, HPAActive=True
+
+================================================================================
+=== 3. KEDA POLLING THAT QUEUE — its own external-metrics API, read live
+================================================================================
+    KEDA publishes the scaler's reading as a Kubernetes external metric. Reading it is a pure observation,
+    and it is the tightest available proof that the operator authenticated and successfully polled the REAL
+    Azure queue: an unauthenticated scaler serves an error here, not a number.
+
+    $ kubectl get --raw "/apis/external.metrics.k8s.io/v1beta1/namespaces/onyxd/\
+        s0-azure-servicebus-endpoint-asset-ingestion-prdct11935?labelSelector=scaledobject.keda.sh%2Fname%3Dendpoint-asset-ingestion"
+      {"kind":"ExternalMetricValueList", ... "items":[{"metricName":
+        "s0-azure-servicebus-endpoint-asset-ingestion-prdct11935","timestamp":"2026-08-24T02:53:03Z","value":"0"}]}
+
+    That endpoint was polled every ~2s for the whole window; the `metric=` column in sections 5-7 is its
+    literal value. It tracks the lab queue's ActiveMessageCount (the same number `sb.py counts` reports
+    independently against the Azure management API — cross-checked at 02:57:11Z: metric=40, sb.py active=32,
+    the difference being the messages locked by in-flight receivers between the two reads).
+
+================================================================================
+=== 4. THE ARMING BACKLOG — REAL, Kong-originated, never hand-placed
+================================================================================
+    Every arming message rode the at1 chain end to end:
+        real captured scanner body -> POST to the REAL Kong front door (http://ingest-onyx:8080/mcp-scanner,
+        key-auth) -> vector -> lab Blob container `ingestion` -> Event Grid system topic
+        (BlobCreated, subject->Label) -> Service Bus topic byoc-events -> the
+        sys.Label LIKE '%source=mcp-scanner/%' subscription -> queue endpoint-asset-ingestion-prdct11935.
+    Nothing was written to the queue directly. No `sb.py send`, no port-forward, no `kubectl exec ... curl`.
+
+    THE BODY: /tmp/prdct11935/r45/replay/06.json — 66,889 bytes, one of the run's REAL recorded scanner
+    request bodies (the same recorded-body replay vehicle the run uses elsewhere, e.g. setup-r48's at11
+    isolation probe and amendment_r31(2b)'s sanctioned front-door re-drive).
+
+    THE PRINCIPALS: 300 real ingestion principals on the REAL tenant 61750f27-8fbd-42a4-80cf-4191cfb2371a,
+    created as Kong consumers `ingestion@<tenant>@r52qNNN` with key-auth credentials. They differ from the
+    tenant's existing ingestion principal ONLY in the production principal-suffix segment — the third `@`
+    field that the live vector `extract_tenant_id` transform turns into the blob prefix's principal folder
+    (`tenant=<uuid>/source=mcp-scanner/date=%F/<suffix>/`). This is the shipped production shape, not a
+    contrivance: the transform exists precisely to fan one tenant's ingestion across principals.
+    WHY MORE THAN ONE PRINCIPAL WAS NEEDED — stated plainly, because it is the honest sizing story: the
+    live vector azure_blob_ingestion sink batches per rendered prefix with timeout_secs=20 / max_bytes=10MB,
+    so N POSTs on ONE principal coalesce into ONE blob = ONE queue message. Backlog depth is therefore a
+    function of distinct principals, not of POST count.
+
+    THE BURST, measured:
+      POSTs fired          2026-08-24T02:54:35.930Z .. 02:54:41.916Z   (300 concurrent, xargs -P 60)
+      HTTP status          300 x 200      (0 non-200)
+      blobs created        300, all between 02:54:56Z and 02:55:01Z — i.e. one 20s vector batch window after
+                           their POSTs; 66,240 bytes each
+      per-second histogram of blob creationTime:
+                           02:54:56Z x60   02:54:57Z x60   02:54:58Z x60
+                           02:54:59Z x60   02:55:00Z x22   02:55:01Z x38
+
+    THE OBJECT KEYS THAT ARMED IT — first five and last five of the 300 (full list:
+    /tmp/prdct11935/r52/at8/burst-blobs.tsv):
+      2026-08-24T02:54:56+00:00  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q001/1787540096-d034fde5-d3d1-4c65-bcf2-f9f610b6596f.log
+      2026-08-24T02:54:56+00:00  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q002/1787540095-67bae26b-4ab0-4194-83b6-b76095b90243.log
+      2026-08-24T02:54:56+00:00  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q003/1787540096-9cdd57ef-5463-4a55-b4f9-88e1c85c2b22.log
+      2026-08-24T02:54:56+00:00  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q004/1787540095-0d104a72-0a88-4094-9196-62ea18188053.log
+      2026-08-24T02:54:56+00:00  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q005/1787540096-32154aa3-a13d-4f5e-ae5b-65bf4a340084.log
+      ... 290 more ...
+      2026-08-24T02:55:01+00:00  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q296/1787540101-2041b61f-1124-4bc4-bbc1-5824bdd90a27.log
+      2026-08-24T02:55:01+00:00  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q297/1787540101-56bcf84f-b1bb-4451-bab5-d92c2b7ac5b6.log
+      2026-08-24T02:55:01+00:00  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q298/1787540101-7bb75a5b-37e4-4e28-8d79-289bc638b036.log
+      2026-08-24T02:55:01+00:00  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q299/1787540101-a12498f4-48a7-49ed-83cf-8d1bf377ea3e.log
+      2026-08-24T02:55:01+00:00  tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q300/1787540101-9c59c2a4-a2e3-4ffc-8564-1f664dcc26f9.log
+
+    AND THEY WERE REALLY CONSUMED BY THE PODS KEDA STARTED — settlement lines from three of the replicas the
+    autoscaler created (`kubectl logs`, ANSI-stripped), each naming the principal and object it settled:
+      eai-azure-7c4f9bd78c-5rckx  02:56:24.437891Z outcome=processed r52q034/1787540096-f6fd310e-8dfb-496b-8c13-2b82fc516871.log
+      eai-azure-7c4f9bd78c-5rckx  02:56:28.959014Z outcome=processed r52q010/1787540096-a606322e-a4ac-477f-9762-34971153d436.log
+      eai-azure-7c4f9bd78c-68rvh  02:56:35.673445Z outcome=processed r52q112/1787540097-bd461d22-de94-43ae-8793-5c0fb1dc7d87.log
+      eai-azure-7c4f9bd78c-68rvh  02:56:35.837911Z outcome=processed r52q073/1787540097-5c04b366-cffe-4708-bc94-9187ef33b8d0.log
+      eai-azure-7c4f9bd78c-7hrwl  02:56:32.631322Z outcome=processed r52q066/1787540097-95e8d42b-3162-419f-8123-fee6b4c10880.log
+      eai-azure-7c4f9bd78c-7hrwl  02:56:39.490669Z outcome=processed r52q116/1787540097-c57b5d9d-b45f-434b-803a-c630a67520fe.log
+    (pod names eai-azure-7c4f9bd78c-* are members of the replica set the HPA scaled in section 6.)
+
+================================================================================
+=== 5. HOW THE BURST WAS SIZED — against the poll interval, with the numbers
+================================================================================
+    The known trap: a single replica drains a small burst before anything polls, so the depth is never
+    observed and a real arm reads as a dead one. Sized against three measured quantities:
+
+      (i)   HPA sync period ................ 15s (kube-controller-manager default; confirmed by the 15s
+                                             spacing of the four SuccessfulRescale events in section 6)
+      (ii)  KEDA pollingInterval ........... 30s (spec, section 1)
+      (iii) one replica's drain rate ....... 0.9 msg/s, MEASURED in this very window: over 02:55:03Z->02:55:21Z
+                                             the deployment still had exactly 1 READY replica and the metric
+                                             fell 303 -> 287, i.e. 16 messages in 18s.
+      (iv)  scale threshold ................ HPA scales out when metric/target exceeds the 10% tolerance:
+                                             with 1 replica and averageValue target 10, that needs
+                                             ActiveMessageCount >= 12.
+      (v)   receiver lock hiding ........... the consumer's config is max_messages: 10 / concurrency: 2, so up
+                                             to 10 delivered messages are LOCKED and therefore NOT counted in
+                                             ActiveMessageCount at any instant.
+
+    Minimum burst = 12 (threshold) + 10 (locked, hidden) + 0.9 * 30 (drained during one KEDA poll interval)
+                  = ~49 messages.
+    Chosen burst = 300 (~6x that floor). The margin was deliberate: it keeps the depth above threshold across
+    several consecutive polls rather than one lucky sample, and it drives the trigger through more than a
+    single scale step. The measured hold time above the threshold was ~2m20s (02:54:58Z -> 02:57:23Z), i.e.
+    ~9 HPA syncs, not one.
+
+================================================================================
+=== 6. SCALE-OUT ABOVE minReplicaCount — 1 -> 4 -> 8 -> 16 -> 20, on the real backlog
+================================================================================
+    The live sampling table across the transition (metric = KEDA's own external metric, section 3;
+    hpa = the HPA's TARGETS column; spec/ready/running = deploy/eai-azure and its pods):
+
+    2026-08-24T02:54:33Z   metric=0     hpa=0/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:35Z   metric=0     hpa=0/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:37Z   metric=1     hpa=0/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:40Z   metric=3     hpa=1/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:42Z   metric=5     hpa=1/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:44Z   metric=5     hpa=1/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:46Z   metric=5     hpa=1/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:49Z   metric=5     hpa=1/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:51Z   metric=5     hpa=1/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:53Z   metric=4     hpa=5/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:56Z   metric=3     hpa=5/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:54:58Z   metric=123   hpa=5/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:55:00Z   metric=243   hpa=5/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:55:03Z   metric=303   hpa=5/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:55:05Z   metric=303   hpa=5/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:55:07Z   metric=303   hpa=5/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T02:55:09Z   metric=302   hpa=303/10 (avg)     spec=4   ready=1   running=4
+    2026-08-24T02:55:12Z   metric=299   hpa=303/10 (avg)     spec=4   ready=1   running=4
+    2026-08-24T02:55:14Z   metric=296   hpa=303/10 (avg)     spec=4   ready=1   running=4
+
+    THE AUTOSCALER'S OWN EVENTS — the authoritative record, with reasons:
+      2026-08-24T02:55:08Z | Deployment | eai-azure | ScalingReplicaSet | Scaled up replica set eai-azure-7c4f9bd78c from 1 to 4
+      2026-08-24T02:55:08Z | HorizontalPodAutoscaler | keda-hpa-endpoint-asset-ingestion | SuccessfulRescale | New size: 4; reason: external metric s0-azure-servicebus-endpoint-asset-ingestion-prdct11935(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: endpoint-asset-ingestion,},MatchExpressions:[]LabelSelectorRequirement{},}) above target
+      2026-08-24T02:55:23Z | Deployment | eai-azure | ScalingReplicaSet | Scaled up replica set eai-azure-7c4f9bd78c from 4 to 8
+      2026-08-24T02:55:23Z | HorizontalPodAutoscaler | keda-hpa-endpoint-asset-ingestion | SuccessfulRescale | New size: 8; reason: external metric s0-azure-servicebus-endpoint-asset-ingestion-prdct11935(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: endpoint-asset-ingestion,},MatchExpressions:[]LabelSelectorRequirement{},}) above target
+      2026-08-24T02:55:38Z | Deployment | eai-azure | ScalingReplicaSet | Scaled up replica set eai-azure-7c4f9bd78c from 8 to 16
+      2026-08-24T02:55:38Z | HorizontalPodAutoscaler | keda-hpa-endpoint-asset-ingestion | SuccessfulRescale | New size: 16; reason: external metric s0-azure-servicebus-endpoint-asset-ingestion-prdct11935(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: endpoint-asset-ingestion,},MatchExpressions:[]LabelSelectorRequirement{},}) above target
+      2026-08-24T02:55:53Z | Deployment | eai-azure | ScalingReplicaSet | Scaled up replica set eai-azure-7c4f9bd78c from 16 to 20
+      2026-08-24T02:55:53Z | HorizontalPodAutoscaler | keda-hpa-endpoint-asset-ingestion | SuccessfulRescale | New size: 20; reason: external metric s0-azure-servicebus-endpoint-asset-ingestion-prdct11935(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: endpoint-asset-ingestion,},MatchExpressions:[]LabelSelectorRequirement{},}) above target
+      2026-08-24T03:01:39Z | Deployment | eai-azure | ScalingReplicaSet | Scaled down replica set eai-azure-7c4f9bd78c from 20 to 13
+      2026-08-24T03:01:39Z | HorizontalPodAutoscaler | keda-hpa-endpoint-asset-ingestion | SuccessfulRescale | New size: 13; reason: All metrics below target
+      2026-08-24T03:01:54Z | Deployment | eai-azure | ScalingReplicaSet | Scaled down replica set eai-azure-7c4f9bd78c from 13 to 6
+      2026-08-24T03:01:54Z | HorizontalPodAutoscaler | keda-hpa-endpoint-asset-ingestion | SuccessfulRescale | New size: 6; reason: All metrics below target
+      2026-08-24T03:02:09Z | Deployment | eai-azure | ScalingReplicaSet | Scaled down replica set eai-azure-7c4f9bd78c from 6 to 1
+      2026-08-24T03:02:09Z | HorizontalPodAutoscaler | keda-hpa-endpoint-asset-ingestion | SuccessfulRescale | New size: 1; reason: All metrics below target
+
+    REPLICA TRANSITIONS, from the sampling table:
+      2026-08-24T02:54:22Z  spec_replicas=1  keda_metric=0  hpa=0/10 (avg)
+      2026-08-24T02:55:09Z  spec_replicas=4  keda_metric=302  hpa=303/10 (avg)
+      2026-08-24T02:55:23Z  spec_replicas=8  keda_metric=285  hpa=71250m/10 (avg)
+      2026-08-24T02:55:38Z  spec_replicas=16  keda_metric=271  hpa=33875m/10 (avg)
+      2026-08-24T02:55:55Z  spec_replicas=20  keda_metric=265  hpa=16563m/10 (avg)
+      2026-08-24T03:01:39Z  spec_replicas=13  keda_metric=0  hpa=0/10 (avg)
+      2026-08-24T03:01:55Z  spec_replicas=6  keda_metric=0  hpa=0/10 (avg)
+      2026-08-24T03:02:11Z  spec_replicas=1  keda_metric=0  hpa=0/10 (avg)
+
+    READ THIS PLAINLY: at 02:55:08Z the deployment went from 1 (== minReplicaCount) to 4, and the HPA's own
+    stated reason is "external metric s0-azure-servicebus-endpoint-asset-ingestion-prdct11935 ... above
+    target". The metric at that instant was 303 real messages, each one a Kong-originated Event Grid
+    BlobCreated delivery listed in section 4. That is the demanded 1 -> >=2 backlog-driven scale-OUT.
+    It then continued to 8, 16 and 20 (= maxReplicaCount) as the depth stayed above target.
+
+================================================================================
+=== 7. SCALE-BACK-IN — back to minReplicaCount as the backlog drained
+================================================================================
+    The 20 replicas drained the queue; the metric reached 0 at 02:57:23Z and stayed there.
+
+    2026-08-24T02:57:19Z   metric=0     hpa=2650m/10 (avg)   spec=20  ready=20  running=20
+    2026-08-24T02:57:21Z   metric=0     hpa=2650m/10 (avg)   spec=20  ready=20  running=20
+    2026-08-24T02:57:23Z   metric=0     hpa=2650m/10 (avg)   spec=20  ready=20  running=20
+    2026-08-24T02:57:26Z   metric=0     hpa=0/10 (avg)       spec=20  ready=20  running=20
+    2026-08-24T02:57:28Z   metric=0     hpa=0/10 (avg)       spec=20  ready=20  running=20
+    2026-08-24T02:57:30Z   metric=0     hpa=0/10 (avg)       spec=20  ready=20  running=20
+
+    The HPA then held the fleet for its downscale stabilisation window before stepping down (all three
+    scale-down events carry reason "All metrics below target"):
+
+    2026-08-24T03:01:35Z   metric=0     hpa=0/10 (avg)       spec=20  ready=20  running=20
+    2026-08-24T03:01:37Z   metric=0     hpa=0/10 (avg)       spec=20  ready=20  running=20
+    2026-08-24T03:01:39Z   metric=0     hpa=0/10 (avg)       spec=13  ready=13  running=13
+    2026-08-24T03:01:41Z   metric=0     hpa=0/10 (avg)       spec=13  ready=13  running=13
+    2026-08-24T03:01:44Z   metric=0     hpa=0/10 (avg)       spec=13  ready=13  running=13
+    2026-08-24T03:01:46Z   metric=0     hpa=0/10 (avg)       spec=13  ready=13  running=13
+    2026-08-24T03:01:48Z   metric=0     hpa=0/10 (avg)       spec=13  ready=13  running=13
+    2026-08-24T03:01:50Z   metric=0     hpa=0/10 (avg)       spec=13  ready=13  running=13
+    2026-08-24T03:01:53Z   metric=0     hpa=0/10 (avg)       spec=13  ready=13  running=13
+    2026-08-24T03:01:55Z   metric=0     hpa=0/10 (avg)       spec=6   ready=6   running=6
+    2026-08-24T03:01:57Z   metric=0     hpa=0/10 (avg)       spec=6   ready=6   running=6
+    2026-08-24T03:02:00Z   metric=0     hpa=0/10 (avg)       spec=6   ready=6   running=6
+    2026-08-24T03:02:02Z   metric=0     hpa=0/10 (avg)       spec=6   ready=6   running=6
+    2026-08-24T03:02:04Z   metric=0     hpa=0/10 (avg)       spec=6   ready=6   running=6
+    2026-08-24T03:02:06Z   metric=0     hpa=0/10 (avg)       spec=6   ready=6   running=6
+    2026-08-24T03:02:09Z   metric=0     hpa=0/10 (avg)       spec=6   ready=6   running=6
+    2026-08-24T03:02:11Z   metric=0     hpa=0/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T03:02:13Z   metric=0     hpa=0/10 (avg)       spec=1   ready=1   running=1
+    2026-08-24T03:02:15Z   metric=0     hpa=0/10 (avg)       spec=1   ready=1   running=1
+
+      2026-08-24T03:01:39Z  20 -> 13   "All metrics below target"
+      2026-08-24T03:01:54Z  13 -> 6    "All metrics below target"
+      2026-08-24T03:02:09Z   6 -> 1    "All metrics below target"
+      2026-08-24T03:02:17Z  deploy/eai-azure spec.replicas == 1 == minReplicaCount  (independent readback)
+
+    And it STAYED at 1 for the rest of the sampling window — last sample 2026-08-24T03:06:27Z:
+      metric=0  hpa=0/10 (avg)  spec=1  ready=1  running=1
+    The floor it returned to is minReplicaCount: 1, the deliberate pinned fleet posture (static hold
+    capacity matching the temporal-worker peers). No 1 -> 0 transition is claimed; none is expressible with
+    this manifest, and the plan does not demand one.
+
+================================================================================
+=== 8. THE GUARD — what would have made this a FAIL, and did not happen
+================================================================================
+    aws-sqs-queue trigger anywhere on this ScaledObject ............... 0 (section 1: type azure-servicebus)
+    podIdentity on the TriggerAuthentication ......................... 0 (section 2: secretTargetRef only)
+    fallback engaged (which would fake a replicas:5 reading) .......... Fallback=False, NoFallbackFound
+    scaler failures during the window ................................. numberOfFailures 0, status Happy
+    apply-time min-replica-enforcement line quoted as scaling ......... not present in this file
+    hand-placed queue messages ........................................ 0 (section 4)
+
+================================================================================
+=== 9. kubectl DISCIPLINE — every command this leg ran against the cluster
+================================================================================
+    READ-ONLY, all of it: `kubectl get` (scaledobject, triggerauthentication, hpa, deploy, pods, events,
+    secret, configmap), `kubectl logs` (eai-azure pods, keda-operator), and `kubectl get --raw` against the
+    external-metrics API. No apply, create, patch, annotate, scale, delete, edit, rollout or exec was issued
+    against the arm or its objects. The ScaledObject/TriggerAuthentication/Secret under test were applied on
+    2026-08-18T19:47:06Z and were untouched by this leg — their metadata.generation is still 1 and their
+    creationTimestamp is five days old (section 1).
+    kubectl was NOT the write path: the arming messages were produced only by HTTPS POSTs to the Kong front
+    door. The only write this leg made anywhere was to Kong's own consumer registry (the 300 ingestion
+    principals of section 4), through Kong's admin API, and it is undone in section 10.
+
+================================================================================
+=== 10. SIDE EFFECTS AND RESTORE
+================================================================================
+    (a) 300 Kong consumers `ingestion@61750f27-...@r52qNNN` + 3 pilot `...@r52pN` — DELETED after the arm;
+        the restore readback is at the end of this file.
+    (b) 300 objects under tenant=61750f27-.../source=mcp-scanner/date=2026-08-24/r52q*/ in the lab
+        `ingestion` container, plus 4 under r52p*/ — the real chain's own output, inert data.
+    (c) tenant-DB impact: NONE observable. The 300 deliveries all carried the SAME real recorded body, and
+        the writer is content-keyed: measured after the drain, every asset class has count(*) ==
+        count(distinct unique_identifier) (6/6, 5/5, 10/10, 4/4, 56/56, 574/574, 73/73) and the newest
+        assets.updated_at in the tenant schema is 2026-08-24T02:07:40Z — BEFORE the 02:54 burst. Nothing was
+        created, duplicated or resurrected by the arm.
+    (d) window to exclude from any other AT's freshness reasoning: 2026-08-24T02:50Z .. 03:03Z.
+    (e) full disclosure of everything this session put on that queue, so nothing is hidden behind the
+        arm's window:
+          · 02:50:28Z and 02:51:46Z — a 3-principal PILOT (bodies 03.json / 07.json) run BEFORE the arm to
+            confirm that distinct principals really do produce distinct blobs, i.e. to size the burst
+            honestly rather than guess. Same real Kong chain, same discipline. 4 objects, since removed.
+          · 02:54:36Z — the arm's 300-POST burst (section 4).
+          · 03:08:51Z — ONE message placed directly on the queue by a DIFFERENT acceptance test (at5-03's
+            array-shape leg, evidence/at5-03-shapes.txt). It is named here only so the queue's history is
+            fully accounted for: it landed 6m34s AFTER the arm returned to minReplicaCount at 03:02:17Z and
+            2m24s after this file's sampling window closed, and no number anywhere in this file depends on
+            it. NOTHING was placed on the queue by hand during the arm itself.
+
+================================================================================
+=== 11. RESTORE, PROVEN
+================================================================================
+--- (a) the 303 test ingestion principals are GONE (all 303 DELETEs returned HTTP 204)
+    === RESTORE READBACK (Kong admin, 2026-08-24T03:10:52Z) ===
+    total consumers now: 9
+    any r52 test principal left: 0
+    the ingestion principals that remain (the pre-existing set):
+        ingestion@11935dea-0000-4000-8000-00000000dead
+        ingestion@11935f18-0000-4000-8000-000000000101
+        ingestion@11935f18-0000-4000-8000-000000000102
+        ingestion@61750f27-8fbd-42a4-80cf-4191cfb2371a
+    -> 9 consumers, exactly the pre-run count, and the four ingestion principals that remain are the
+       pre-existing set this leg did not touch.
+
+--- (b) the objects the burst produced are removed from the lab container
+    $ az storage blob delete-batch ... --pattern "tenant=61750f27-…/source=mcp-scanner/date=2026-08-24/r52q*"
+    $ az storage blob delete-batch ... --pattern "…/r52p*"
+    $ az storage blob list --prefix "tenant=61750f27-…/source=mcp-scanner/date=2026-08-24/r52" --query length(@)
+      -> 0
+    Safe by construction: the Event Grid system-topic subscription's filter.includedEventTypes is
+    ["Microsoft.Storage.BlobCreated"] (read back this round), so deletions raise no events and place no
+    messages on the queue.
+
+--- (c) the arm's own objects are byte-for-byte as they were — nothing was applied, patched or annotated
+    === POST-RUN CLUSTER READBACK (2026-08-24T03:11:45Z) ===
+    endpoint-asset-ingestion   1     1     20    <none>
+    eai-azure   1     1     localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+    keda-hpa-endpoint-asset-ingestion   Deployment/eai-azure   0/10 (avg)   1     20    1     6h52m
+    queue: endpoint-asset-ingestion-prdct11935: active=0 dead_letter=122 scheduled=0 transfer_dlq=0 total=122
+    ScaledObject metadata.generation is still 1 and there is no autoscaling.keda.sh/paused-replicas
+    annotation; deploy/eai-azure is back at spec=1 ready=1 on the same image; the HPA reads 0/10 (avg) with
+    min 1 / max 20; the queue is at active=0 and its $DeadLetterQueue is UNCHANGED at 122 (the same 122 it
+    held before this leg started — the arm dead-lettered nothing).
+
+--- (d) the temporary Kong-admin rail is closed
+    kong-admin port-forward (18001) CLOSED — the two pre-existing rails (8080 Kong proxy, 127.0.0.2:8080 UI) left untouched
+
+--- (e) what deliberately remains (disclosed, not restored)
+    · tenant-DB state: unchanged — see section 10(c). No rows created, duplicated or resurrected.
+    · scratch under /tmp/prdct11935/r52/ (samples.tsv, burst-blobs.tsv, event dumps). Harness only; none of
+      it is in the PR.
+
+# END. Captured, restored and verified 2026-08-24T03:12:20Z.
