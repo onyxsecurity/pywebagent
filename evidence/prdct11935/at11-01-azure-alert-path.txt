@@ -1,7 +1,11 @@
 # PRDCT-11935 at11-01 — the Azure alert-processing path: a live defect found by verify, fixed, and proven
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-24T00:56:34Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx branch a2486bb33f · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T00:20:10Z
+# SWEPT AT HEAD 2026-08-24T00:56:34Z: this capture predates the round-45/46 owner rulings. Its MEASUREMENTS stand (they
+#   really happened on that image); one DISPOSITION below — the `publish_failed` metering — asserted a fix
+#   this PR no longer ships and is withdrawn in place, with the head-verified commands beside it. Read every
+#   'fixed in this PR' sentence in this file against onyx head 2b60fdc4df25188104e737e6311087681355eff8.
 #
 # WHAT THE GATE FOUND (round 22, G15): the shipped Azure lane's session alert producer failed on EVERY
 # send — 65 swallowed "failed to publish one session alert-processing request (continuing)", and the
@@ -34,10 +38,30 @@
     for that identity, in onyxsecurity/infrastructure#1575 — scoped to the one queue, not the namespace.
 
 === THE THIRD THING THE GATE ASKED FOR — the failure must not be silent
-    The scanner lane metered `published` and `skipped_no_queue` but NEVER `publish_failed`, so a producer
-    failing 100% of the time moved no counter at all. The gateway lane already counted it. Both now do
+    ~~The scanner lane metered `published` and `skipped_no_queue` but NEVER `publish_failed` … Both now do
     (writers.py _meter_session_alerts), with tests in
-    tests/endpoint_asset_ingestion/ingestion/test_session_alert_failure_is_metered.py.
+    tests/endpoint_asset_ingestion/ingestion/test_session_alert_failure_is_metered.py.~~
+
+    WITHDRAWN 2026-08-24 (round-50 sweep). The FIRST sentence is still true and is the finding; the rest
+    described code that this PR no longer contains.
+      what it said : both lanes now count `publish_failed`, via writers.py `_meter_session_alerts`, covered
+                     by tests/endpoint_asset_ingestion/ingestion/test_session_alert_failure_is_metered.py
+      what is true : at head the SCANNER lane still meters only `published` (writers.py:648) and
+                     `skipped_no_queue` (:650); `publish_failed` is emitted on the GATEWAY lane alone
+                     (gateway_writers.py:420). The helper and the test do not exist.
+      why          : OWNER RULING #2 (round 46) removed this PR's queue-layer work as superseded by main
+                     ("REMOVE FROM THIS PR ENTIRELY … the abandon_message method you added to asb.py
+                     (KEEP _system_properties)"), and reducing asb.py to that one addition took the
+                     send-serialisation and this metering with it.
+      commands     : $ grep -rn '_meter_session_alerts' backend_python/src backend | wc -l          -> 0
+                     $ git ls-files | grep -c test_session_alert_failure_is_metered.py              -> 0
+                     $ grep -rn 'session_alerts\.' backend_python/src/endpoint_asset_ingestion/
+                         writers.py:648   metrics.session_alerts.add(... outcome="published")
+                         writers.py:650   metrics.session_alerts.inc(... outcome="skipped_no_queue")
+                         gateway_writers.py:418/420  published / publish_failed   <- gateway lane only
+      disposition  : the silence is a REAL, OPEN defect on the scanner lane, tracked with the sender
+                     hazard as R-6 on PRDCT-12061 (see evidence/at10-26-alert-sender-hazard.txt and
+                     evidence/at10-27-tracker-r6-fetch.txt). Not claimed as fixed here.
 
 === BEFORE — the pre-fix pod, image :prdct11935-r25
     pod: eai-azure-6648777b44-qlhgz
