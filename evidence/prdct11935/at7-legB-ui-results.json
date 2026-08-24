@@ -1,0 +1,320 @@
+{
+  "_file_last_written": "2026-08-24T01:37:28.565Z",
+  "stamp": "2026-08-24T01:37:28.565Z",
+  "window": "r50at7002800",
+  "head": "2b60fdc4df25188104e737e6311087681355eff8",
+  "leg": "B post-removal lifecycle + list surfaces",
+  "steps": [
+    {
+      "route": "/ai-assets/mcp/442199",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/mcp/442199?tab=overview"
+    },
+    {
+      "route": "/ai-assets/skills/441993",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/skills/441993?tab=overview"
+    },
+    {
+      "route": "/ai-assets/subagents/442189",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/subagents/442189?tab=overview"
+    },
+    {
+      "route": "/ai-assets/desktop-agents/group/10729",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/group/10729?tab=overview&instanceType=endpoint&containerView=grouped"
+    },
+    {
+      "route": "/ai-assets/desktop-agents/group/10727",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/group/10727?tab=overview&instanceType=endpoint&containerView=grouped"
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets"
+    },
+    {
+      "search": "Onyx Sibling R50 MCP",
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets"
+    },
+    {
+      "search": "r50at7002800-sibskill",
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets"
+    },
+    {
+      "search": "r50at7002800-sibsub",
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets"
+    },
+    {
+      "search": "OpenClaw",
+      "showing": "1",
+      "contains": true
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets"
+    },
+    {
+      "search": "Hermes Agent",
+      "showing": "1",
+      "contains": true
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets"
+    },
+    {
+      "search": "Onyx Lab R50 MCP",
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets/usage",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/usage"
+    }
+  ],
+  "assertions": [
+    {
+      "where": "post-removal MCP detail /ai-assets/mcp/442199",
+      "needle": "Onyx Lab R50 MCP",
+      "locator": "page.getByText(\"Onyx Lab R50 MCP\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 3
+    },
+    {
+      "where": "post-removal MCP detail — status pill still Discovered",
+      "needle": "Discovered",
+      "locator": "page.getByText(\"Discovered\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1
+    },
+    {
+      "where": "post-removal MCP detail — no Deleted badge",
+      "needle": "Deleted",
+      "kind": "absent",
+      "locator": "page.getByText(\"Deleted\",{exact:true}).count()",
+      "matches": 0,
+      "pass": true
+    },
+    {
+      "where": "post-removal MCP detail — tools list still rendered",
+      "needle": "r50__echo",
+      "locator": "page.getByText(\"r50__echo\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1
+    },
+    {
+      "where": "post-removal MCP detail — tools list still rendered",
+      "needle": "r50__hostname",
+      "locator": "page.getByText(\"r50__hostname\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1
+    },
+    {
+      "where": "post-removal MCP detail — tools list still rendered",
+      "needle": "r50__search",
+      "locator": "page.getByText(\"r50__search\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1
+    },
+    {
+      "where": "post-removal MCP detail — tools list still rendered",
+      "needle": "r50__time",
+      "locator": "page.getByText(\"r50__time\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1
+    },
+    {
+      "where": "post-removal MCP detail — tools list still rendered",
+      "needle": "r50__verify",
+      "locator": "page.getByText(\"r50__verify\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1
+    },
+    {
+      "where": "post-removal skill detail /ai-assets/skills/441993",
+      "needle": "r50at7002800-skill",
+      "locator": "page.getByText(\"r50at7002800-skill\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 4
+    },
+    {
+      "where": "post-removal skill detail — no Deleted badge",
+      "needle": "Deleted",
+      "kind": "absent",
+      "locator": "page.getByText(\"Deleted\",{exact:true}).count()",
+      "matches": 0,
+      "pass": true
+    },
+    {
+      "where": "post-removal subagent detail /ai-assets/subagents/442189",
+      "needle": "r50at7002800-sub",
+      "locator": "page.getByText(\"r50at7002800-sub\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 4
+    },
+    {
+      "where": "post-removal subagent detail — no Deleted badge",
+      "needle": "Deleted",
+      "kind": "absent",
+      "locator": "page.getByText(\"Deleted\",{exact:true}).count()",
+      "matches": 0,
+      "pass": true
+    },
+    {
+      "where": "post-removal desktop-agent group surface (uninstalled SUBJECT)",
+      "needle": "OpenClaw",
+      "locator": "page.getByText(\"OpenClaw\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 20000ms exceeded."
+    },
+    {
+      "where": "still-installed CONTROL group surface, same surface as the subject",
+      "needle": "Codex",
+      "locator": "page.getByText(\"Codex\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 20000ms exceeded."
+    },
+    {
+      "where": "LIST /ai-assets searched \"OpenClaw\"",
+      "needle": "OpenClaw",
+      "locator": "page.getByText(\"OpenClaw\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 2
+    },
+    {
+      "where": "LIST /ai-assets searched \"Hermes Agent\"",
+      "needle": "Hermes Agent",
+      "locator": "page.getByText(\"Hermes Agent\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 2
+    }
+  ],
+  "captures": [
+    {
+      "name": "at7-15-ui-lifecycle-mcp.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/mcp/442199?tab=overview",
+      "label": "post-removal MCP detail, top of surface",
+      "state_fp": "cd329974d78d5e3d",
+      "png_sha256": "e465f9df5ec149696b68a229248cf167c5f991182017aea263f5b8ee64d32130"
+    },
+    {
+      "name": "at7-19b-ui-lifecycle-tools.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/mcp/442199?tab=overview",
+      "label": "post-removal MCP detail scrolled to the tools list",
+      "state_fp": "f64b6a472622f589",
+      "png_sha256": "636686ef6f6a0c5700e2886c6188a8f8b6993e1718f87cabe1c7876aa4ddee01"
+    },
+    {
+      "name": "at7-16-ui-lifecycle-skills.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/skills/441993?tab=overview",
+      "label": "post-removal skill detail",
+      "state_fp": "d9f1fc8fb9c67c12",
+      "png_sha256": "7984d22c47b97c1a77af37652895a1c5648f180e6b7a7953185f7e51f3a29718"
+    },
+    {
+      "name": "at7-17-ui-lifecycle-subagents.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/subagents/442189?tab=overview",
+      "label": "post-removal subagent detail",
+      "state_fp": "6eefc878dd50802a",
+      "png_sha256": "5e0ec58b7d1e2f4c1d0f225993b861005e83db876cb02d1ad858cf7693e1d036"
+    },
+    {
+      "name": "at7-21-ui-lifecycle-agent.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/group/10729?tab=overview&instanceType=endpoint&containerView=grouped",
+      "label": "uninstalled subject group surface with Last Seen in frame",
+      "state_fp": "bfdb22d5fbf3e26e",
+      "png_sha256": "bf0a1fd88208942d12097cbc319287da162f57005877aeaf598da1bb95bb374d"
+    },
+    {
+      "name": "at7-21b-ui-lifecycle-agent-control.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/group/10727?tab=overview&instanceType=endpoint&containerView=grouped",
+      "label": "still-installed control group surface, same surface",
+      "state_fp": "e23b53a8a2310706",
+      "png_sha256": "79e62c627b2a6b37cfe6b0e5121f3cfe2f0eb9c2d6ad36db4e09ef9bc57ce30e"
+    },
+    {
+      "name": "at7-33-list-mcp.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets?q=Onyx+Sibling+R50+MCP",
+      "label": "MCP list surface",
+      "state_fp": "47f55e52eeb18170",
+      "png_sha256": "66bfc835f902c48793e6237340f1ba66b3599e2fc959c98b800805e188ca1494"
+    },
+    {
+      "name": "at7-34-list-skill.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets?q=r50at7002800-sibskill",
+      "label": "skills list surface",
+      "state_fp": "f08c4fd22c44cbc7",
+      "png_sha256": "3b3d189865367596a35632616683bc31f23e17deb3a2888ca941a91bec692b91"
+    },
+    {
+      "name": "at7-35-list-subagent.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets?q=r50at7002800-sibsub",
+      "label": "subagents list surface",
+      "state_fp": "e5a6fdbe7196ad1f",
+      "png_sha256": "c8325c758631db50c677840885602b617d2142ad80d20027bda8c346e46d13dd"
+    },
+    {
+      "name": "at7-32-list-desktop-agent.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets?q=OpenClaw",
+      "label": "desktop-agent list surface",
+      "state_fp": "ea1c0f1c8fe381a5",
+      "png_sha256": "ac2ed31f95b06b4dfa1230d374c6aa62316e5cd9be0b2f5bf9d5de6c31a4a83b"
+    },
+    {
+      "name": "at7-36-list-hermes-usage.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets?q=Hermes+Agent",
+      "label": "usage-producing agent on the list surface",
+      "state_fp": "6b879d5ab83b33f9",
+      "png_sha256": "9cbd861b527e59dce067e832ca8547612f32315cc885ed53371d9da3f1991bf9"
+    },
+    {
+      "name": "at7-15b-ui-lifecycle-mcp-list.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets?q=Onyx+Lab+R50+MCP",
+      "label": "the REMOVED MCP on the list surface",
+      "state_fp": "8fd826185bd279c5",
+      "png_sha256": "0bd505123be1b62349a6dc53877de0765530bd723b72f93f75508a0b452a0ae2"
+    },
+    {
+      "name": "at7-14b-ui-usage-route.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/usage",
+      "label": "the /ai-assets/usage route today",
+      "state_fp": "bbff211e36f58876",
+      "png_sha256": "724847cb7e01c73c91345902c5acbf5917a962ffcb1aa53970f3d910c75c9012"
+    }
+  ],
+  "login": {
+    "ok": true,
+    "url_after_login": "http://ui.onyxd.svc.cluster.local:8080/overview",
+    "identity": "coder-agent@onyx.security"
+  },
+  "last_seen_subject": "<Last Seen not rendered on this surface>",
+  "last_seen_control": "<Last Seen not rendered on this surface>",
+  "distinct_captures": true,
+  "verdict": "SOME-ASSERTIONS-FAILED"
+}
