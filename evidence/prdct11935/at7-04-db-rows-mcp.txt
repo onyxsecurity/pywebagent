@@ -1,0 +1,15 @@
+# PRDCT-11935 at7-04-db-rows-mcp.txt — the MCP-server class rows (subject + sibling control) written from this window's real MCPB bundles
+# FILE LAST WRITTEN 2026-08-24T01:10:05Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:10:05Z
+
+SET
+  id   | asset_id |         name         |         unique_identifier         |        status         | is_deleted |          created_at           |          updated_at           
+-------+----------+----------------------+-----------------------------------+-----------------------+------------+-------------------------------+-------------------------------
+ 19792 |   442199 | Onyx Lab R50 MCP     | mcpb:onyx-lab-r50at7002800::1.0.0 | AssetStatusDiscovered | f          | 2026-08-24 00:30:00.320436+00 | 2026-08-24 00:30:00.320436+00
+ 19793 |   442200 | Onyx Sibling R50 MCP | mcpb:onyx-sib-r50at7002800::1.0.0 | AssetStatusDiscovered | f          | 2026-08-24 00:30:00.437327+00 | 2026-08-24 00:30:00.437327+00
+(2 rows)
+
+
+FIDELITY: unique_identifier mcpb:onyx-lab-r50at7002800::1.0.0 is the bundle NAME + VERSION out of the
+manifest.json that npx @anthropic-ai/mcpb@2.1.2 packed this window; display name 'Onyx Lab R50 MCP'
+is that manifest's display_name. asset 442199 = SUBJECT (removed), 442200 = SIBLING control (stays).
