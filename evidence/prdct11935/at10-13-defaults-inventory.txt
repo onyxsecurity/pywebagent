@@ -1,5 +1,6 @@
 # PRDCT-11935 at10-13 — C15 DEFAULTS INVENTORY, RE-DERIVED AT CURRENT HEAD
-# FILE LAST WRITTEN 2026-08-24T00:57:56Z
+# FILE LAST WRITTEN 2026-08-24T03:48:34Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · flux-fleet#2307 head a4493c1e5ac0 · infrastructure#1575 MERGED at da993d1ae2eb · captured 2026-08-24T00:57:56Z
 #
 # ############################################################################################
@@ -221,14 +222,15 @@
         (the base-overlay cite :24-30 still HOLDS; the deliberate-non-removal note :54-59 -> :101-106)
 
  THE 13 "CHART DEFAULTS THAT NOW BIND" (infra/helm/onyx-app/values.yaml) — 12 of 13 drifted; NO value changed
-   enabled 2393 HOLDS false | concurrency 2455->2456 =5 | max_messages 2456->2457 =10
-   error_backoff_seconds 2457->2458 =5 | visibility_timeout/wait_time 2470-2471->2469/2470 =600/20
-   asset_ingestion_s3.aws_region 2489->2485 ="us-east-1" | replicaCount 2537->2538 =1
-   limits.memory/requests.cpu/requests.memory 2543-2548->2546/2548/2549 =1Gi/0.05/256Mi
-   autoscaling.enabled 2550->2552 =false | externalAutoscaling enabled/min/max 2554-2559->2557/2558/2559
-     =false/1/5 | fallback failureThreshold/replicas 2560-2562->2561/2562 =3/1
-   trigger queueLength 2569->2570 ="10" (trigger type still aws-sqs-queue at :2564, replaced wholesale
-     by flux-fleet on Azure) | podDisruptionBudget enabled/maxUnavailable 2577-2579->2578-2580 =false/"40%"
+   Every arrow below is a CITE MOVE (which source line the default sits on), not a value change.
+   enabled line 2393 HOLDS false | concurrency line 2455 -> 2456 =5 | max_messages line 2456 -> 2457 =10
+   error_backoff_seconds line 2457 -> 2458 =5 | visibility_timeout/wait_time lines 2470-2471->2469/2470 =600/20
+   asset_ingestion_s3.aws_region line 2489 -> 2485 ="us-east-1" | replicaCount line 2537 -> 2538 =1
+   limits.memory/requests.cpu/requests.memory lines 2543-2548->2546/2548/2549 =1Gi/0.05/256Mi
+   autoscaling.enabled line 2550 -> 2552 =false | externalAutoscaling enabled/min/max lines 2554-2559->2557/2558/2559
+     =false/1/5 | fallback failureThreshold/replicas lines 2560-2562->2561/2562 =3/1
+   trigger queueLength line 2569 -> 2570 ="10" (trigger type still aws-sqs-queue at :2564, replaced wholesale
+     by flux-fleet on Azure) | podDisruptionBudget enabled/maxUnavailable lines 2577-2579->2578-2580 =false/"40%"
 
 =========================================================================================================
 3. ROWS WHOSE CITE SURVIVES BUT WHOSE CLAIM IS FALSE AT HEAD
