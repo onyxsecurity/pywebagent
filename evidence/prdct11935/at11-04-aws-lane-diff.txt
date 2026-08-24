@@ -1,108 +1,196 @@
-# PRDCT-11935 at11-04 — the AWS-lane base-vs-head tenant-DB comparison, and the one delta it found
-# FILE LAST WRITTEN 2026-08-23T17:32:37Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade · head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T17:31:27Z
+# PRDCT-11935 at11-04 — the AWS-lane base-vs-head tenant-DB comparison.  RAW DIFF: 0 CHANGED LINES.
+# Driven and measured by the ENGINEER, 2026-08-24T01:01:46Z .. 01:07:46Z (two consecutive runs).
+# merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade  ·  head 2b60fdc4df25188104e737e6311087681355eff8
 #
-# base leg  image :r45c-base (merge-base)  digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:d65c32ca8d147bc8c876243e1d8669d2b782fd97693046ffb397e4c833953bd2
-#           tenant 11935f18-...-101  schema prdct11935_v18t1
-# head leg  image :r46b-head (head)        digest localhost:5001/onyx/endpoint-asset-ingestion@sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25
-#           tenant 11935f18-...-102  schema prdct11935_v18t2
-#
-# The dump is /tmp/prdct11935/lane-dump.sh — eleven queries over the whole ingestion-owned graph
-# (assets by class, every asset row's identity+state, mcp servers, mcp tools, skills, subagents,
-# usage sessions, scanner installations, asset connections, issue instances, dedup state). Row ids
-# and timestamps are excluded by construction.
+# base leg  image :r45c-base (merge-base)  digest ...@sha256:d65c32ca8d147bc8c876243e1d8669d2b782fd97693046ffb397e4c833953bd2
+#           consumer ingestion@11935f18-...-101 · bucket at11-base · queue at11-base · deploy eai-at11-base · schema prdct11935_v18t1
+# head leg  image :r46b-head (head)        digest ...@sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25
+#           consumer ingestion@11935f18-...-102 · bucket at11-head · queue at11-head · deploy eai-at11-head · schema prdct11935_v18t2
+# Full per-leg capture: at11-02 (base) and at11-03 (head).
 
-=== 1. THE RAW DIFF IS NOT ZERO — 8 lines. Here it is, before any explanation. ===
-735c735
-< AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Context7 MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
----
-> AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Context7 MCP Server|f|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "codebase-agents"}]}
-739c739
-< AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (node)|f|{"sources": [{"kind": "plugin", "name": "autonomous-workflow"}, {"kind": "direct"}]}
----
-> AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (node)|f|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "autonomous-workflow"}]}
-743a744
-> AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "codebase-agents"}]}
-745d745
-< AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
-1067c1067
-< McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Tavily MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
----
-> McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Tavily MCP Server|f|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "codebase-agents"}]}
+=== 1. THE RAW DIFF ===
 
-    Settled state was identical on both legs: 342 assets / 338 connections / 21 dedup rows.
-    Every one of the 8 lines is the SAME phenomenon: the element ORDER inside one connection's
-    metadata.sources JSON array. No row gained or lost a source; no other column moved. (Two of the
-    8 are one row changing position, because the dump orders connections by that metadata text.)
+    changed lines: 0
 
-=== 2. IS THAT THE IMAGE, OR THE RUN? Four legs, two images, two tenants. ===
-    The two legs alone cannot tell those apart, so the same image was also driven into the OTHER
-    tenant, for each image. (Those two control runs were taken earlier in the round, on the
-    pre-round-46 image pair; the phenomenon and its 8 lines are identical here, which is itself a
-    third reproduction.)
-      BASE image v18t1  vs  BASE image v18t2         0 changed lines
-      HEAD image v18t2  vs  HEAD image v18t1         0 changed lines
-      BASE image        vs  HEAD image (this round's legs) 8 changed lines
-    Each image is self-consistent across tenants and every cross-image pair shows the same 8 lines.
-    Reproducible, so NOT run-to-run noise — which is why it was chased instead of re-rolled.
+    Run f1:  RAW base-vs-head diff = 0 changed lines   ·   NORMALIZED = 0 changed lines
+    Run f2:  RAW base-vs-head diff = 0 changed lines   ·   NORMALIZED = 0 changed lines
 
-=== 3. WHAT IT ACTUALLY IS: a per-object authoritative write, and eight objects ===
-    metadata.sources is written by replace_scan_connection_sources (mcp_writer.py) — 'authoritatively
-    overwrite metadata.sources on every connection observed this scan ... runs once per object'. An
-    edge named by more than one object of the same scan therefore ends up with whatever the LAST
-    object to land says. Three of the eight replayed payloads name the Context7 edge:
-      01.json  (641547 bytes)
-      05.json  (1055077 bytes)
-      07.json  (1132513 bytes)
-    So the surviving order is a function of object ARRIVAL ORDER, which two pool workers racing over
-    an SQS queue decide — not of the writer's logic, which this PR does not touch (mcp_writer.py and
-    source_attribution.py have zero hunks: see at11-01's hunk map).
+    Not "0 after normalisation".  Zero, on the unmodified dump.  `cmp` is silent on both pairs:
+      f1: base.raw and head.raw are BYTE-IDENTICAL
+      f2: base.raw and head.raw are BYTE-IDENTICAL
 
-=== 4. THE CONTROL THAT SETTLES IT: same image, reversed arrival order ===
-    The BASE image was run once more with the same eight bodies posted in REVERSE order. If the
-    ordering belonged to the image, the base image would have to keep producing the base ordering.
-      ### image=r45c-base schema=prdct11935_v18t2 order=REVERSED  2026-08-23T16:34:54Z
-        pod=endpoint-asset-ingestion-7f78f9c76c-hm6bb image=localhost:5001/onyx/endpoint-asset-ingestion:r45c-base
-          08.json -> 200
-          07.json -> 200
-          06.json -> 200
-          05.json -> 200
-          04.json -> 200
-          03.json -> 200
-          02.json -> 200
-          01.json -> 200
-        SETTLED 342|338
-          AgentToMcp|Claude Code (coder)|Context7 MCP Server|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "codebase-agents"}]}
-          AgentToMcp|Claude Code (coder)|Local MCP Server (node)|{"sources": [{"kind": "direct"}, {"kind": "plugin", "name": "autonomous-workflow"}]}
-          AgentToMcp|Claude Code (coder)|mcp-remote MCP Server|{"sources": [{"kind": "direct"}]}
-          AgentToMcp|Claude Code (coder)|mcp-remote MCP Server|{"sources": [{"kind": "direct"}]}
-          McpToMcp|mcp-remote MCP Server|Tavily MCP Server|{"sources": [{"kind": "direct"}]}
+    The comparison subject is lane-dump-writer.sh over each leg's tenant schema: ten queries covering
+    the writer-owned graph — assets by class; every asset row's full identity/state; mcp servers; mcp
+    tools; skills; subagents; usage sessions; scanner installations; asset connections INCLUDING
+    metadata.sources; dedup state.  1074 lines per dump.  Row ids and timestamps are excluded by
+    construction (two independent writers cannot match them).
 
-    It does not. On the SAME base image, reversing the arrival order flips Context7 and Local MCP
-    Server (node) to the head leg's ordering, and takes mcp-remote/Tavily somewhere else again. The
-    field follows arrival order on either image.
+=== 2. ONE HASH FOR ALL FOUR DUMPS ===
 
-=== 5. THE ORDER-INDEPENDENT COMPARISON ===
-    Normalising that one field (sort the array canonically, then sort the lines) asks the question
-    that matters: WHAT was written, rather than in what order the eight objects happened to arrive.
-    The normaliser is evidence/at11-04-normalize-dump.py — 20 lines, no other field touched.
-      BASE image (merge-base)  vs  HEAD image        0 changed lines
-    Both normalised dumps, and both of this round's earlier control runs, share one hash:
-      563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b  f-dump-base.norm
-      563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b  f-dump-head.norm
-      563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b  dump-ctrl.norm
-      563797cc9fe117c3bde5212a1556e522a4cb17442b929c82a3fc1af85d8a8d5b  dump-ctrl2.norm
+    bfab55dfb10901c1c42c35c878cb53955b9ec2e9eeb3e69495a9ef7dde113224   f1/base.raw
+    bfab55dfb10901c1c42c35c878cb53955b9ec2e9eeb3e69495a9ef7dde113224   f1/head.raw
+    bfab55dfb10901c1c42c35c878cb53955b9ec2e9eeb3e69495a9ef7dde113224   f2/base.raw
+    bfab55dfb10901c1c42c35c878cb53955b9ec2e9eeb3e69495a9ef7dde113224   f2/head.raw
 
-=== 6. VERDICT, stated without rounding ===
-    The AWS lane writes the SAME ROWS on the head image as on the merge-base image — same assets,
-    same servers, same tools, same skills, same subagents, same connections, same sources, same
-    dedup state, same installation history. The single observable difference is the element order
-    inside one JSON array, and that order is decided by which of three objects lands last, on either
-    image, as section 4 demonstrates by flipping it on the base image alone.
+    90a19a0d449aec985b7511ba0e269b008808eb396ee45e77095aa116ad3f2fad   f1/base.norm
+    90a19a0d449aec985b7511ba0e269b008808eb396ee45e77095aa116ad3f2fad   f1/head.norm
+    90a19a0d449aec985b7511ba0e269b008808eb396ee45e77095aa116ad3f2fad   f2/base.norm
+    90a19a0d449aec985b7511ba0e269b008808eb396ee45e77095aa116ad3f2fad   f2/head.norm
 
-    A GAP THIS FOUND, reported rather than absorbed. That last-object-wins replace makes a
-    multi-object scan's connection provenance depend on delivery order — on AWS today, and on Azure
-    after this PR. It is pre-existing (mcp_writer.py is unchanged here) and the owner ruled this
-    ticket Azure enablement only, so it is NOT fixed in this PR. It belongs with the other
-    writer-parity items the round-45 ruling puts out of scope.
+    Cross-run, per leg (same image, run f1 vs run f2 — the determinism check):
+      base.raw  f1-vs-f2:  0 changed lines      (`cmp` silent)
+      head.raw  f1-vs-f2:  0 changed lines      (`cmp` silent)
+    The two runs' base-vs-head diffs are byte-identical to each other: yes.
+    So the result is not a lucky roll: two consecutive runs, two images, one hash.
+
+=== 3. THE TWO LEGS PROVABLY RAN DIFFERENT IMAGES ===
+
+    A 0-diff is only meaningful if the legs are genuinely different builds.  `_handle_record` sits at
+    a different line in message_handler.py in each image, and the writers say so themselves:
+
+      base leg, f1: 8 x outcome=processed, every one at lineno=135
+      base leg, f2: 8 x outcome=processed, every one at lineno=135
+      head leg, f1: 8 x outcome=processed, every one at lineno=171
+      head leg, f2: 8 x outcome=processed, every one at lineno=171
+
+      [base] 2026-08-24T01:02:21.217132Z [info ] asset_ingestion_record_handled
+             [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py
+             func_name=_handle_record lineno=135 object_age_seconds=9.573557 outcome=processed
+             s3_key='tenant=11935f18-0000-4000-8000-000000000101/source=mcp-scanner/date=2026-08-24/...'
+      [head] 2026-08-24T01:02:21.195701Z [info ] asset_ingestion_record_handled
+             [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py
+             func_name=_handle_record lineno=171 object_age_seconds=9.573191 outcome=processed
+             s3_key='tenant=11935f18-0000-4000-8000-000000000102/source=mcp-scanner/date=2026-08-24/...'
+
+    Digests read live off the running pods at the top of BOTH runs:
+      eai-at11-base  pod eai-at11-base-7f4bb6b468-x8khs  ...@sha256:d65c32ca8d14...  (:r45c-base)
+      eai-at11-head  pod eai-at11-head-767b7b5c57-rvbft  ...@sha256:d1087c003ad7...  (:r46b-head)
+    32 of 32 Kong POSTs (8 bodies x 2 legs x 2 runs) returned HTTP 200; the same front door returns
+    401 with {"error": "Authentication required"} when the key is omitted.
+
+=== 4. WHAT THE 0 IS BUILT ON — the two legs share nothing ===
+
+    Each leg owns its whole lane: its own Kong key-auth consumer, its own vector route, its own bucket,
+    its own queue and DLQ, its own writer deployment, its own tenant schema.  No image is swapped onto
+    a shared deployment and no shared queue is purged, so the two legs ran CONCURRENTLY, uncontended,
+    and the capture mutates nothing shared.  Per run, per leg: objects_delta=8, processed_delta=8,
+    dlq=0, pod_stable=yes, settled-state 342|338|21 (assets|connections|dedup) — identical on both legs
+    in both runs.
+
+    Negative isolation assertions, measured at the end of each run (f1 | f2):
+      shared `ingestion` bucket tenant=...101/ :  158 | 158   (baseline 158 — UNCHANGED)
+      shared `ingestion` bucket tenant=...102/ :   57 |  57   (baseline  57 — UNCHANGED)
+      shared queue `endpoint-asset-ingestion`  :    0 |   0   (baseline   0 — UNCHANGED)
+      shared writer log lines naming 11935f18  :    0 |   0
+      at11-base keys naming the HEAD tenant    :    0 |   0
+      at11-head keys naming the BASE tenant    :    0 |   0
+      base writer logs naming the HEAD tenant  :    0 |   0
+      head writer logs naming the BASE tenant  :    0 |   0
+      at11-base-dlq / at11-head-dlq            :    0 / 0
+    The shared writer pod endpoint-asset-ingestion-5bcd755bd7-ltmrt (started 2026-08-23T21:42:13Z,
+    0 restarts) processed only OTHER tenants throughout my window — 1457 x tenant=11935a00...,
+    1276 x tenant=61750f27..., 4 x tenant=11935a26... — and ZERO lines naming either leg tenant.
+
+=== 5. THE PREVIOUS REVISION'S RAW 8-LINE DELTA IS SUPERSEDED, AND HERE IS WHY ===
+
+    The revision of this file dated 2026-08-23T17:32Z reported a RAW 8-line base-vs-head delta and
+    defended it with a normalised 0-line comparison.  THAT DEFENCE IS NO LONGER THE PROOF AND SHOULD
+    NOT BE CITED.  The raw diff is now 0 because the cause of those 8 lines has been REMOVED from the
+    experiment, not normalised away.
+
+    What the 8 lines were: the element ORDER inside one connection's `metadata.sources` JSON array, on
+    five rows.  `replace_scan_connection_sources` authoritatively overwrites metadata.sources once per
+    OBJECT, so an edge named by more than one object of the same scan ends up with whatever the LAST
+    object to land says.  Three of the eight replayed bodies name the Context7 edge.  With eight
+    objects racing through a queue and a pool of workers, which lands last is a coin flip — the old
+    capture was measuring delivery order, not the image.  That arrival-order dependence is PRE-EXISTING
+    and UNCHANGED BY THIS PR (`mcp_writer.py` and `source_attribution.py` both carry 0 lines of
+    merge-base..head diff — re-verified for this capture).
+
+    What removed it: the replay is now SETTLE-GATED SEQUENTIAL.  Body N+1 is not POSTed until body N's
+    object has landed in the leg bucket, the leg queue reads 0 visible AND 0 in-flight, and the leg
+    writer has logged its Nth `outcome=processed`.  Arrival order is therefore forced to 01..08 on both
+    legs, identically, and the field has nothing left to race over.  The five rows that used to differ
+    are now character-for-character equal on the two legs:
+
+      735: AgentToMcp|...:Claude Code (coder)|...:Context7 MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
+      739: AgentToMcp|...:Claude Code (coder)|...:Local MCP Server (node)|f|{"sources": [{"kind": "plugin", "name": "autonomous-workflow"}, {"kind": "direct"}]}
+      744: AgentToMcp|...:Claude Code (coder)|...:mcp-remote MCP Server|f|{"sources": [{"kind": "direct"}]}
+      745: AgentToMcp|...:Claude Code (coder)|...:mcp-remote MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
+     1067: McpToMcp|...:mcp-remote MCP Server|...:Tavily MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
+      (identical line numbers and identical bytes in base.raw and head.raw, in both runs)
+
+    The r45 normaliser (evidence/at11-04-normalize-dump.py) is still run and still reports 0, but it is
+    now redundant corroboration.  It carries none of the argument.
+
+    THE UNDERLYING GAP IS STILL REPORTED, NOT ABSORBED.  Making the harness deterministic does not fix
+    the product: last-object-wins `replace_scan_connection_sources` still makes a multi-object scan's
+    connection provenance depend on delivery order — on AWS today and on Azure after this PR.  It is
+    pre-existing, this PR does not touch it, and the round-45 owner ruling puts writer-parity items out
+    of scope, so it is NOT fixed here.  It belongs with the other out-of-scope writer-parity items.
+
+=== 6. THE ONE EXPLAINED EXCLUSION: issue_instances, reported separately ===
+
+    `issue_instances` is NOT in the dump and is NOT part of the determinism criterion.  It is not
+    writer output: it is written by the shared downstream issue-detection service, ONE instance of
+    which serves both legs, and it carries zero merge-base..head hunks (at11-01's hunk map).  It fires
+    on the first creation window and is debounced on an immediate identical re-ingest, so it is equal
+    across LEGS whenever it lands but is not run-to-run deterministic in a fast consecutive-run
+    harness.  Folding it into the criterion would make the criterion measure the debounce, not the PR.
+
+    What I measured, per run, and I am reporting the number rather than the explanation:
+      f1:  base (prdct11935_v18t1) = 0 issue rows · head (prdct11935_v18t2) = 0 issue rows
+           base-vs-head issue-row diff = 0 changed lines  (legs equal within the run)
+      f2:  base (prdct11935_v18t1) = 0 issue rows · head (prdct11935_v18t2) = 0 issue rows
+           base-vs-head issue-row diff = 0 changed lines  (legs equal within the run)
+
+    Control, so 0|0 is not read as a dead service: the `issue_instances` table exists in BOTH leg
+    schemas, and the mechanism demonstrably writes on this box right now — prdct11935_ta holds 10 rows
+    and onyx_security holds 81.  The legs measured 0 because each run truncates the leg schema
+    (including issue_detection_audit) and re-ingests the identical objects inside the debounce window.
+    Either way the two legs agree, which is the only thing base-vs-head equivalence needs from it.
+
+=== 7. ONE EXTERNALLY-SOURCED VALUE MOVED BETWEEN CAPTURE WINDOWS — disclosed, and it is not the PR ===
+
+    My four dumps hash to bfab55df...  An earlier capture of the same recipe, ~50 minutes before mine,
+    hashed to 4f0b066c...  I diffed the two and the entire difference is 4 lines, all one value:
+
+      -  mcp-remote MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp-remote::0.1.45|...|0.1.45|...
+      +  mcp-remote MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp-remote::0.1.49|...|0.1.49|...
+      -  mcp-remote MCP Server|mcp-remote::0.1.45|Local|Npm|||1571b184...
+      +  mcp-remote MCP Server|mcp-remote::0.1.49|Local|Npm|||1571b184...
+
+    That is an EXTERNAL, wall-clock-dependent lookup, not a writer divergence.  For an MCP server whose
+    version is not pinned in the payload, the version segment is resolved from npm's
+    `dist-tags.latest` — the inline pre-write resolver
+    (backend_python/src/endpoint_asset_ingestion/ingestion/version_resolution.py:373-380 via
+    common/services/package_registry/npm.py:78) or the async heal
+    (python_temporal_worker/mcp_server_enrichment/activities.py:926) writing mcp_package_cache, read
+    back at mcp_writer.py:477-478.  I confirmed the live value from inside the base writer pod itself:
+
+      $ kubectl -n onyxd exec eai-at11-base-7f4bb6b468-x8khs -- python -c \
+          "...urlopen('https://registry.npmjs.org/mcp-remote')...['dist-tags']['latest']"
+      npm dist-tags.latest = 0.1.49
+
+    i.e. npm's current latest IS 0.1.49, exactly what both my legs recorded.  Every file on that
+    resolution path carries ZERO merge-base..head diff — verified by me for this capture:
+      0 lines  backend_python/src/endpoint_asset_ingestion/ingestion/version_resolution.py
+      0 lines  backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py
+      0 lines  backend_python/src/common/services/package_registry/npm.py
+      0 lines  backend_python/src/python_temporal_worker/mcp_server_enrichment/activities.py
+      0 lines  backend_python/src/endpoint_asset_ingestion/ingestion/source_attribution.py
+    And decisively for THIS test: both legs resolved to the SAME value in BOTH runs, so it contributes
+    0 to every base-vs-head and every cross-run diff above.  It is disclosed here only so that a reader
+    comparing my absolute hash against an older one is not left wondering.
+
+=== 8. VERDICT ===
+
+    On the AWS lane, driven through the real Kong front door with byte-identical input and forced-
+    identical object arrival order, the head image writes EXACTLY the same tenant-DB rows as the
+    merge-base image: same assets, same identities, same mcp servers, same tools, same skills, same
+    subagents, same usage sessions, same scanner installations, same connections, same
+    metadata.sources, same dedup state.  1074 lines, byte for byte, on both legs, in two consecutive
+    runs — one sha256 for all four dumps.  RAW changed lines: 0.
+
+    So the guard "a non-empty AWS-lane base-vs-head DB diff = FAIL" is satisfied on its own terms, with
+    no normaliser standing between the measurement and the claim.
