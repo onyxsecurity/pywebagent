@@ -1,0 +1,127 @@
+# PRDCT-11935 at7-52 — amendment_r50 part 4's TICKET-CURRENCY proof: the correcting comment on
+# FILE LAST WRITTEN 2026-08-24T05:35:03Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+#   PRDCT-12071 (86bbj56qh), POSTED and then FETCHED BACK LIVE from the ClickUp API.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T05:34:33Z
+#
+# WHY THIS FILE EXISTS, STATED PLAINLY: verify round 41 failed the run because this artifact did not
+#   exist AND the work behind it had never been done — while at7-23 already recorded the posture cell
+#   as SETTLED citing it. The comment below was posted in THIS round, after that finding. Nothing here
+#   is a re-render of an earlier attempt.
+
+=================== 1. THE POST ===================
+    $ curl -sS -X POST -H 'Authorization: <redacted>' -H 'Content-Type: application/json' \
+        https://api.clickup.com/api/v2/task/86bbj56qh/comment --data-binary @comment.json
+    issued at   2026-08-24T05:34:25Z
+    HTTP 200
+    response id 90140246067955   (hist_id in the raw response below)
+
+=================== 2. THE FETCH-BACK (this is the proof, not the POST) ===================
+    $ curl -sS -H 'Authorization: <redacted>' https://api.clickup.com/api/v2/task/86bbj56qh/comment
+    issued at   2026-08-24T05:34:33Z      HTTP 200
+    comments on the task: 2  (was 1 — a ClickBot PR notice — when verify r41 looked)
+    this comment: id 90140246067955 · user Coder Agent · date 1787549665196 = 2026-08-24T05:34:25Z
+    permalink   https://app.clickup.com/t/86bbj56qh?comment=90140246067955
+    task url    https://app.clickup.com/t/86bbj56qh
+
+=================== 3. PER-ELEMENT SUBSTRING CHECKS (at10 check (q)) ===================
+    Each line greps the FETCHED-BACK text, not the text that was sent.
+    [PASS] (1) upstream diff-guard commits named — ac7f9de777
+    [PASS] (1) upstream diff-guard commits named — d7ae29286a
+    [PASS] (1) upstream diff-guard commits named — 366ab0c488
+    [PASS] (1) they are stated as MERGED INTO this branch
+    [PASS] (2) the per-scan updated_at re-touch no longer occurs for byte-identical evidence
+    [PASS] (2) …with the head measurement behind it (byte-frozen rows)
+    [PASS] (2) …and the head guard cited
+    [PASS] (3) the ticket's own 'decision (a)' is partially implemented upstream
+    [PASS] (3) …quoting the ticket's own wording of (a)
+    [PASS] (4) the core defect is measured UNCHANGED on head
+    [PASS] (4) …Open forever
+    [PASS] (4) …deleted content as live Evidence
+    [PASS] (4) …no close-on-absence
+    [PASS] (4) …no staleness surfacing
+    [PASS] (4) …pointing at PRDCT-11935 evidence/r50-posture/
+
+    ALL FOUR REQUIRED ELEMENTS PRESENT: True
+
+=================== 4. THE COMMENT, VERBATIM AS THE API RETURNS IT ===================
+## Ticket currency — measured on PRDCT-11935's head build (2026-08-24)
+
+This ticket's **Mechanism** section describes the frozen base `67b4096f`. Upstream `main` has since changed
+that path, and PRDCT-11935's branch now carries those commits, so three of this ticket's statements are out
+of date while the defect itself is not. Correcting the record rather than editing the ticket body.
+
+**1. What changed upstream.** Three `main` commits, all merged into PRDCT-11935's branch (each verified an
+ancestor of that branch head `2b60fdc4df25188104e737e6311087681355eff8`):
+
+- `ac7f9de777` — *PRDCT-12048 | Make issue relief statements insert-only and diff-guarded*
+- `d7ae29286a` — *PRDCT-12067 | Make issue-detection instance writes resilient to concurrent duplicate work*
+- `366ab0c488` — *PRDCT-12048 | Split the governance persist and baseline the issue write counters*
+
+Together they make the instance-write path **diff-guarded and counted**. The guard is at
+`common/repository/issues/issue_repository.py:1316-1329`: `evidence_differs` is an `IS DISTINCT FROM` over
+the five stored evidence columns, `has_evidence_write = has_any_incoming_evidence & evidence_differs`, and
+the UPDATE's WHERE (`should_reopen_or_refresh`) — in the code's own comment — *"Skip rows that are already
+OPEN with nothing new to write, and never touch IGNORED rows."*
+
+**2. The per-scan `updated_at` re-touch this ticket documents no longer occurs for byte-identical evidence.**
+The Mechanism section says the refresh-already-open branch *"rewrites the evidence columns and bumps
+`updated_at`"* on *"every re-evaluation that still MATCHES — even against byte-identical stale findings"*.
+That was true of the base; it is not true at head. Measured on an identity-pinned worker across **three
+consecutive covered post-removal scans** of a removed skill: its seven `issue_instances` (6721, 6722, 6725,
+6726, 6729, 6732, 6733) stayed **byte-frozen** — `updated_at` equal to `created_at`
+(`2026-08-24 01:44:50.117728+00`), all five evidence columns unchanged by md5, and
+`asset_posture_findings.classified_at` frozen at `01:44:48.829425+00` — while the tenant's
+`outcome="unchanged"` write counter rose **126,744 → 170,920**. The no-op is now counted rather than
+invisible. (The Mechanism section's line cites — `:1167`, `:1184-1190`, `:1224-1229`, `:1277` — are
+frozen-base numbers and no longer resolve to what the text describes.)
+
+**3. Open question (a) is therefore partially implemented upstream.** This ticket asks *"whether the
+evidence-refresh loop (re-writing Evidence from cached findings on every re-affirm) should be tempered"*.
+Upstream has tempered exactly the write half: a re-affirm against byte-identical evidence performs no write
+and bumps nothing. What (a) still leaves open is the rest of the loop — the re-evaluation itself still runs
+every scan, and nothing surfaces that the underlying finding is stale.
+
+**4. The defect this ticket is about is measured UNCHANGED on head.** All four halves still hold:
+
+- **Open forever** — the instances stay `IssueInstanceResolveStateOpen` with `closed_at NULL` after the
+  source artifact is really removed.
+- **Deleted content as live Evidence** — `/posture-issues` still renders the deleted file's own line verbatim
+  as live Evidence on an Open issue (captured this round).
+- **No close-on-absence** — nothing closes them; the only absence-adjacent close hook is gated on
+  `assets.is_deleted`, which no scanner-lane writer sets (the shared root cause with PRDCT-12069).
+- **No staleness surfacing** — `classified_at` is still rendered nowhere.
+
+So the diff-guard changes *how often the row is written*, not *what the product shows a user*. Open
+questions (b) and (c) are untouched by it.
+
+Evidence: PRDCT-11935 `evidence/r50-posture/` (research's re-adjudication) and
+`evidence/at7-51-posture-reaffirm-headcode.txt` (the head-build measurement quoted above).
+Posted from PRDCT-11935's run as the `amendment_r50` part-4 ticket-currency correction.
+
+=================== 5. RAW API RESPONSE FOR THIS COMMENT (unedited) ===================
+{
+ "id": "90140246067955",
+ "comment": [
+  {
+   "text": "## Ticket currency \u2014 measured on PRDCT-11935's head build (2026-08-24)\n\nThis ticket's **Mechanism** section describes the frozen base `67b4096f`. Upstream `main` has since changed\nthat path, and PRDCT-11935's branch now carries those commits, so three of this ticket's statements are out\nof date while the defect itself is not. Correcting the record rather than editing the ticket body.\n\n**1. What changed upstream.** Three `main` commits, all merged into PRDCT-11935's branch (each verified an\nancestor of that branch head `2b60fdc4df25188104e737e6311087681355eff8`):\n\n- `ac7f9de777` \u2014 *PRDCT-12048 | Make issue relief statements insert-only and diff-guarded*\n- `d7ae29286a` \u2014 *PRDCT-12067 | Make issue-detection instance writes resilient to concurrent duplicate work*\n- `366ab0c488` \u2014 *PRDCT-12048 | Split the governance persist and baseline the issue write counters*\n\nTogether they make the instance-write path **diff-guarded and counted**. The guard is at\n`common/repository/issues/issue_repository.py:1316-1329`: `evidence_differs` is an `IS DISTINCT FROM` over\nthe five stored evidence columns, `has_evidence_write = has_any_incoming_evidence & evidence_differs`, and\nthe UPDATE's WHERE (`should_reopen_or_refresh`) \u2014 in the code's own comment \u2014 *\"Skip rows that are already\nOPEN with nothing new to write, and never touch IGNORED rows.\"*\n\n**2. The per-scan `updated_at` re-touch this ticket documents no longer occurs for byte-identical evidence.**\nThe Mechanism section says the refresh-already-open branch *\"rewrites the evidence columns and bumps\n`updated_at`\"* on *\"every re-evaluation that still MATCHES \u2014 even against byte-identical stale findings\"*.\nThat was true of the base; it is not true at head. Measured on an identity-pinned worker across **three\nconsecutive covered post-removal scans** of a removed skill: its seven `issue_instances` (6721, 6722, 6725,\n6726, 6729, 6732, 6733) stayed **byte-frozen** \u2014 `updated_at` equal to `created_at`\n(`2026-08-24 01:44:50.117728+00`), all five evidence columns unchanged by md5, and\n`asset_posture_findings.classified_at` frozen at `01:44:48.829425+00` \u2014 while the tenant's\n`outcome=\"unchanged\"` write counter rose **126,744 \u2192 170,920**. The no-op is now counted rather than\ninvisible. (The Mechanism section's line cites \u2014 `:1167`, `:1184-1190`, `:1224-1229`, `:1277` \u2014 are\nfrozen-base numbers and no longer resolve to what the text describes.)\n\n**3. Open question (a) is therefore partially implemented upstream.** This ticket asks *\"whether the\nevidence-refresh loop (re-writing Evidence from cached findings on every re-affirm) should be tempered\"*.\nUpstream has tempered exactly the write half: a re-affirm against byte-identical evidence performs no write\nand bumps nothing. What (a) still leaves open is the rest of the loop \u2014 the re-evaluation itself still runs\nevery scan, and nothing surfaces that the underlying finding is stale.\n\n**4. The defect this ticket is about is measured UNCHANGED on head.** All four halves still hold:\n\n- **Open forever** \u2014 the instances stay `IssueInstanceResolveStateOpen` with `closed_at NULL` after the\n  source artifact is really removed.\n- **Deleted content as live Evidence** \u2014 `/posture-issues` still renders the deleted file's own line verbatim\n  as live Evidence on an Open issue (captured this round).\n- **No close-on-absence** \u2014 nothing closes them; the only absence-adjacent close hook is gated on\n  `assets.is_deleted`, which no scanner-lane writer sets (the shared root cause with PRDCT-12069).\n- **No staleness surfacing** \u2014 `classified_at` is still rendered nowhere.\n\nSo the diff-guard changes *how often the row is written*, not *what the product shows a user*. Open\nquestions (b) and (c) are untouched by it.\n\nEvidence: PRDCT-11935 `evidence/r50-posture/` (research's re-adjudication) and\n`evidence/at7-51-posture-reaffirm-headcode.txt` (the head-build measurement quoted above).\nPosted from PRDCT-11935's run as the `amendment_r50` part-4 ticket-currency correction."
+  }
+ ],
+ "comment_text": "## Ticket currency \u2014 measured on PRDCT-11935's head build (2026-08-24)\n\nThis ticket's **Mechanism** section describes the frozen base `67b4096f`. Upstream `main` has since changed\nthat path, and PRDCT-11935's branch now carries those commits, so three of this ticket's statements are out\nof date while the defect itself is not. Correcting the record rather than editing the ticket body.\n\n**1. What changed upstream.** Three `main` commits, all merged into PRDCT-11935's branch (each verified an\nancestor of that branch head `2b60fdc4df25188104e737e6311087681355eff8`):\n\n- `ac7f9de777` \u2014 *PRDCT-12048 | Make issue relief statements insert-only and diff-guarded*\n- `d7ae29286a` \u2014 *PRDCT-12067 | Make issue-detection instance writes resilient to concurrent duplicate work*\n- `366ab0c488` \u2014 *PRDCT-12048 | Split the governance persist and baseline the issue write counters*\n\nTogether they make the instance-write path **diff-guarded and counted**. The guard is at\n`common/repository/issues/issue_repository.py:1316-1329`: `evidence_differs` is an `IS DISTINCT FROM` over\nthe five stored evidence columns, `has_evidence_write = has_any_incoming_evidence & evidence_differs`, and\nthe UPDATE's WHERE (`should_reopen_or_refresh`) \u2014 in the code's own comment \u2014 *\"Skip rows that are already\nOPEN with nothing new to write, and never touch IGNORED rows.\"*\n\n**2. The per-scan `updated_at` re-touch this ticket documents no longer occurs for byte-identical evidence.**\nThe Mechanism section says the refresh-already-open branch *\"rewrites the evidence columns and bumps\n`updated_at`\"* on *\"every re-evaluation that still MATCHES \u2014 even against byte-identical stale findings\"*.\nThat was true of the base; it is not true at head. Measured on an identity-pinned worker across **three\nconsecutive covered post-removal scans** of a removed skill: its seven `issue_instances` (6721, 6722, 6725,\n6726, 6729, 6732, 6733) stayed **byte-frozen** \u2014 `updated_at` equal to `created_at`\n(`2026-08-24 01:44:50.117728+00`), all five evidence columns unchanged by md5, and\n`asset_posture_findings.classified_at` frozen at `01:44:48.829425+00` \u2014 while the tenant's\n`outcome=\"unchanged\"` write counter rose **126,744 \u2192 170,920**. The no-op is now counted rather than\ninvisible. (The Mechanism section's line cites \u2014 `:1167`, `:1184-1190`, `:1224-1229`, `:1277` \u2014 are\nfrozen-base numbers and no longer resolve to what the text describes.)\n\n**3. Open question (a) is therefore partially implemented upstream.** This ticket asks *\"whether the\nevidence-refresh loop (re-writing Evidence from cached findings on every re-affirm) should be tempered\"*.\nUpstream has tempered exactly the write half: a re-affirm against byte-identical evidence performs no write\nand bumps nothing. What (a) still leaves open is the rest of the loop \u2014 the re-evaluation itself still runs\nevery scan, and nothing surfaces that the underlying finding is stale.\n\n**4. The defect this ticket is about is measured UNCHANGED on head.** All four halves still hold:\n\n- **Open forever** \u2014 the instances stay `IssueInstanceResolveStateOpen` with `closed_at NULL` after the\n  source artifact is really removed.\n- **Deleted content as live Evidence** \u2014 `/posture-issues` still renders the deleted file's own line verbatim\n  as live Evidence on an Open issue (captured this round).\n- **No close-on-absence** \u2014 nothing closes them; the only absence-adjacent close hook is gated on\n  `assets.is_deleted`, which no scanner-lane writer sets (the shared root cause with PRDCT-12069).\n- **No staleness surfacing** \u2014 `classified_at` is still rendered nowhere.\n\nSo the diff-guard changes *how often the row is written*, not *what the product shows a user*. Open\nquestions (b) and (c) are untouched by it.\n\nEvidence: PRDCT-11935 `evidence/r50-posture/` (research's re-adjudication) and\n`evidence/at7-51-posture-reaffirm-headcode.txt` (the head-build measurement quoted above).\nPosted from PRDCT-11935's run as the `amendment_r50` part-4 ticket-currency correction.",
+ "user": {
+  "id": 94221387,
+  "username": "Coder Agent",
+  "email": "coder@onyx.security",
+  "color": "#c51162",
+  "initials": "CA",
+  "profilePicture": null
+ },
+ "assignee": null,
+ "group_assignee": null,
+ "reactions": [],
+ "date": "1787549665196",
+ "reply_count": 0
+}
+
+=================== 6. THE OTHER COMMENT ON THE TASK, FOR COMPLETENESS ===================
+    id 90140244919065 · ClickBot · 1787326621660 · '12329https://github.com/onyxsecurity/onyx/pull/12329\npr for this task was opened! \n'
