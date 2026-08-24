@@ -1,53 +1,57 @@
-# PRDCT-11935 at7-08 — FIDELITY per class: the machine's own value beside what the product stored
-# FILE LAST WRITTEN 2026-08-21T19:13:34Z
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T03:39:18Z · tenant onyx_security
-#
-# RE-CAPTURED ON THE HEAD-EXACT IMAGE (gate G7). Round 23's gate found 19 of 21 at7 artifacts still
-# declared 0665ecc545 with image r24/r25 — the commit before the round-24 sender fix, on images built
-# before it. Every row below was re-driven on :prdct11935-r26, which is built from a2486bb33f and proven
-# byte-exact (4741/4741 head .py files, evidence/at6-12-image-provenance.txt).
-# gen-1 was quiesced for the window (schedule PAUSED + zero pods), so each class is attributable to the
-# lane under test — the receipt is evidence/at7-00-isolation.txt.
-#
-# A class counts only when the value in the DB was produced INDEPENDENTLY by the lane from the payload
-# and equals the value the machine itself holds — identical strings, not merely similar.
+# PRDCT-11935 at7-08-fidelity.txt — per-class machine-tied value joined to the DB value, every hash computed on-disk this window
+# FILE LAST WRITTEN 2026-08-24T01:34:51Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:34:51Z
 
- class      | the machine's own value (source)                                   | what the product stored          | same
- -----------+--------------------------------------------------------------------+----------------------------------+------
- mcp        | onyx-lab-mcp 1.5.0 (manifest.json, packed by @anthropic-ai/mcpb)    | assets 131106 mcpb:onyx-lab-mcp::1.5.0 | yes
- tools      | lab_echo lab_hostname lab_search lab_time lab_verify (manifest)     | tools 98-102, ToolTypeMCPTool    | yes
- skills     | sha256 091dffb345495cabb7547ba8c21ab306114bcff3c68389df23afbd5173bfebfb | agent_skills.skill_md_hash 131278 = same | yes
- subagents  | sha256 cacc4e6cef1596e37492b4d987a8369403902b8b09eb3d30ffeaf73a91de1f42 | assets 131332 unique_identifier subagent::<same> | yes
- subagents  | sha256 066bb2f01784ee10a4abd215f62e7ed93a8994e56ef9f429189308985e66df6d (r31 head window, sha256sum on disk) | asset 242613 agent_subagents.subagent_md_hash = same (at7-01) | yes
- skills     | sha256 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714 (r31 head window, sha256sum on disk) | asset 242558 agent_skills.skill_md_hash = same (at7-01) | yes
- usage      | session 20260821_033142_faf0bc (~/.hermes/state.db, printed by CLI) | usage_sessions 2396 external_id = same | yes
- agent      | serial ec255301bd4407d309fbce94811384b0 (scanner metadata)          | devices.device_id via desktop_agent_users | yes
- agent ver  | the runtime's own version string for OpenClaw                        | asset 10729 version = 2026.5.7 (eeef486) (at7-03) | yes
- posture    | this run's real asset identity — asset 211819, the subject whose source this run deleted | issue instances 1637/1638/1639, definitions 44/45/48 (at7-09) | yes
+window r50at7002800 · head 2b60fdc4df25188104e737e6311087681355eff8 · tenant onyx_security
+Every "machine value" below was read off THIS box in THIS window; every "DB value" was SELECTed from
+the tenant schema after the real front-door scan. No value is carried from a prior round.
 
-# ROUND-31 CORRECTIONS TO THE TWO ROWS ABOVE.
-#   · `agent ver` is NEW. d-c2-fid-agent names the version string, and the round-28 gate found this
-#     table — the designated fidelity artifact — carrying no version value for the class at all. It does
-#     now, pointing at at7-03, which holds it.
-#   · `posture` previously read "(no CVE / credential-in-address in this shape) | bridge ran, no issue
-#     (at7-29) | n/a". That is the plan's pre-declared FALLBACK, and at7-09 explicitly refutes it:
-#     issues DID mint for a subject. The class settles under amendment_r30's four-part end-state — the
-#     same three instances persist after the source was deleted, updated_at advances 15:17:13.181372 ->
-#     15:29:04.521424 with resolve_state Open, closed_at NULL and classified_at FROZEN at
-#     2026-08-21 13:44:18.531816+00 — and it settles as a DEFECT (the pipeline re-affirms the issue Open
-#     and shows the deleted file's content as live Evidence), ledgered in the PR's C3 row and ticketed as
-#     PRDCT-12071. It is never settled here as acceptable behaviour.
+CLASS            MACHINE-TIED VALUE (source on the box)                          DB VALUE (table.column)                                   JOIN
+---------------  --------------------------------------------------------------  --------------------------------------------------------  -----
+desktop agent    `openclaw --version` -> OpenClaw 2026.5.7 (eeef486);             assets.name 'OpenClaw (coder)' (id 10729);                 MATCH
+                 installed by `npm install -g openclaw` (549 packages)            assets.unique_identifier
+                                                                                  endpoint_openclaw::ec255301bd4407d309fbce94811384b0
 
-# The sha/id values are load-bearing: each was computed on disk by a different program (sha256sum, the
-# mcpb packer, hermes) than the one that computed the stored value (the Python lane, from the payload),
-# so their equality cannot come from copying.
+MCP server       manifest.json inside the .mcpb the Anthropic packer produced:    assets.unique_identifier                                   MATCH
+                 name onyx-lab-r50at7002800, version 1.0.0,                       mcpb:onyx-lab-r50at7002800::1.0.0  (asset 442199,
+                 display_name "Onyx Lab R50 MCP"                                  mcp_servers.id 19792); assets.name 'Onyx Lab R50 MCP'
+                 packer shasum bd5c96dca1371a2e03efe36842df3f8c0ced7cd6
+                 packed bundle sha256
+                 9d974c4b7772fae6c895d2dc7dd0ad3477b70637bc8298d6850a6cd78ef9d25b
 
-# ROUND-31 ADDITION — the two r31 rows exist because the round-28 gate found the head-window subagent
-# digest "stated bare in at7-08 and captured nowhere", its file since deleted and so not re-derivable.
-# A fresh subject was installed in the head window by the real installers, digested on disk with
-# sha256sum, driven through the real front door and read back out of the product (at7-01). Stronger than
-# a re-statement: at7-02 §3 shows the payload carries its OWN contentHash field (d1c7fe7a…) which the
-# product does NOT store — the stored identity is DERIVED from the content, so the disk/DB equality
-# cannot be an artefact of copying, because the one number that could have been copied is a different
-# number.
+MCP tools        the manifest's own tools[] array:                                tools.name for tools.asset_id = 442199:                    MATCH
+                 r50__echo, r50__hostname, r50__search, r50__time, r50__verify    159 r50__echo · 160 r50__hostname · 161 r50__search        (5/5)
+                 (sibling manifest: r50sib__ping, r50sib__stat)                   162 r50__time · 163 r50__verify   (type ToolTypeMCPTool,
+                                                                                  is_active t); sibling 164/165 on asset 442200
+
+skills           sha256sum /home/coder/.claude/skills/r50at7002800-skill/SKILL.md  agent_skills.skill_md_hash (id 362069, asset 441993)       MATCH
+                 3b3e94d234b2801edbfabeb8a53f61cfb0759221e557a1865a4fceb6e7d5f1e8  3b3e94d234b2801edbfabeb8a53f61cfb0759221e557a1865a4fceb6e7d5f1e8
+                 (sibling SKILL.md                                                 (sibling agent_skills 362070, asset 442005
+                 942492d346f7283ef6d77d57474d4366ccbb9eb68b7cba5739fb3e4d281601d5) 942492d346f7283ef6d77d57474d4366ccbb9eb68b7cba5739fb3e4d281601d5)
+
+subagents        sha256sum /home/coder/.claude/agents/r50at7002800-sub.md          agent_subagents.subagent_md_hash (id 52911, asset 442189)  MATCH
+                 2d2e397434cc739a831b9fabf8a4d19fd0a635ebf4cd3f19920704f26c11ed26  2d2e397434cc739a831b9fabf8a4d19fd0a635ebf4cd3f19920704f26c11ed26  (x2)
+                                                                                   AND assets.unique_identifier
+                                                                                   subagent::2d2e397434cc739a831b9fabf8a4d19fd0a635ebf4cd3f19920704f26c11ed26
+                 (sibling .md                                                      (sibling agent_subagents 52912, asset 442193
+                 6777545c05a5d460c6cb8068a84a8ac6c3d4460ea347bfdb5f1250b4cf3c29e9) 6777545c05a5d460c6cb8068a84a8ac6c3d4460ea347bfdb5f1250b4cf3c29e9)
+
+usage sessions   the hermes CLI printed, at the end of the real chat:              usage_sessions.external_id (id 7555)                       MATCH
+                   Session: 20260824_002925_7185b3                                 20260824_002925_7185b3 ; app_id 55751 (Hermes Agent
+                 Messages: 2 (1 user, 0 tool calls)                                (coder)) ; has_content_events t
+
+posture          the posture SUBJECT skill file created on this box this window,   see at7-09-db-rows-posture.txt / at7-51: issue_instances  see
+                 /home/coder/.claude/skills/r50at7002800-posture/SKILL.md          rows whose asset_id joins the SKILL asset row created      at7-09
+                 sha256 1116c348c2d5efc2f143629e2ebabcf737f2b0d136f3bb26afee222663a48ee2  from that same file, with the file's own credential
+                 in-window CREATED control                                         text carried verbatim as the issue Evidence
+                 r50at7002800-posturectl/SKILL.md
+                 sha256 5e8b9c0d6dced4f0c9b1b18dc2977db152affa2718e43cc13597453e09850c6d
+
+=== THE TWO STRONGEST JOINS, SPELLED OUT ===
+1. The subagent identity IS the file hash. assets.unique_identifier is literally
+   "subagent::" || sha256(the .md file on disk). Recomputing the sha256 of the file this window
+   reproduces the stored identifier character for character. A fixture payload cannot fake this
+   without possessing the file.
+2. The MCP tool names are the manifest's tools[] array verbatim, and that manifest is inside a .mcpb
+   archive produced by `npx -y @anthropic-ai/mcpb@2.1.2 pack` (packer shasum quoted above) — not
+   hand-written into the DB.
