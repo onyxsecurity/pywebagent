@@ -1,0 +1,51 @@
+# PRDCT-11935 at10-25 — does flux-fleet#2307 change what any AWS cell renders? Measured at the PR's own merge-base.
+# FILE LAST WRITTEN 2026-08-24T00:38:51Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · flux-fleet#2307 head a4493c1e5ac0 · captured 2026-08-24T00:38:51Z
+#
+# WHY: an independent round-40 review reported that the AWS cells which actually run these services take an
+# 8 / 8 / 18 line render delta from this flux change — 'empty-string ASB stanzas plus a checksum/config
+# rollover', i.e. a one-time rolling restart on AWS prod cells. This file re-measures that claim at the
+# base GitHub itself diffs against (the PR's merge-base with main) using the repo's OWN stronger proof.
+
+=================== 1. WHAT THE PR ACTUALLY TOUCHES ===================
+$ git diff --name-only 2c8ad2f2d4..a4493c1e5ac0        # merge-base(#2307, origin/main) .. #2307 head
+    clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/drop-aws-only-values.yaml
+    clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/release.yaml
+    clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app/versions.yaml
+    clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/drop-aws-only-values.yaml
+    clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/release.yaml
+    clusters/ox-az-p-eus2-c02/instances/saas/onyx-app/versions.yaml
+    docs/README.md
+    docs/architecture/instance-override-rules.md
+    ---- 8 files: six are the TWO AZURE c02 instances, two are docs. No AWS cell path appears.
+
+=================== 2. THE THREE AWS CELLS THAT RUN THE SERVICE ===================
+    clusters/ox-aws-s-use1-c01/instances/saas/onyx-app/release.yaml
+    clusters/ox-aws-p-use1-c01/instances/intuit/onyx-app/release.yaml
+    clusters/ox-aws-p-use1-c03/instances/saas/onyx-app/release.yaml
+
+=================== 3. RENDERED-MANIFEST COMPARISON (the repo's stronger proof) ===================
+$ scripts/render-snapshot.sh <out> <the three overlays above>     # kustomize build, docs sorted, keys sorted
+$ diff -ru before after
+    before = 2c8ad2f2d4 (merge-base)      after = a4493c1e5ac0 (#2307 head)
+    changed lines: 0
+    *                                                              before sha256 e3b0c44298fc1c14
+e3b0c44298fc1c14
+    clusters__ox-aws-p-use1-c01__instances__intuit__onyx-app.yaml b6c55f6bfef04c70  b6c55f6bfef04c70
+    clusters__ox-aws-p-use1-c03__instances__saas__onyx-app.yaml 5a29ce08d353d06f  5a29ce08d353d06f
+    clusters__ox-aws-s-use1-c01__instances__saas__onyx-app.yaml 27b1ca69c063e0df  27b1ca69c063e0df
+    (left = at the merge-base, right = at the head: identical per file)
+
+=================== 4. WHY AN OLDER ANCHOR SHOWS A DELTA ===================
+    same three cells, head compared against progressively older refs:
+      e3fc1646ab2b  -> 197 changed lines
+      fa943d66a8    -> 187 changed lines
+      origin/main   -> 376 changed lines
+    Those are main's own drift across the ~272 commits between those refs and today, not this PR's:
+    section 1 shows the PR writes no file an AWS cell reads, so its render contribution is necessarily 0.
+
+=================== VERDICT ===================
+    changed lines: 0 on all three AWS cells at the PR's merge-base. flux-fleet#2307 cannot cause an AWS
+    rolling restart, because it touches no file any AWS cell renders from. The 8/8/18 report is not
+    reproduced here and is attributed to a stale comparison anchor, stated rather than argued away.
