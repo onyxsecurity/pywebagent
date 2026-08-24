@@ -1,4 +1,6 @@
 # PRDCT-11935 at11-03 — the AWS lane on the HEAD writer image, driven and measured by the ENGINEER
+# FILE LAST WRITTEN 2026-08-24T01:35:10Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # CAPTURED 2026-08-24T01:01:46Z .. 2026-08-24T01:07:46Z (two consecutive runs).  Written 2026-08-24T01:12Z.
 # merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade  ·  head 2b60fdc4df25188104e737e6311087681355eff8
 #
