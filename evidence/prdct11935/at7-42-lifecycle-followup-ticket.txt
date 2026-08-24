@@ -1,115 +1,58 @@
-# PRDCT-11935 at7-42 — the round-26 lifecycle follow-up ticket PRDCT-12069, FETCHED, and its required elements
-# FILE LAST WRITTEN 2026-08-21T07:45:46Z
-# fetched 2026-08-21T04:15:30Z from the ClickUp API (query.mjs get 86bbhzk2z --json), by research (round-26 adjudication)
-#
-# The round-26 plan amendment (amendment_r26 on d-c2-lc-{mcp,skills,subagents,tools}; spec_interpretations (8))
-# requires the C3 OVERTAKEN ledger entry to cite a follow-up ticket carrying the product gap: the per-class
-# measurement, the file:line root causes, the absence-is-not-delete design constraint, and the scope note.
-# Each is checked below as a literal substring of the fetched body (underscores unescaped first — ClickUp
-# stores 'is\_deleted'; matching the raw body false-negatives, the at6-10 lesson).
+# PRDCT-11935 at7-42-lifecycle-followup-ticket.txt — PRDCT-12069 fetched LIVE from the ClickUp API this window (the at6-10 pattern)
+# FILE LAST WRITTEN 2026-08-24T01:39:35Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:39:35Z
+# FETCHED AT (live ClickUp API call) 2026-08-24T01:39:35Z
+# COMMAND USED (exact):  cd /home/coder/.claude/skills/clickup && node query.mjs get 86bbhzk2z --json
 
-## THE TICKET
-    id        : 86bbhzk2z  (PRDCT-12069)
-    url       : https://app.clickup.com/t/86bbhzk2z
-    status    : Open
-    list      : 901418754787  (Sprint 38 (18/8 - 24/8)) — same Sprint list as the PRDCT-12061 precedent
-    created   : 1787285005664
-    name      : Product gap: no stale/deleted representation for scanner-discovered skill / subagent / MCP-server assets (and their tools) after on-machine removal — measured in PRDCT-11935
-    body      : 4605 characters (raw), pasted verbatim in section 2
+==============================================================================
+SECTION 1 — PER-ELEMENT SUBSTRING CHECKS (run against the freshly fetched body)
+==============================================================================
+PRESENT :: desktop-agent
+PRESENT :: skill
+PRESENT :: subagent
+PRESENT :: MCP
+PRESENT :: absence
+PRESENT :: last_scanned_at
+PRESENT :: is_deleted
+PRESENT :: PRDCT-11935
 
-## 1. REQUIRED ELEMENTS, EACH CHECKED AS A LITERAL SUBSTRING OF THE UNESCAPED BODY
-    [PRESENT]  per-class measurement — skill/subagent/MCP rows frozen
-              literal checked: 'AssetStatusDiscovered'
-    [PRESENT]  per-class measurement — tools stay active
-              literal checked: 'is_active = t'
-    [PRESENT]  root cause — no stale status value exists (Go enum)
-              literal checked: 'assetstatus_enumer.go:12,38'
-    [PRESENT]  root cause — Python mirror
-              literal checked: 'assets.py:42-44'
-    [PRESENT]  root cause — edges-only keep-set
-              literal checked: 'mcp_writer.py:1611,1651'
-    [PRESENT]  root cause — un-delete-only asset path
-              literal checked: '_restore_soft_deleted'
-    [PRESENT]  root cause — gen-1 identical (only Go asset soft-delete is Dataverse DisableApp)
-              literal checked: 'agent.go:326'
-    [PRESENT]  frontend — no badge to render it
-              literal checked: 'no stale/deleted badge'
-    [PRESENT]  design constraint — absence is not a delete instruction
-              literal checked: 'positive-evidence staleness reaper'
-    [PRESENT]  design constraint — prior ticket
-              literal checked: 'PRDCT-6301'
-    [PRESENT]  agent-class contrast — Last Seen renders
-              literal checked: 'group-overview.tsx:218'
-    [PRESENT]  scope — out of scope of the transport ticket
-              literal checked: 'out of scope of PRDCT-11935'
-    [PRESENT]  measured-in citation
-              literal checked: 'at7-41'
+==============================================================================
+SECTION 2 — TASK IDENTITY + FULL BODY
+==============================================================================
+custom_id   : PRDCT-12069
+url         : https://app.clickup.com/t/86bbhzk2z
+id          : 86bbhzk2z
+status      : eng: code review (type=custom)
+list        : Sprint 38 (18/8 - 24/8) (id=901418754787)
+creator     : Coder Agent <coder@onyx.security>
+title       : Product gap: no stale/deleted representation for scanner-discovered desktop-agent / skill / subagent / MCP-server assets (and their tools) after on-machine removal — measured in PRDCT-11935
+date_created(ms): 1787285005664   date_updated(ms): 1787324144603
 
-    => every required element is present in the fetched body.
+=== FULL BODY VERBATIM (task.description) ===
+Why this ticket exists
 
-## 2. THE FETCHED BODY, VERBATIM (raw, as stored by ClickUp)
-    Why this ticket exists
-    
-    PRDCT-11935's C2 lifecycle leg (pr-verifier rule C2 clause 5: "a second scan after the artifact is removed shows it stale or marked deleted — not resurrected and not duplicated") was driven for real on the head build: the skill directory, subagent definition, and MCP bundle were removed from the scanned machine and a second real scan ran through the full ingest path. Measured result: the product has NO representation of "stale or marked deleted" for these classes — the demand's first half is unrepresentable today, on BOTH ingestion lanes. The not-resurrected / not-duplicated half was proven (exactly one asset row per artifact identity across both scans). PRDCT-11935 ships the transport; this ticket carries the product gap.
-    
-    What was measured (PRDCT-11935 PR evidence, head build)
-    
-    Removed skill / subagent / MCP-server assets stay AssetStatusDiscovered, is_deleted = f, updated_at frozen, forever (evidence at7-41: removal + second scan on the head image; scan completed, subjects absent from payload, rows unchanged).
-    The removed MCP bundle's tools stay is_active = t (same evidence).
-    The SPA renders the removed MCP server live ("Tools 5"), with no Deleted/Stale badge; skills and subagents likewise render as ordinary discovered assets (independent verifier drive, PRDCT-11935 verify round 23).
-    Desktop agents are the one class with a product-visible staleness signal: the SPA renders "Last Seen" (frontend/app/src/routes/ai-assets/desktop-agents/group/-components/group-overview.tsx:218, instances-table.tsx:335), so a frozen last_scanned_at vs still-installed controls IS user-visible (evidence at7-30 control staircase) — but even agents are never marked deleted. Skills / subagents / MCP servers have no equivalent rendered timestamp or badge at all.
-    
-    Root causes (file:line)
-    
-    The AssetStatus enum has exactly three values — Sanctioned / Unsanctioned / Discovered — no stale or removed state exists in the type system: backend/internal/db/ent/schema/asset.go:61, backend/internal/db/ent/schema/assetstatus_enumer.go:12,38; mirrored in backend_python/src/common_db/models/assets.py:42-44 and the generated crud client.
-    The assets table carries only status + is_deleted as lifecycle-capable columns, and no ingestion writer moves either on absence: the new writer's only keep-set soft-delete is for agent→MCP-server EDGES (backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:1611,1651, calling soft_delete_old_agent_mcp_connections — reconciles only agents a payload CONTAINS); the only asset-row soft-delete touchpoint in the ingestion package is backend_python/src/endpoint_asset_ingestion/ingestion/swg_writers.py:570 _restore_soft_deleted, which UN-deletes.
-    Gen-1 (Go/Temporal ScannerTenantWorkflow) behaves identically: the only SetIsDeleted(true) on an asset in the Go backend is the Dataverse integration's DisableApp (backend/internal/repository/agent/agent.go:326) — nothing scanner-lane. Cross-lane product fact, not a lane divergence.
-    The frontend accordingly ships no stale/deleted badge for these classes (no status value exists for it to render).
-    
-    Design constraint any fix must honor
-    
-    "Absence is not a delete instruction" is deliberate and prior-ticketed: the writer's own reconcile docstring (backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py, reconcile_agent_mcp_connections) names the accepted trade — an agent that genuinely removed its artifacts "keeps its stale connections until a positive-evidence staleness reaper prunes them", mirroring the old lane's DESKTOP_AGENT_MCP_SKIP_EMPTY_DISPATCH_PATCH and the original PRDCT-6301 fix ("treat an empty incoming set as no signal, not remove-everything"). A machine that is merely offline (or a payload split across S3 objects) must not have its assets reaped or marked deleted by a scan that simply didn't see them. A real fix needs deliberate staleness semantics — e.g. per-artifact last-observed timestamps + a UI stale threshold, or an explicit removal signal emitted by the scanner when it positively observes the artifact gone — designed once and applied to the SHARED writer path so both lanes (until gen-1 retires) and every cloud stay convergent.
-    
-    Scope
-    
-    Define the per-class lifecycle end-state contract (skills, subagents, MCP servers, MCP tools; consider desktop agents' last_scanned_at precedent).
-    Schema/status representation + writer semantics + SPA rendering (badge/filter) for that state.
-    Explicitly out of scope of PRDCT-11935 (transport enablement): ruled there as an owner-visible plan amendment; see the PR's C3 ledger entry citing this ticket.
+PRDCT-11935's C2 lifecycle leg (pr-verifier rule C2 clause 5: "a second scan after the artifact is removed shows it stale or marked deleted — not resurrected and not duplicated") was driven for real on the head build: the skill directory, subagent definition, and MCP bundle were removed from the scanned machine and a second real scan ran through the full ingest path. Measured result: the product has NO representation of "stale or marked deleted" for these classes — the demand's first half is unrepresentable today, on BOTH ingestion lanes. The not-resurrected / not-duplicated half was proven (exactly one asset row per artifact identity across both scans). PRDCT-11935 ships the transport; this ticket carries the product gap.
 
+What was measured (PRDCT-11935 PR evidence, head build)
 
-================== ROUND-26 RE-VERIFICATION AGAINST THE LIVE TASK ==================
-Re-fetched from the ClickUp API at 2026-08-21T04:55:41Z (the at6-10 pattern; CLICKUP_API_TOKEN from the
-environment, used as-is). Raw response retained at /tmp/prdct11935/r26/prdct12069-raw.txt (10313 bytes)
-and /tmp/prdct11935/r26/_get.json (29686 bytes).
+Removed skill / subagent / MCP-server assets stay AssetStatusDiscovered, is_deleted = f, updated_at frozen, forever (evidence at7-41: removal + second scan on the head image; scan completed, subjects absent from payload, rows unchanged).
+The removed MCP bundle's tools stay is_active = t (same evidence).
+The SPA renders the removed MCP server live ("Tools 5"), with no Deleted/Stale badge; skills and subagents likewise render as ordinary discovered assets (independent verifier drive, PRDCT-11935 verify round 23).
+Desktop agents were initially described here as the one class with a product-visible staleness signal; measurement REFUTED that (correction posted as a comment on this ticket, 2026-08-21; PRDCT-11935 evidence at7-44). The SPA's "Last Seen" is bound to updated_at, not last_scanned_at (frontend/app/src/routes/ai-assets/desktop-agents/group/-components/instances-table.tsx:334-335; group-overview.tsx:115 passes lastSeen={group.updated_at}, rendered day-granular at :216-221), and it renders the identical value for an uninstalled agent and every still-installed control. desktop_agent_applications.last_scanned_at — the class's real per-artifact freshness column, advanced by the upsert on every scan that observes the runtime — is rendered by NO UI surface (grep last_scanned_at frontend/ = 0 hits; its only exposure is the device-level raw timestamp on the external API, crud_service/api/v2_models/devices.py:88, which is not a rendering of a stale/deleted state). Agents are also never marked deleted: the DeletedBadge at desktop-agents/$appId.tsx:307 is gated on is_deleted, which no scanner-lane writer sets, and the group instances table filters is_deleted rows out entirely (instances-table.tsx:424,502). The desktop-agent class is therefore IN SCOPE for this product gap — alongside skills / subagents / MCP servers, which have no rendered timestamp or badge at all. (Scope extended by PRDCT-11935's round-28 plan amendment, 2026-08-21; the class's last_scanned_at staircase remains the natural per-artifact last-observed PRECEDENT any fix can build on — tracked today, rendered nowhere.)
 
-  custom_id  PRDCT-12069            (task id 86bbhzk2z)
-  url        https://app.clickup.com/t/86bbhzk2z
-  status     Open
-  list       Sprint 38 (18/8 - 24/8), folder "Onyx Sprints"  — the same Sprint list as the PRDCT-12061 precedent
-  creator    Coder Agent <coder@onyx.security>
-  title      Product gap: no stale/deleted representation for scanner-discovered skill / subagent /
-             MCP-server assets (and their tools) after on-machine removal — measured in PRDCT-11935
+Root causes (file:line)
 
-MATCH CHECK: every one of the 22 paragraphs (>120 chars) of the live description was compared against
-this file after normalising whitespace and ClickUp's markdown underscore-escaping. 22/22 present
-verbatim. The only two raw lines that do not appear are the fetch wrapper's own "name:" / "Task:"
-header prefixes; the title text they carry is present. The file matches the live ClickUp task.
+The AssetStatus enum has exactly three values — Sanctioned / Unsanctioned / Discovered — no stale or removed state exists in the type system: backend/internal/db/ent/schema/asset.go:61, backend/internal/db/ent/schema/assetstatus_enumer.go:12,38; mirrored in backend_python/src/common_db/models/assets.py:42-44 and the generated crud client.
+The assets table carries only status + is_deleted as lifecycle-capable columns, and no ingestion writer moves either on absence: the new writer's only keep-set soft-delete is for agent→MCP-server EDGES (backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:1611,1651, calling soft_delete_old_agent_mcp_connections — reconciles only agents a payload CONTAINS); the only asset-row soft-delete touchpoint in the ingestion package is backend_python/src/endpoint_asset_ingestion/ingestion/swg_writers.py:570 _restore_soft_deleted, which UN-deletes.
+Gen-1 (Go/Temporal ScannerTenantWorkflow) behaves identically: the only SetIsDeleted(true) on an asset in the Go backend is the Dataverse integration's DisableApp (backend/internal/repository/agent/agent.go:326) — nothing scanner-lane. Cross-lane product fact, not a lane divergence.
+The frontend accordingly ships no stale/deleted badge for these classes (no status value exists for it to render).
 
-================== ROUND-27 CORRECTION POSTED ON THE LIVE TICKET ==================
-The ticket body captured above contains one sentence that measurement REFUTED. It is left quoted
-verbatim because this file is a faithful capture of the ticket, not an improved version of it:
+Design constraint any fix must honor
 
-    "Desktop agents are the one class with a product-visible staleness signal: the SPA renders
-     'Last Seen' ... so a frozen last_scanned_at vs still-installed controls IS user-visible"
+"Absence is not a delete instruction" is deliberate and prior-ticketed: the writer's own reconcile docstring (backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py, reconcile_agent_mcp_connections) names the accepted trade — an agent that genuinely removed its artifacts "keeps its stale connections until a positive-evidence staleness reaper prunes them", mirroring the old lane's DESKTOP_AGENT_MCP_SKIP_EMPTY_DISPATCH_PATCH and the original PRDCT-6301 fix ("treat an empty incoming set as no signal, not remove-everything"). A machine that is merely offline (or a payload split across S3 objects) must not have its assets reaped or marked deleted by a scan that simply didn't see them. A real fix needs deliberate staleness semantics — e.g. per-artifact last-observed timestamps + a UI stale threshold, or an explicit removal signal emitted by the scanner when it positively observes the artifact gone — designed once and applied to the SHARED writer path so both lanes (until gen-1 retires) and every cloud stay convergent.
 
-That is false. The SPA's "Last Seen" is bound to updated_at, not last_scanned_at
-(instances-table.tsx:334-335; group-overview.tsx:115 passes lastSeen={group.updated_at}), it is
-day-granular, and it renders the identical value for the uninstalled agent and every still-installed
-control. `grep -rn last_scanned_at frontend/ --include=*.ts --include=*.tsx` returns 0 hits. Measured in
-evidence/at7-44-last-seen-render.txt; rendered in at7-21 beside its control at7-21b.
+Scope
 
-A correction was posted as a COMMENT on the live task (comment id 90140244765982, task 86bbhzk2z,
-2026-08-21 07:44) rather than by editing research's ticket body: it carries the refutation with the
-file:line evidence and concludes the desktop-agent class is IN SCOPE for the product gap this ticket
-describes, not the counter-example the body makes of it. Whether the plan's d-c2-lc-agent demand follows
-is the plan owner's call, routed to research and not answered here.
+Define the per-class lifecycle end-state contract (desktop agents, skills, subagents, MCP servers, MCP tools; desktop agents' last_scanned_at is the natural per-artifact last-observed precedent — tracked today, rendered nowhere).
+Schema/status representation + writer semantics + SPA rendering (badge/filter) for that state.
+Explicitly out of scope of PRDCT-11935 (transport enablement): ruled there as an owner-visible plan amendment; see the PR's C3 ledger entry citing this ticket.
