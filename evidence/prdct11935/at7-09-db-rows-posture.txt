@@ -1,156 +1,113 @@
-# PRDCT-11935 at7-09 — DB rows, classes MCP TOOLS and POSTURE
-# FILE LAST WRITTEN 2026-08-21T23:10:00Z
-#
-# ROUND-33 CITE REFRESH (S10, line-number-only). `mcp_writer.py:1181` -> `mcp_writer.py:1209` — `upsert_mcp_tools`; :1181 at HEAD is `destination_asset_id=asset.asset_id`. Mirrored from the plan's
-# CORRECTION LOG under the orchestrator-authorized joint S1-S12 refresh (plan re-frozen at
-# sha256 7f26074e90cf643d...); the corrected line was re-read with sed at HEAD before this edit.
-# Nothing else in this file changed. Full mirror record: evidence/at10-07-stale-cite-refresh.txt.
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-krjhd
-# captured 2026-08-21T15:33:43Z · tenant onyx_security
-=========================== MCP TOOLS ===========================
-     id  |        server        |     tool     |      type       | is_active 
-    -----+----------------------+--------------+-----------------+-----------
-      98 | Onyx Lab MCP         | lab_echo     | ToolTypeMCPTool | t
-      99 | Onyx Lab MCP         | lab_hostname | ToolTypeMCPTool | t
-     100 | Onyx Lab MCP         | lab_search   | ToolTypeMCPTool | t
-     101 | Onyx Lab MCP         | lab_time     | ToolTypeMCPTool | t
-     102 | Onyx Lab MCP         | lab_verify   | ToolTypeMCPTool | t
-     103 | Onyx Lab Sibling MCP | sib_check    | ToolTypeMCPTool | t
-     104 | Onyx Lab Sibling MCP | sib_echo     | ToolTypeMCPTool | t
-     105 | Onyx Lab Sibling MCP | sib_time     | ToolTypeMCPTool | t
-    (8 rows)
-## FIDELITY: all eight tools above are ones the machines' own bundle manifests declare, written by
-## upsert_mcp_tools  (mcp_writer.py:1209) with type=ToolTypeMCPTool onto the two bundle assets created in
-## this window (131106 subject, 131552 sibling).
+# PRDCT-11935 at7-09-db-rows-posture.txt — DB rows for the POSTURE class, re-captured at head this window
+# FILE LAST WRITTEN 2026-08-24T02:29:57Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T02:29:57Z
 
-=========================== POSTURE =============================
-## RE-DRIVEN ROUND 30 against amendment_r30's four-part end-state. The class is no longer settled on the
-## "bridge-ran, no issue" fallback: issues DID mint for a subject, so the amended end-state is the
-## contract. What that end-state confronts is a product DEFECT, and this section states it as one.
+window r50at7002800 · tenant onyx_security (uuid 61750f27-8fbd-42a4-80cf-4191cfb2371a)
+The MCP TOOLS half of the at7-09 pair lives in evidence/at7-09-db-rows-tools.txt (captured 01:10Z this window).
+This file is the POSTURE half. Everything below was SELECTed at 2026-08-24T02:29:57Z, on the head build, from rows this
+window's real front-door scans produced. Nothing is carried from a prior round (the 2026-08-21 version of this
+file measured a pre-revert image and is fully replaced).
 
---- 0. THE REMOVAL IS REAL — the subject's source is absent from the machine
-        /home/coder/prdct11935-lab/.claude/skills/vr27u-posture-20260821132553 ABSENT
-        /home/coder/.claude/skills/vr27u-posture-20260821132553                ABSENT
-        any vr27u-posture* anywhere under either skills root:
-          (no output above = the source directory is gone)
-    The subject is asset 211819, skill vr27u-posture-20260821132553. Its SKILL.md was deleted from the
-    machine in round 27; this round verified the absence rather than assuming it.
+WHERE THESE ROWS CAME FROM: the real install (at7-01) -> head-built onyx-scanner -> Kong key-auth front door
+http://ingest-onyx:8080/mcp-scanner -> vector azure_blob sink -> lab storage prdct11935st/ingestion ->
+Event Grid -> Service Bus -> eai-azure consumer -> writers.py:698 _posture_trigger ->
+scanner-object-*-bridge (IssueAndRiskBridgeWorkflow) -> IssueDetectionWorkflow on the identity-pinned
+temporal-python-worker-678758dc4f-8cq6g. Object-key -> bridge -> run attribution is pasted in at7-51 §3.
 
---- 1. NOT RESURRECTED / NOT DUPLICATED / NOT ORPHANED (amendment_r30 part 1) — a PAIRED re-scan on head
-    A real Kong-front-door scan was driven between the two snapshots below (probe skill
-    r30-reaffirm-20260821152853, scan_run_id bafc3e0b-fd95-4f83-8378-7137f7a78ff9).
+=========================== 1. THE POSTURE ASSETS (this window's skills) ===========================
 
-    BEFORE:
-      id  | issue_definition_id | asset_id |         resolve_state         | closed_at |          updated_at           
-    ------+---------------------+----------+-------------------------------+-----------+-------------------------------
-     1637 |                  44 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:17:13.181372+00
-     1638 |                  45 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:17:13.181372+00
-     1639 |                  48 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:17:13.181372+00
-    (3 rows)
-    AFTER:
-      id  | issue_definition_id | asset_id |         resolve_state         | closed_at |          updated_at           
-    ------+---------------------+----------+-------------------------------+-----------+-------------------------------
-     1637 |                  44 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:29:04.521424+00
-     1638 |                  45 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:29:04.521424+00
-     1639 |                  48 |   211819 | IssueInstanceResolveStateOpen |           | 2026-08-21 15:29:04.521424+00
-    (3 rows)
-    Membership is UNCHANGED: the same three instance ids (1637, 1638, 1639), one per firing definition
-    (44, 45, 48), no new instance minted for the removed artifact. Each still joins an existing asset
-    row — asset_id 211819 resolves, so nothing is orphaned.
+   id   |           name           |      type      |        status         | is_deleted |                        unique_identifier                         | total_risk_score |          created_at           
+--------+--------------------------+----------------+-----------------------+------------+------------------------------------------------------------------+------------------+-------------------------------
+ 447740 | r50at7002800-posturectl  | AssetTypeSkill | AssetStatusDiscovered | f          | 523c6043b657b285142a7295110baeedeab574c1abc3697156e3a791c25a724a |             3.18 | 2026-08-24 01:28:07.756492+00
+ 447772 | r50at7002800-posture     | AssetTypeSkill | AssetStatusDiscovered | f          | e9ff9700308a6fa6295aea17383c5793b55ca4a44f025db19bd9cdee55d26072 |             3.18 | 2026-08-24 01:28:07.756492+00
+ 448472 | r50at7002800-posture     | AssetTypeSkill | AssetStatusDiscovered | f          | 239bf2fe30126892add46f80cd55094f6a08b879e5f8c891e846fc662dc1985f |              2.8 | 2026-08-24 01:31:28.47118+00
+ 448499 | r50at7002800-posturectl  | AssetTypeSkill | AssetStatusDiscovered | f          | bae91f7fd98448d2577524e672206d26272781ffb108af08f3688c145cd8fdaa |             3.18 | 2026-08-24 01:31:28.47118+00
+ 450716 | r50at7002800-posturectl2 | AssetTypeSkill | AssetStatusDiscovered | f          | d941118c536dbdd0bbe6a31367a2dd916e0294b95ab8d36cf54d7e41077e2126 |             3.18 | 2026-08-24 02:06:00.413388+00
+(5 rows)
 
-    THE RISK HALF (adversary F2), which closes "issue/risk rows" rather than only the issue half: the
-    bridge's risk side writes assets.total_risk_score as a COLUMN on the existing asset row, not new
-    rows, so the subject's asset-row count staying 1 across the two scans is what closes it:
-    BEFORE:
-     subject_asset_rows | total_risk_score 
-    --------------------+------------------
-                      1 |             2.49
-    (1 row)
-    AFTER:
-     subject_asset_rows | total_risk_score 
-    --------------------+------------------
-                      1 |             2.49
-    (1 row)
+## FIDELITY (machine-tied): 450716's unique_identifier begins d941118c536d — byte-identical to the
+## dir-hash the scanner's own payload printed for this skill ("r50at7002800-posturectl2 | d941118c536d").
+## The SUBJECT r50at7002800-posture has TWO asset rows because the scanner derives two distinct identities
+## for the same on-disk SKILL.md (447772 and 448472, different unique_identifier) — both are the subject and
+## both are asserted below. is_deleted = f on every row: absence is NOT a delete in this product.
+## RISK HALF: total_risk_score is a COLUMN on these existing asset rows (risk_score_calculation writes a
+## column, not rows) — so the risk side of the class is settled by the asset-row count staying stable.
 
---- 2. THE RE-AFFIRMED-OPEN BEHAVIOUR, MEASURED AND ATTRIBUTED (amendment_r30 part 2)
-    updated_at advanced 15:17:13.181372 -> 15:29:04.521424 — i.e. the post-removal scan RE-TOUCHED all
-    three rows — while:
-       resolve_state   stayed IssueInstanceResolveStateOpen  (not stale, not closed — no such state exists)
-       closed_at       stayed NULL
-       classified_at   stayed FROZEN at 2026-08-21 13:44:18.531816+00 on asset_posture_findings
-    The frozen classified_at is the tell: the matcher pure-reads the cached finding (unchanged
-    content_hash + classifier_fingerprint) and re-affirms MATCHED from it, then bulk_open_instances'
-    ON CONFLICT refresh branch rewrites the evidence columns and bumps updated_at with resolve_state
-    left OPEN. Nothing re-read the deleted file; the row was re-written from a frozen finding.
+=========================== 2. THE ISSUE INSTANCES (the posture issue rows) ===========================
 
-    ATTRIBUTION — which workflow did it, not an inference. The writes at 15:29:04.521 landed inside
-    IssueDetectionWorkflow executions whose parent is a posture bridge; each child's workflow id
-    literally embeds its parent bridge's run id (<parent-run-id>_5), and the ones spanning the write
-    closed immediately after it:
-        01a024f0-9d3d-7974-bb8a-7b187864fbed_5  close=2026-08-21T15:29:06.742547923Z  parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-ac334919005f5bcea4cac256c9
-        01a024f0-9b6e-7eb4-ada8-38b6d9573dfa_5  close=2026-08-21T15:29:06.342254137Z  parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-d92419ecb4aa0c7f38889e5b24
-        01a024f0-9da3-71a7-ba3a-4c93fa4fe266_5  close=2026-08-21T15:29:06.205883450Z  parent=scanner-object-11935b00-0000-4000-8000-000000000b02-853618b1750b64cd3f8fa85434
-        01a024f0-9b55-7dda-a5ab-d3c3e3ab62c8_5  close=2026-08-21T15:29:06.159444184Z  parent=scanner-object-11935b00-0000-4000-8000-000000000b02-acaaa3284d9d22bac067abc720
-        01a024f0-996c-7974-b32c-eafd2a88e9bc_5  close=2026-08-21T15:29:05.881173108Z  parent=scanner-object-11935b00-0000-4000-8000-000000000b02-0caaaabbee7b2a8e154e17e4d7
-        01a024f0-9981-7961-9380-30ad087600fd_5  close=2026-08-21T15:29:05.838861185Z  parent=scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-2a1b544f1d7bcd9ce09db89492
-    In THIS window the azure-lane consumer was live, so the bridges that fired are the azure lane's
-    scanner-object-* pattern for tenant 61750f27. That is stated precisely rather than generalised:
-    research's round-30 measurement (evidence/r30-genone-reaffirm.txt) drove the SAME behaviour with the
-    azure consumer at ZERO replicas and zero scanner-object-* bridges, attributed to gen-1's
-    scanner-tenant-* bridge alone. Taken together the behaviour occurs under BOTH lanes' bridges, which
-    is the transport-independence point — and it is why this is NOT an azure-lane-specific behaviour and
-    NOT a lane divergence. The detection engine is one shared IssueDetectionWorkflow both bridges invoke.
+  id  |             definition             |                title                 | asset_id |          asset           |         resolve_state         | closed_at |          created_at           |          updated_at           |   src    | ls | le 
+------+------------------------------------+--------------------------------------+----------+--------------------------+-------------------------------+-----------+-------------------------------+-------------------------------+----------+----+----
+ 6720 | skill-supply-chain-attack          | Skill Contains Supply Chain Risk     |   447740 | r50at7002800-posturectl  | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |    |   
+ 6724 | skill-hardcoded-secrets            | Skill Embeds Hardcoded Secrets       |   447740 | r50at7002800-posturectl  | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |  5 |  5
+ 6728 | skill-insecure-credential-handling | Skill Handles Credentials Insecurely |   447740 | r50at7002800-posturectl  | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md | 13 | 13
+ 6731 | skill-dangerous-capability         | Skill Enables Dangerous Capability   |   447740 | r50at7002800-posturectl  | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |    |   
+ 6721 | skill-supply-chain-attack          | Skill Contains Supply Chain Risk     |   447772 | r50at7002800-posture     | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |    |   
+ 6725 | skill-hardcoded-secrets            | Skill Embeds Hardcoded Secrets       |   447772 | r50at7002800-posture     | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |  5 |  5
+ 6729 | skill-insecure-credential-handling | Skill Handles Credentials Insecurely |   447772 | r50at7002800-posture     | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md | 13 | 13
+ 6732 | skill-dangerous-capability         | Skill Enables Dangerous Capability   |   447772 | r50at7002800-posture     | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |    |   
+ 6722 | skill-supply-chain-attack          | Skill Contains Supply Chain Risk     |   448472 | r50at7002800-posture     | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |    |   
+ 6726 | skill-hardcoded-secrets            | Skill Embeds Hardcoded Secrets       |   448472 | r50at7002800-posture     | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |  5 |  5
+ 6733 | skill-dangerous-capability         | Skill Enables Dangerous Capability   |   448472 | r50at7002800-posture     | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |    |   
+ 6723 | skill-supply-chain-attack          | Skill Contains Supply Chain Risk     |   448499 | r50at7002800-posturectl  | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md | 11 | 11
+ 6727 | skill-hardcoded-secrets            | Skill Embeds Hardcoded Secrets       |   448499 | r50at7002800-posturectl  | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |  5 |  5
+ 6730 | skill-insecure-credential-handling | Skill Handles Credentials Insecurely |   448499 | r50at7002800-posturectl  | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |    |   
+ 6734 | skill-dangerous-capability         | Skill Enables Dangerous Capability   |   448499 | r50at7002800-posturectl  | IssueInstanceResolveStateOpen |           | 2026-08-24 01:44:50.117728+00 | 2026-08-24 01:44:50.117728+00 | SKILL.md |  5 | 13
+ 6748 | skill-supply-chain-attack          | Skill Contains Supply Chain Risk     |   450716 | r50at7002800-posturectl2 | IssueInstanceResolveStateOpen |           | 2026-08-24 02:07:23.854862+00 | 2026-08-24 02:07:23.854862+00 | SKILL.md |    |   
+ 6749 | skill-hardcoded-secrets            | Skill Embeds Hardcoded Secrets       |   450716 | r50at7002800-posturectl2 | IssueInstanceResolveStateOpen |           | 2026-08-24 02:07:23.854862+00 | 2026-08-24 02:07:23.854862+00 | SKILL.md |  5 |  5
+ 6750 | skill-insecure-credential-handling | Skill Handles Credentials Insecurely |   450716 | r50at7002800-posturectl2 | IssueInstanceResolveStateOpen |           | 2026-08-24 02:07:23.854862+00 | 2026-08-24 02:07:23.854862+00 | SKILL.md | 13 | 13
+ 6751 | skill-dangerous-capability         | Skill Enables Dangerous Capability   |   450716 | r50at7002800-posturectl2 | IssueInstanceResolveStateOpen |           | 2026-08-24 02:07:23.854862+00 | 2026-08-24 02:07:23.854862+00 | SKILL.md |  9 | 11
+(19 rows)
 
-    PATH IDENTITY: every file on that executed path is byte-identical between the frozen base 67b4096f
-    and this head, re-derived at verify time in evidence/at7-47-posture-path-identity.txt — so the
-    behaviour is pre-existing, not introduced or enabled by this PR.
+## SUBJECT rows (the artifact REMOVED at 02:05:14Z): 6721, 6722, 6725, 6726, 6729, 6732, 6733
+## CONTROL rows (still installed): 6720, 6723, 6724, 6727, 6728, 6730, 6731, 6734 (posturectl) and
+##                                 6748, 6749, 6750, 6751 (posturectl2, the amendment_r50 c4 CREATED control)
+## Every row: resolve_state IssueInstanceResolveStateOpen, closed_at NULL. One row per
+## (issue_definition_id, asset_id) — the table's own UNIQUE index issueinstance_issue_definition_id_asset_id.
 
---- 3. WHAT THE PRODUCT ACTUALLY RENDERS (amendment_r30 part 3) — evidence/at7-22-ui-lifecycle-posture.png
-    Driven on the real authenticated SPA at
-    /posture-issues?issueDefinitionId=44&issueInstanceId=1637, read programmatically from the DOM:
-       subject vr27u-posture-20260821132553 rendered : true
-       "Open" rendered                               : 16 occurrences
-       "Resolved" rendered                           : 0
-       "Closed" rendered                             : 0
-       Evidence section present                      : true
-       the deleted file's name SKILL.md in frame     : true
-       definition title "Skill Embeds Hardcoded Secrets" : true
-    So after the source file was deleted, /posture-issues still shows this issue with Status: Open and
-    displays the deleted file's content as live Evidence.
+=========================== 3. THE FROZEN FINDINGS THE MATCHER PURE-READS ===========================
 
-    THE CAPTURE'S OVERLAY CARRIES amendment_r30's REQUIRED ANNOTATION VERBATIM:
-      "the pipeline re-affirms this issue Open after source deletion and the product ships no
-       stale/deleted representation for this class (amendment_r30); the rendered Evidence text
-       originates from DB rows the pipeline re-writes from frozen findings, not from any live artifact"
+ asset_id | findings |        min_classified         |        max_classified         
+----------+----------+-------------------------------+-------------------------------
+   447740 |        8 | 2026-08-24 01:44:48.829425+00 | 2026-08-24 01:44:48.829425+00
+   447772 |        8 | 2026-08-24 01:44:48.829425+00 | 2026-08-24 01:44:48.829425+00
+   448472 |        8 | 2026-08-24 01:44:48.829425+00 | 2026-08-24 01:44:48.829425+00
+   448499 |        8 | 2026-08-24 01:44:48.829425+00 | 2026-08-24 01:44:48.829425+00
+   450716 |        8 | 2026-08-24 02:07:23.644524+00 | 2026-08-24 02:07:23.644524+00
+(5 rows)
 
-    THIS IS A DEFECT, AND IS NOT PRESENTED AS ANYTHING ELSE. It is worse than the five sibling classes'
-    merely-absent stale rendering: the pipeline does not just fail to mark the artifact gone, it
-    ACTIVELY RE-AFFIRMS the issue Open on every scan of the owning agent and renders deleted content as
-    though it were live. Nothing in this evidence set presents that as stale, as resolved, as correct
-    lifecycle handling, or as acceptable lifecycle behaviour. It is adjudicated pre-existing, cross-lane
-    and out of this transport-enablement ticket's scope, and ticketed on its own as PRDCT-12071.
+ asset_id | source_type | classifier_fingerprint | complete | failure_count |                           content_hash                           
+----------+-------------+------------------------+----------+---------------+------------------------------------------------------------------
+   447740 | skill_md    | v18                    | t        |             0 | 156d53f9e2f378beb1485f83b24658634e02f073b19620e02b61fbccda2b2f2c
+   447772 | skill_md    | v18                    | t        |             0 | 8d068b9d1453d0144fcbca480ca3ee96ed65018aa44b6f0fde22771dba6f9caa
+   448472 | skill_md    | v18                    | t        |             0 | 1116c348c2d5efc2f143629e2ebabcf737f2b0d136f3bb26afee222663a48ee2
+   448499 | skill_md    | v18                    | t        |             0 | 5e8b9c0d6dced4f0c9b1b18dc2977db152affa2718e43cc13597453e09850c6d
+   450716 | skill_md    | v18                    | t        |             0 | 665bfbcc8c5179240bb92793fc425c274741d306b82b1ec48cfc1406f59777cf
+(5 rows)
 
---- 4. LEDGERED + TICKETED (amendment_r30 part 4)
-    SUPERSESSION, recorded here so the ledger's note traces to evidence: spec_interpretations entry 11
-    (round 30) extends entry 9, which itself superseded entry 8's carve-out. Entry 8's header
-    NOT-amended list and entry 9's "the posture and usage cells remain NOT amended" are both superseded
-    for the POSTURE class as of round 30; the usage cell is untouched and remains as entry 9 leaves it.
-    at10 check (t) requires that note attached wherever the C3 ledger carries entry 8 or entry 9, and
-    the PR's C2-LC row carries it inline.
-    The PR's C3 ledger carries C2 clause 5's stale-rendering half for this class as OVERTAKEN with the
-    defect framing, citing PRDCT-12071 (86bbj56qh; fetched live with per-element checks in
-    evidence/at7-46-posture-followup-ticket-r30.txt), the PRDCT-12069 cross-link (shared root cause —
-    no scanner-lane writer sets assets.is_deleted, which is the gate on the one absence-adjacent close
-    hook unlink_deleted_assets_from_issues), evidence/r30-genone-reaffirm.txt, at7-47, and the
-    amendment's round-30 veto permalink.
+## The subject's asset_posture_findings.classified_at is FROZEN at 2026-08-24 01:44:48.829425+00 — the
+## classifier cache hits on unchanged content_hash + classifier_fingerprint (common/posture/pipeline.py:105-162)
+## and never re-classifies. complete = t on every subject row, so the matcher's completeness gate
+## (all_source_keys_complete, issue_detection/activities.py:1531-1532) cannot have skipped the subject.
 
---- 5. AN HONEST NOTE ON THIS ROUND'S OWN ATTEMPT TO MINT A FRESH SUBJECT
-    This round first created its own subject (r30-posture-20260821151540, asset 218146) carrying the
-    same detection shape, to own the removal end-to-end rather than inherit round 27's. The scan landed
-    the asset and the posture bridge DID run for it — IssueAndRiskBridgeWorkflow and its child
-    IssueDetectionWorkflow both executed — but no asset_posture_findings and no issue_instances were
-    minted for it within a bounded 9-minute wait. That subject therefore falls under the plan's own
-    named "bridge-ran, no issue" fallback shape, and the amended end-state above is measured on the
-    subject that DID mint. Reported rather than quietly dropped, because the difference matters: this
-    round re-drove the RE-SCAN half on head against a genuinely-removed subject and verified the
-    removal state, but the deletion itself was performed in round 27.
+=========================== 4. THE AGENT-PAIR ROWS THE SAME PASS WRITES ===========================
+
+  id  |                     identifier                      | asset_id |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  name                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |         resolve_state         |          updated_at           
+------+-----------------------------------------------------+----------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------+-------------------------------
+ 1640 | agent-using-skill-with-hardcoded-secrets            |       23 | Claude Code (b1, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b2, b20, b21, b22, b23, b24, b25, b26, b27, b28, b29, b3, b30, b31, b32, b33, b34, b35, b36, b37, b38, b39, b4, b40, b41, b42, b43, b44, b45, b46, b47, b48, b49, b5, b50, b51, b52, b53, b54, b55, b56, b57, b58, b59, b6, b60, b7, b8, b9, c1, c10, c100, c101, c102, c103, c104, c105, c106, c107, c108, c109, c11, c110, c111, c112, c113, c114, c115, c116, c117, c118, c119, c12, c120, c13, c14, c15, c16, c17, c18, c19, c2, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c3, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c4, c40, c41, c42, c43, c44, c45, c46, c47, c48, c49, c5, c50, c51, c52, c53, c54, c55, c56, c57, c58, c59, c6, c60, c61, c62, c63, c64, c65, c66, c67, c68, c69, c7, c70, c71, c72, c73, c74, c75, c76, c77, c78, c79, c8, c80, c81, c82, c83, c84, c85, c86, c87, c88, c89, c9, c90, c91, c92, c93, c94, c95, c96, c97, c98, c99, coder, p1, p2, t1) | IssueInstanceResolveStateOpen | 2026-08-24 02:17:24.01429+00
+ 1641 | agent-using-skill-with-dangerous-capability         |       23 | Claude Code (b1, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b2, b20, b21, b22, b23, b24, b25, b26, b27, b28, b29, b3, b30, b31, b32, b33, b34, b35, b36, b37, b38, b39, b4, b40, b41, b42, b43, b44, b45, b46, b47, b48, b49, b5, b50, b51, b52, b53, b54, b55, b56, b57, b58, b59, b6, b60, b7, b8, b9, c1, c10, c100, c101, c102, c103, c104, c105, c106, c107, c108, c109, c11, c110, c111, c112, c113, c114, c115, c116, c117, c118, c119, c12, c120, c13, c14, c15, c16, c17, c18, c19, c2, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c3, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c4, c40, c41, c42, c43, c44, c45, c46, c47, c48, c49, c5, c50, c51, c52, c53, c54, c55, c56, c57, c58, c59, c6, c60, c61, c62, c63, c64, c65, c66, c67, c68, c69, c7, c70, c71, c72, c73, c74, c75, c76, c77, c78, c79, c8, c80, c81, c82, c83, c84, c85, c86, c87, c88, c89, c9, c90, c91, c92, c93, c94, c95, c96, c97, c98, c99, coder, p1, p2, t1) | IssueInstanceResolveStateOpen | 2026-08-24 02:17:24.01429+00
+ 1642 | agent-using-skill-with-insecure-credential-handling |       23 | Claude Code (b1, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b2, b20, b21, b22, b23, b24, b25, b26, b27, b28, b29, b3, b30, b31, b32, b33, b34, b35, b36, b37, b38, b39, b4, b40, b41, b42, b43, b44, b45, b46, b47, b48, b49, b5, b50, b51, b52, b53, b54, b55, b56, b57, b58, b59, b6, b60, b7, b8, b9, c1, c10, c100, c101, c102, c103, c104, c105, c106, c107, c108, c109, c11, c110, c111, c112, c113, c114, c115, c116, c117, c118, c119, c12, c120, c13, c14, c15, c16, c17, c18, c19, c2, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c3, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c4, c40, c41, c42, c43, c44, c45, c46, c47, c48, c49, c5, c50, c51, c52, c53, c54, c55, c56, c57, c58, c59, c6, c60, c61, c62, c63, c64, c65, c66, c67, c68, c69, c7, c70, c71, c72, c73, c74, c75, c76, c77, c78, c79, c8, c80, c81, c82, c83, c84, c85, c86, c87, c88, c89, c9, c90, c91, c92, c93, c94, c95, c96, c97, c98, c99, coder, p1, p2, t1) | IssueInstanceResolveStateOpen | 2026-08-24 02:17:24.01429+00
+ 6671 | agent-using-skill-with-supply-chain-risk            |       23 | Claude Code (b1, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b2, b20, b21, b22, b23, b24, b25, b26, b27, b28, b29, b3, b30, b31, b32, b33, b34, b35, b36, b37, b38, b39, b4, b40, b41, b42, b43, b44, b45, b46, b47, b48, b49, b5, b50, b51, b52, b53, b54, b55, b56, b57, b58, b59, b6, b60, b7, b8, b9, c1, c10, c100, c101, c102, c103, c104, c105, c106, c107, c108, c109, c11, c110, c111, c112, c113, c114, c115, c116, c117, c118, c119, c12, c120, c13, c14, c15, c16, c17, c18, c19, c2, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c3, c30, c31, c32, c33, c34, c35, c36, c37, c38, c39, c4, c40, c41, c42, c43, c44, c45, c46, c47, c48, c49, c5, c50, c51, c52, c53, c54, c55, c56, c57, c58, c59, c6, c60, c61, c62, c63, c64, c65, c66, c67, c68, c69, c7, c70, c71, c72, c73, c74, c75, c76, c77, c78, c79, c8, c80, c81, c82, c83, c84, c85, c86, c87, c88, c89, c9, c90, c91, c92, c93, c94, c95, c96, c97, c98, c99, coder, p1, p2, t1) | IssueInstanceResolveStateOpen | 2026-08-24 00:20:36.552482+00
+(4 rows)
+
+## These are the owning agent's (asset 23, Claude Code) agent-using-skill-* instances — the AGENT_TO_SKILL
+## expansion. They are the ONLY rows in this class whose evidence GENUINELY differed in the counted window
+## (the control skill joining the agent's skill set), so they are the only issue_evidence_refreshes_total
+## series that moved. The subject's own skill-* definitions took ZERO refreshes — see at7-51 §5.
+
+=========================== 5. LIFECYCLE END-STATE (pointer, not a duplicate claim) ===========================
+The post-removal end-state for this class — amendment_r30 part 1 as re-scoped by amendment_r50 part 2
+(STILL-OPEN / RE-EVALUATED / DIFF-GUARDED-FROZEN; membership unchanged; not orphaned; risk half row-stable) —
+is measured with its full four-leg COVERAGE, identity pin and bracketed counter in
+evidence/at7-51-posture-reaffirm-headcode.txt. The honest product render is
+evidence/at7-22-ui-lifecycle-posture.png (+ at7-22b). No updated_at bump is presented as the re-affirm
+anywhere: that observable is RETIRED by amendment_r50 as stale-code evidence.
