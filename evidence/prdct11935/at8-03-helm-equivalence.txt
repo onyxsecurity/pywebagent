@@ -1,62 +1,150 @@
-# PRDCT-11935 at8-03 — scripts/helm-equivalence.sh over the lane entry, at the flux PR HEAD
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# flux-fleet @ 68bdecfd1e70 · onyx branch cb96081d70 · captured 2026-08-20T11:22:08Z
+# PRDCT-11935 at8-03 — scripts/helm-equivalence.sh over the lane, RE-RUN at the current flux head
+# FILE LAST WRITTEN 2026-08-24T01:46:19Z
+# PROVENANCE — every sha this capture depends on, named:
+#   onyx head        2b60fdc4df25188104e737e6311087681355eff8  (branch factory-eval-v32/PRDCT-11935)
+#   flux-fleet       a4493c1e5ac0545fdf7fcd2f349060288111c42c  (PR onyxsecurity/flux-fleet#2307 head — the PR is OPEN, NOT merged;
+#                    fetched this round into a FRESH clone at /tmp/prdct11935/r51/at8/ff, never the box checkout)
+#   flux merge-base with origin/main   2c8ad2f2d4250763880752b1f39f29cbd2ebeadf
+#   image actually running in the cluster (deploy/eai-azure, the azure-mode consumer of the lab queue)
+#                    localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+#   capture time     2026-08-24T01:41:51Z
 #
-# RE-RUN IN ROUND 20, AND THE HEADLINE IT REPLACES WAS FALSE. The old capture (flux 396980bac)
-# reported 'rendered objects BYTE-IDENTICAL … the Azure render never carried the AWS-only leaf into
-# the pod', which made the change look like belt-and-braces. Against a proper isolation ref at head
-# — this branch MINUS exactly the lane entries it adds — the objects DIFFER. The change is MORE
-# load-bearing than its own artifact claimed: without it the Azure pod would carry live AWS config.
+# WHY RE-EMITTED (round 51). The shipped at8-03 was captured at flux-fleet 68bdecfd1e70 — the round-40
+# gate measured that as 201 commits behind head — with a stale onyx sha beside it. Its CONCLUSION was
+# independently re-proved by that gate at head; this file re-establishes the provenance by re-running
+# the fleet's own script from a fresh clone of the PR's current head.
 #
-# isolation ref 'tmp-no-drop' = HEAD with endpoint-asset-ingestion reverted to main's disabled stub.
+# WHAT THIS SCRIPT IS FOR. helm-equivalence.sh renders an overlay at HEAD and at a chosen git ref,
+# feeds both HelmReleases' spec.values through the chart, and diffs the RESULTING OBJECTS. It answers
+# the only question that matters for a values-level change: does the change reach a live workload?
+#
+# THE ISOLATION REF, built this round and named honestly:
+#   r51-no-drop = d2d9bccc28f20120bfd1b1361e1609bd9e4a92f3
+#   = the PR head with EXACTLY the two instances' drop-aws-only-values.yaml reverted to the merge-base
+#     (2c8ad2f2d4250763880752b1f39f29cbd2ebeadf), i.e. the lane still enabled but WITHOUT the three
+#     `op: remove` entries this PR adds (asset_ingestion_sqs, alert_processing_sqs, the IRSA role-arn).
+#     Built with `git checkout <merge-base> -- <the two files>`; nothing else differs.
+#
+# THE RESULT IS A NON-ZERO EXIT, AND THAT IS THE POINT. A byte-identical render would mean the drop
+# entries are decorative. They are not: without them the Azure pod carries LIVE AWS configuration.
+# Both instances produce the SAME 15 changed lines.
 
-## $ ./scripts/helm-equivalence.sh clusters/ox-az-p-eus2-c02/instances/saas/onyx-app /home/coder/onyx/infra/helm/onyx-app tmp-no-drop
-      +      visibility_timeout: 600
-      +      wait_time_seconds: 20
-      +    blob:
-      +      account_url: ${blob_account_url}
-      +      container_name: ${blob_container_name}
-      +    cloud: azure
-      +    concurrency: 5
-      +    database:
-      +      host: ${rds_endpoint}
-      +      name: postgres
-      +      port: 5432
-      +      ssl_mode_disabled: false
-      +    error_backoff_seconds: 5
-      +    logging:
-      +      level: INFO
-      +      render_json: true
-      +    max_messages: 10
-      +    releases_kvs:
-      +      kvs_arn: ${releases_kvs_arn:=}
-      +      writer_role_arn: ${releases_kvs_writer_role_arn:=}
-      +    telemetry:
-      … truncated at 80; full diff kept at /tmp/tmp.QbdQcg0u1q/diff for this run
-  (exit 1)
+=== WHAT THE 15 LINES ARE (identical on both instances)
+    1. ServiceAccount loses `eks.amazonaws.com/role-arn: ${endpoint_asset_ingestion_pod_identity_arn:=}`
+       — an IRSA annotation on a pod that authenticates with Azure workload identity.
+    2. alert_processing_sqs.aws_region  ${region}                              -> ""
+       alert_processing_sqs.queue_url   ${alert_processing_queue_url:=}         -> ""
+    3. asset_ingestion_sqs.aws_region   ${region}                              -> ""
+       asset_ingestion_sqs.dlq_url      ${endpoint_asset_ingestion_dlq_url:=}   -> ""
+       asset_ingestion_sqs.queue_url    ${endpoint_asset_ingestion_queue_url:=} -> ""
+       (a live SQS queue_url under cloud=azure is precisely the boot refusal at4 proves; without the
+        drop entries the Azure pod would either crash-loop or fail open on the AWS transport)
+    4. the Deployment's checksum/config annotation moves with the ConfigMap, as it must.
 
-## $ ./scripts/helm-equivalence.sh clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app /home/coder/onyx/infra/helm/onyx-app tmp-no-drop
-      +      visibility_timeout: 600
-      +      wait_time_seconds: 20
-      +    blob:
-      +      account_url: ${blob_account_url}
-      +      container_name: ${blob_container_name}
-      +    cloud: azure
-      +    concurrency: 5
-      +    database:
-      +      host: ${rds_endpoint}
-      +      name: postgres
-      +      port: 5432
-      +      ssl_mode_disabled: false
-      +    error_backoff_seconds: 5
-      +    logging:
-      +      level: INFO
-      +      render_json: true
-      +    max_messages: 10
-      +    releases_kvs:
-      +      kvs_arn: ${releases_kvs_arn:=}
-      +      writer_role_arn: ${releases_kvs_writer_role_arn:=}
-      +    telemetry:
-      … truncated at 80; full diff kept at /tmp/tmp.PuNtRDpXyR/diff for this run
-  (exit 1)
+=== THE RUN, VERBATIM (both instances; exit=1 means "objects DIFFER", the expected outcome here)
+    ########## saas
+    clusters/ox-az-p-eus2-c02/instances/saas/onyx-app  vs  r51-no-drop   (chart: onyx-app)
+      spec.values:      3000 -> 2990 lines
+      helm template:    6152 -> 6151 lines
+      ❌ rendered objects DIFFER — 15 changed lines:
+        --- /tmp/tmp.rlHYUIyPCe/ref.rendered.yaml	2026-08-24 01:41:50.362613720 +0000
+        +++ /tmp/tmp.rlHYUIyPCe/head.rendered.yaml	2026-08-24 01:41:50.207616404 +0000
+        @@ -330,7 +330,6 @@
+             app.kubernetes.io/managed-by: Helm
+           annotations:
+             azure.workload.identity/client-id: ${endpoint_asset_ingestion_client_id}
+        -    eks.amazonaws.com/role-arn: ${endpoint_asset_ingestion_pod_identity_arn:=}
+         automountServiceAccountToken: true
+         ---
+         # Source: onyx-app/charts/extension-ingest-consumer/templates/serviceaccount.yaml
+        @@ -629,9 +628,9 @@
+               fully_qualified_namespace: ${servicebus_namespace}
+               queue_name: ${alert_processing_queue_name}
+             alert_processing_sqs:
+        -      aws_region: ${region}
+        +      aws_region: ""
+               endpoint: ""
+        -      queue_url: ${alert_processing_queue_url:=}
+        +      queue_url: ""
+             asset_ingestion_asb:
+               fully_qualified_namespace: ${endpoint_asset_ingestion_servicebus_namespace}
+               queue_name: ${endpoint_asset_ingestion_queue_name}
+        @@ -639,10 +638,10 @@
+               aws_region: ""
+               endpoint: ""
+             asset_ingestion_sqs:
+        -      aws_region: ${region}
+        -      dlq_url: ${endpoint_asset_ingestion_dlq_url:=}
+        +      aws_region: ""
+        +      dlq_url: ""
+               endpoint: ""
+        -      queue_url: ${endpoint_asset_ingestion_queue_url:=}
+        +      queue_url: ""
+               visibility_timeout: 600
+               wait_time_seconds: 20
+             blob:
+        @@ -2611,7 +2610,7 @@
+           template:
+             metadata:
+               annotations:
+        -        checksum/config: 3a75a235dbdef86defff2b57868d774bc4e61bcdd0faa87a0ff840fc10e85f7f
+        +        checksum/config: a817a3db8bb99b2dd3e5c2c11657e4b27445d5f0fd4963b50b5d59ee37ae6e95
+                 prometheus.io/scrape: "true"
+                 prometheus.io/port: "8007"
+                 prometheus.io/path: "/metrics"
+    EXIT=1
+    ########## centerpoint
+    clusters/ox-az-p-eus2-c02/instances/centerpoint/onyx-app  vs  r51-no-drop   (chart: onyx-app)
+      spec.values:      3000 -> 2990 lines
+      helm template:    6152 -> 6151 lines
+      ❌ rendered objects DIFFER — 15 changed lines:
+        --- /tmp/tmp.JHJXwcCxop/ref.rendered.yaml	2026-08-24 01:41:51.389595937 +0000
+        +++ /tmp/tmp.JHJXwcCxop/head.rendered.yaml	2026-08-24 01:41:51.232598655 +0000
+        @@ -330,7 +330,6 @@
+             app.kubernetes.io/managed-by: Helm
+           annotations:
+             azure.workload.identity/client-id: ${endpoint_asset_ingestion_client_id}
+        -    eks.amazonaws.com/role-arn: ${endpoint_asset_ingestion_pod_identity_arn:=}
+         automountServiceAccountToken: true
+         ---
+         # Source: onyx-app/charts/extension-ingest-consumer/templates/serviceaccount.yaml
+        @@ -629,9 +628,9 @@
+               fully_qualified_namespace: ${servicebus_namespace}
+               queue_name: ${alert_processing_queue_name}
+             alert_processing_sqs:
+        -      aws_region: ${region}
+        +      aws_region: ""
+               endpoint: ""
+        -      queue_url: ${alert_processing_queue_url:=}
+        +      queue_url: ""
+             asset_ingestion_asb:
+               fully_qualified_namespace: ${endpoint_asset_ingestion_servicebus_namespace}
+               queue_name: ${endpoint_asset_ingestion_queue_name}
+        @@ -639,10 +638,10 @@
+               aws_region: ""
+               endpoint: ""
+             asset_ingestion_sqs:
+        -      aws_region: ${region}
+        -      dlq_url: ${endpoint_asset_ingestion_dlq_url:=}
+        +      aws_region: ""
+        +      dlq_url: ""
+               endpoint: ""
+        -      queue_url: ${endpoint_asset_ingestion_queue_url:=}
+        +      queue_url: ""
+               visibility_timeout: 600
+               wait_time_seconds: 20
+             blob:
+        @@ -2611,7 +2610,7 @@
+           template:
+             metadata:
+               annotations:
+        -        checksum/config: 3a75a235dbdef86defff2b57868d774bc4e61bcdd0faa87a0ff840fc10e85f7f
+        +        checksum/config: a817a3db8bb99b2dd3e5c2c11657e4b27445d5f0fd4963b50b5d59ee37ae6e95
+                 prometheus.io/scrape: "true"
+                 prometheus.io/port: "8007"
+                 prometheus.io/path: "/metrics"
+    EXIT=1
+
+=== WHAT IS NOT CLAIMED
+    This proves the values change reaches the rendered objects for chart onyx-app as this PR ships it.
+    It is not a prod rollout: flux-fleet#2307 is OPEN and merging it is human-gated.
