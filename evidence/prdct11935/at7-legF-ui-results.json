@@ -1,0 +1,75 @@
+{
+  "_file_last_written": "2026-08-24T02:35:13.140Z",
+  "stamp": "2026-08-24T02:35:13.140Z",
+  "window": "r50at7002800",
+  "head": "2b60fdc4df25188104e737e6311087681355eff8",
+  "leg": "F desktop-agent post-removal pair, RE-CAPTURED on the route that actually resolves",
+  "steps": [
+    {
+      "route": "/ai-assets/desktop-agents/10729",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/10729?tab=overview"
+    },
+    {
+      "route": "/ai-assets/desktop-agents/10727",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/10727?tab=overview"
+    }
+  ],
+  "assertions": [
+    {
+      "where": "desktop-agent detail surface, UNINSTALLED SUBJECT (asset 10729)",
+      "needle": "OpenClaw",
+      "locator": "page.getByText(\"OpenClaw\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 4
+    },
+    {
+      "where": "desktop-agent detail surface, STILL-INSTALLED CONTROL (asset 10727)",
+      "needle": "Codex",
+      "locator": "page.getByText(\"Codex\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 5
+    }
+  ],
+  "captures": [
+    {
+      "name": "at7-21-ui-lifecycle-agent.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/10729?tab=overview",
+      "label": "POST-removal uninstalled subject detail surface, Last Seen in frame",
+      "state_fp": "7ba060f14f84683f",
+      "png_sha256": "f79293e771cdd944e596de6c9bf40a7c493207229cb080dd826ec105c417190a"
+    },
+    {
+      "name": "at7-21b-ui-lifecycle-agent-control.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/10727?tab=overview",
+      "label": "POST-removal still-installed control detail surface, same surface",
+      "state_fp": "f67ee816ec4df36c",
+      "png_sha256": "9562790c5677c8ba41e442e5ae33a25b3d5462f1d228e8f4ef5b7558600b0ea6"
+    }
+  ],
+  "dom_reads": {
+    "last_seen_subject": "<Last Seen not rendered>",
+    "subject_page": {
+      "page_not_found": false,
+      "error_boundary": false,
+      "deleted_badge": false,
+      "stale": false,
+      "body_len": 1755
+    },
+    "last_seen_control": "<Last Seen not rendered>",
+    "control_page": {
+      "page_not_found": false,
+      "error_boundary": false,
+      "deleted_badge": false,
+      "body_len": 4315
+    }
+  },
+  "login": {
+    "ok": true,
+    "url_after_login": "http://ui.onyxd.svc.cluster.local:8080/overview",
+    "identity": "coder-agent@onyx.security"
+  },
+  "distinct_captures": true,
+  "verdict": "ALL-ASSERTIONS-PASS"
+}
