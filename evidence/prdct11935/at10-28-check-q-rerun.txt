@@ -1,0 +1,32 @@
+# PRDCT-11935 at10-28 — at10's C3-audit check (q), RE-RUN against the live ticket after the round-53 fix
+# FILE LAST WRITTEN 2026-08-24T05:40:11Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T05:40:11Z
+#
+# Verify round 41 failed the run on check (q): the amendment_r50 ticket-currency comment did not exist.
+# This is the re-run, element by element, reading the LIVE ClickUp task and the artifacts on disk.
+
+    $ curl -H 'Authorization: <redacted>' https://api.clickup.com/api/v2/task/86bbj56qh?include_markdown_description=true   -> 200
+    $ curl -H 'Authorization: <redacted>' https://api.clickup.com/api/v2/task/86bbj56qh/comment                             -> 200
+    $ curl -H 'Authorization: <redacted>' https://api.clickup.com/api/v2/task/86bbhzk2z                                     -> 200
+    PRDCT-12071  86bbj56qh · status 'eng: code review' · comments 2 · updated 1787549665196
+    PRDCT-12069  86bbhzk2z · status 'eng: code review'
+
+=================== CHECK (q), CLAUSE BY CLAUSE ===================
+    [PASS] (q1) the PR body cites follow-up PRDCT-12071 (86bbj56qh)
+    [PASS] (q2) evidence/at7-46-posture-followup-ticket-r30.txt matches the live task — name
+    [PASS] (q2) …and its status
+    [PASS] (q3) the amendment_r50 TICKET-CURRENCY correcting comment EXISTS on PRDCT-12071
+    [PASS] (q3) …and is fetched back as evidence/at7-52-posture-ticket-correction.txt
+    [PASS] (q3a) per-element: the upstream diff-guard commits named
+    [PASS] (q3b) per-element: the per-scan updated_at re-touch no longer occurs for byte-identical evidence
+    [PASS] (q3c) per-element: the partial-'decision (a)' note
+    [PASS] (q3d) per-element: the defect-unchanged-on-head statement
+    [PASS] (q4) the PRDCT-12069 cross-link is live and on the ticket
+    [PASS] (q4) …and the PR body carries it too
+
+    CHECK (q): MET
+
+    Note on what changed: when verify round 41 ran this check the task carried exactly ONE comment (a
+    ClickBot PR notice, 2026-08-21T15:37:01Z) and evidence/at7-52-posture-ticket-correction.txt did not
+    exist. It now carries 2, the second being the correcting comment posted this round.
