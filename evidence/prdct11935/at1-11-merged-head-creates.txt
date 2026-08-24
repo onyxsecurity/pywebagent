@@ -1,4 +1,10 @@
 # PRDCT-11935 at1-11 — the SHIPPED head drives the full Azure chain and CREATES rows
+# FILE LAST WRITTEN 2026-08-24T00:51:54Z   (round-50 evidence-honesty sweep; previous stamp 2026-08-21T03:52:27Z)
+# THIS FILE IS NOW ACCURATE AGAINST onyx head 2b60fdc4df25188104e737e6311087681355eff8, with one
+#   corrected annotation: the parenthetical under "the writer's settlement classes in this window"
+#   named a settlement class that the round-45 owner ruling has since REVERTED out of this PR.
+#   The measured counters are untouched.
+# (original stamp line follows)
 # FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx branch f4b3e9dfb2 · pod eai-azure-5c8b9bcd55-qfk8h · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r24 · captured 2026-08-20T15:53:54Z
@@ -26,8 +32,19 @@
 
 ## the writer's settlement classes in this window, on the shipped head
          17 outcome=processed
-    (processed_with_failures is the class this round ADDED; a non-zero count here would mean an
-     object was acked while a slice it carried was abandoned — see at6-01 and the metrics below)
+    (~~processed_with_failures is the class this round ADDED; a non-zero count here would mean an
+     object was acked while a slice it carried was abandoned — see at6-01 and the metrics below~~)
+     ^^ WITHDRAWN BY THE ROUND-50 SWEEP. WHAT IT SAID: that `processed_with_failures` is a settlement
+        class THIS PR ADDS, and that its absence from this window is therefore meaningful.
+        WHAT IS TRUE AT HEAD 2b60fdc4df25188104e737e6311087681355eff8: the class was REVERTED OUT OF
+        THIS PR by the round-45 owner ruling and does not exist. `ObjectLabels.outcome` declares four
+        values (processed / skipped_flag_off / skipped_unknown_tenant / failed, metrics.py:130).
+        The `17 outcome=processed` measurement above is REAL and unaffected — it is simply the whole
+        of what this window could have metered, not a partial result awaiting a fifth class.
+        THE COMMANDS THAT SHOW IT:
+          $ grep -rn 'processed_with_failures' backend_python/src backend | wc -l   ->  0
+          $ grep -rn 'agent_slices_dropped'    backend_python/src backend | wc -l   ->  0
+          $ git diff 822abd2356..2b60fdc4df | grep -c 'processed_with_failures'     ->  0
 
 ## and the rows it CREATED — every id strictly above the marks above
       id   |            name             |                          skill_md_hash                           
