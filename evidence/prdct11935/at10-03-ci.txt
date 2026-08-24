@@ -1,12 +1,20 @@
 # PRDCT-11935 at10-03 — CI on the final head, every check named
-# FILE LAST WRITTEN 2026-08-23T21:55:10Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-24T03:42:42Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
-# head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-23T21:55:10Z (round-49 re-read; the PR body was edited after this head was pushed, which does not re-run CI)
+# head 2b60fdc4df25188104e737e6311087681355eff8 · captured 2026-08-24T03:42:40Z (round-52 re-read after the body edits; a body edit re-runs PR Title Validation and nothing else)
 #
 # Read via the Actions runs API rather than `gh pr checks`: this box's GitHub App token has no
 # checks:read scope, so the check-runs endpoint 401s. The runs API answers for the same head sha.
 #   $ curl -H 'Authorization: Bearer $GH_TOKEN' \
 #       'https://api.github.com/repos/onyxsecurity/onyx/actions/runs?head_sha=2b60fdc4df25188104e737e6311087681355eff8&per_page=100'
+    success        Backend PR Validation
+    success        Backend Python Services PR Validation
+    success        CI - Agentgateway Guardrail
+    success        CI - Kong Plugin
+    success        Chrome Extension PR Validation
+    success        Daemon PR Validation
+    success        Docs Check
+    success        Frontend PR Preview (staging-native)
     success        Frontend PR Validation
     success        Generated Code PR Validation
     success        Generated Files Check
@@ -21,5 +29,5 @@
     success        Scanner PR Validation
     success        Upstream Domain Alignment Check
 
-    21 distinct workflows, 21 success, 0 failure. 'PR Preview Environment' is GREEN on this head,
-    so the one tolerated flaky exception did not have to be invoked.
+    21 distinct workflows, 21 success, 0 failure, 0 pending.
+    PR Preview Environment is GREEN on this head, so the one tolerated flaky exception did not have to be invoked.
