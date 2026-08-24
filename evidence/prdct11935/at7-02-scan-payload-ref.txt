@@ -1,72 +1,54 @@
-# PRDCT-11935 at7-02 — the HEAD-WINDOW scan payload that carried the subject, and what the lane did with it
-# FILE LAST WRITTEN 2026-08-21T21:54:58Z
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26
-# captured 2026-08-21T17:49:05Z · tenant onyx_security
-#
-# RE-CAPTURED FOR THE HEAD WINDOW (round-28 gate, G4). The previous revision documented the W21 window
-# (object keys "runs 242/244", image :prdct11935-r24). This one documents the object the head window
-# actually produced, and it is the SAME object at1-03 and at7-01 document — so the message body, the
-# Label, the payload records, the consumer's settlement and the DB identity all belong to one delivery.
+# PRDCT-11935 at7-02-scan-payload-ref.txt — the real scanner run through Kong and the object keys it produced, with per-object azure-lane outcome
+# FILE LAST WRITTEN 2026-08-24T01:09:34Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:09:34Z
 
-=================== 1. THE OBJECT ===================
-    scan_run_id   333b21ef-714b-4b8c-84ad-eaec81bc2799     (scan 2 of the window, 17:20:03-17:21:10Z)
-    object key    tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log
-    size          1075861 bytes, application/x-ndjson · payload `method` = scan_summary
-    ROUND-32 CLARIFICATION (gate G7e). The gate found this key does not match
-    `scanner_installations.log_s3_key` for the same scan_run_id, and it does not — because the two name
-    DIFFERENT objects, which this file previously left implicit. One real scan emits several objects, and
-    both of these are real objects of scan_run 333b21ef-714b-4b8c-84ad-eaec81bc2799:
-        1787332869-05679c22-0c3d-4b3c-90db-476fa9678401.log   method=scan_summary  1075861 bytes  <- THIS file's subject
-        1787332870-200da268-4397-46b6-8386-4b51d487c463.log   method=scan_logs      798186 bytes  <- what log_s3_key records
-    `log_s3_key` records the scan-LOGS object, as its name says, so it is not expected to equal the
-    scan-summary object that carried this window's skill and subagent records. Both were downloaded from
-    the lab container and their `method` field read to say which is which, rather than asserting it.
-    (Both happen to mention the subject once; the record-bearing object — the one whose skillMdContent the
-    identity is derived from, §3 — is the scan_summary one.)
-    front door    real onyx-scanner -> POST http://ingest-onyx:8080/mcp-scanner (Kong key-auth)
-                  -> vector azure_blob sink -> lab Blob -> Event Grid -> byoc-events -> SQL-filtered
-                  subscription -> endpoint-asset-ingestion-prdct11935 -> eai-azure
+window r50at7002800   head-built scanner /tmp/onyx-scanner (sha256 6c6ca199…, byte-identical to a fresh build of ~/onyx@2b60fdc4df)
 
-=================== 2. THE SUBJECT IS REALLY IN THE PAYLOAD ===================
-    The skill record the scanner emitted for this window's subject, as it appears in the object
-    (truncated to the interesting fields):
-        {"contentHash":"d1c7fe7a87cb7fe8da34b1a82860d19759ed6d1f3f4fd56bbc35e0a7e9312991",
-          "dirName":"lab-r31-20260821170102","skillMdContent":"---\nname: lab-r31-20260821170102\n..."}
-    and the MCP bundle the same scan discovered, by its own installed path:
-        {"args":["/home/coder/.config/Claude/Claude Extensions/onyx-lab-r31-20260821170102/server/index.js"],
-          "command":"node","name":"ext:onyx-lab-r31-20260821170102"}
+=== SCAN 1 (pre-removal) ===
+$ /tmp/onyx-scanner scan --verbose --endpoint http://ingest-onyx:8080/mcp-scanner --api-key <redacted>
+  START 2026-08-24T00:29:44Z   END 2026-08-24T00:31:11Z   rc=0
+  scan_run_id : d9c4c98c-945c-4e13-954d-73e4c4de3142
+  payloads_sent: 8   (3459 lines of scanner stdout captured at /tmp/prdct11935/r50/at7/scan1.out)
 
-=================== 3. THE STORED IDENTITY IS DERIVED, NOT COPIED — the strongest form of the fidelity claim ===================
-    This is worth stating precisely, because it is what makes d-c2-fid-skills / -subagents mean
-    something. The payload carries its OWN `contentHash` field, and the product does NOT store it:
-        on-disk SKILL.md                       562 bytes  sha256 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714
-        payload skillMdContent                 562 bytes  sha256 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714
-        payload's own contentHash field                       d1c7fe7a87cb7fe8da34b1a82860d19759ed6d1f3f4fd56bbc35e0a7e9312991
-        byte-identical to the file on disk?    True
-    Read those three values together. The payload's contentHash field is d1c7fe7a…; the value the
-    product stored as agent_skills.skill_md_hash is 4fa01a12…, which is the sha256 of the skill's actual
-    content and equals the digest sha256sum computed on disk. So the lane derived the identity from the
-    content itself rather than trusting a field the payload handed it — the equality between disk and DB
-    cannot be an artefact of copying, because the one number in the payload that could have been copied
-    is a different number.
+=== THE OBJECTS THE CHAIN PRODUCED, AND WHAT THE AZURE-MODE WRITER DID WITH THEM ===
+Kong (key-auth) -> vector -> azure_blob sink -> lab storage prdct11935st/ingestion
+  -> Event Grid system topic prdct11935-blob-events -> Service Bus topic byoc-events
+  -> queue endpoint-asset-ingestion-prdct11935 -> deployment eai-azure (azure-mode consumer).
 
-=================== 4. WHAT THE CONSUMER DID WITH IT — its own log lines, from the live stream ===================
-        eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.405778Z [info     ] Scanner installations inserted [python_temporal_worker.integrations.desktop_agent_creator.activities] count=1 filename=activities.py func_name=insert_scanner_insta
-        eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.407836Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=169 s3_key='tenant=61750
-        eai-azure-66d8f8595d-ch96k 2026-08-21T17:22:24.408114Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_secon
+Read live from the eai-azure pod log (pod eai-azure-7c4f9bd78c-hd7xd, image
+localhost:5001/onyx/endpoint-asset-ingestion:r46b-head, digest sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25):
 
-=================== 5. WHAT LANDED ===================
-           id   |          name          |      type      |                          skill_md_hash                           
-        --------+------------------------+----------------+------------------------------------------------------------------
-         242558 | lab-r31-20260821170102 | AssetTypeSkill | 4fa01a12e3d0b98ed9043a7f904109a3d4f02fd4656ebb12751bdb698f1d7714
-        (1 row)
-        
-           id   |          name          |       type        |                         subagent_md_hash                         
-        --------+------------------------+-------------------+------------------------------------------------------------------
-         242613 | lab-r31-20260821170102 | AssetTypeSubAgent | 066bb2f01784ee10a4abd215f62e7ed93a8994e56ef9f429189308985e66df6d
-        (1 row)
-        
-           id   |       name       | version |            unique_identifier            
-        --------+------------------+---------+-----------------------------------------
-         242372 | Onyx Lab R31 MCP | 1.0.0   | mcpb:onyx-lab-r31-20260821170102::1.0.0
-        (1 row)
+  2026-08-24T00:30:02.970599Z  outcome=processed  s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/1787531397-a886be06-6b4d-4b5f-bbba-5ec987816e47.log'
+  2026-08-24T00:31:26.543718Z  outcome=processed  s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/1787531483-634d008d-927c-48f3-96d2-39d301141e17.log'
+  (a third, 00:21:44 / 1787530901-…, predates this window and is listed only so the grep is complete)
+
+=== WHICH LANE WON THE FIRST INSERT FOR EACH SUBJECT (attributed per row, not assumed) ===
+Both scanner-lane consumers are live on this box for this tenant. In THIS window the AZURE-shaped
+chain won the first INSERT for every subject — the eai-azure pod's own upsert log lines precede the
+DB created_at by ~15 ms, and the AWS-lane pod (endpoint-asset-ingestion-5bcd755bd7-ltmrt) only
+touched the same subjects 4-7 s LATER (its upserts are the second, no-op-shaped write):
+
+  subject                       azure-lane upsert (eai-azure)      DB created_at              aws-lane touch
+  r50at7002800-skill        00:29:58.882882Z                   00:29:58.896873+00         00:30:04.104703Z
+  r50at7002800-sibskill     00:29:58.882722Z                   00:29:58.896873+00         00:30:04.172390Z
+  r50at7002800-sub          00:29:59.594852Z                   00:29:59.603306+00         00:30:05.261700Z
+  r50at7002800-sibsub       00:29:59.594093Z                   00:29:59.603306+00         00:30:05.274868Z
+  Onyx Lab R50 MCP              00:30:00.296916Z                   00:30:00.295263+00         00:30:06.282889Z
+  Onyx Sibling R50 MCP          00:30:00.437…Z                     00:30:00.416544+00         00:30:07.718437Z
+
+  The azure-lane lines carry the azure object key themselves, e.g.
+    00:30:00.296916Z [info] Upserted base application [common.repository.asset] asset_id=442199
+      func_name=upsert_asset lineno=1309 name='Onyx Lab R50 MCP'
+      s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/1787531397-a886be06-6b4…'
+    00:29:59.594852Z [info] Subagent asset upsert [python_temporal_worker.subagents_creation.activities]
+      agent_asset_id=23 content_hash=2d2e397434cc739a831b9fabf8a4d19fd0a635ebf4cd3f19920704f26c11ed26
+  HONEST STATEMENT: this is a shared box; the AWS-lane consumer is also live and also re-upserts each
+  subject. What is proven here is that the azure chain carried the payload end to end and performed the
+  FIRST write of every subject identity this window. It is not claimed that the AWS lane was absent.
+
+=== BRIDGE PARENTAGE PRODUCED BY THESE OBJECTS (the posture trigger) ===
+The azure-lane writer started per-object IssueAndRiskBridgeWorkflow executions for this tenant, e.g.
+  scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-3821bc21a1abf8502bbc403373b5f1f7-bridge  start 00:30:02
+  scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-2d12eb169adab31a6fa016c2f6ea781d-bridge  start 00:31:16  close 00:45:05
+  scanner-object-61750f27-8fbd-42a4-80cf-4191cfb2371a-749797066bf3a89a48c2e0d287908b02-bridge  start 00:31:14  close 00:44:59
+The bridge start times coincide with the azure-lane object settlements at 00:30:02 / 00:31:26.
