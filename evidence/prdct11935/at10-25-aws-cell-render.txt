@@ -1,5 +1,5 @@
 # PRDCT-11935 at10-25 — does flux-fleet#2307 change what any AWS cell renders? Measured at the PR's own merge-base.
-# FILE LAST WRITTEN 2026-08-24T00:38:51Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-24T01:17:10Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · flux-fleet#2307 head a4493c1e5ac0 · captured 2026-08-24T00:38:51Z
 #
@@ -45,7 +45,38 @@ e3b0c44298fc1c14
     Those are main's own drift across the ~272 commits between those refs and today, not this PR's:
     section 1 shows the PR writes no file an AWS cell reads, so its render contribution is necessarily 0.
 
+=================== 5. CORRECTION TO THIS FILE'S OWN FIRST VERDICT (2026-08-24T01:17:10Z) ===================
+    The first revision of this file concluded that the review's 8/8/18 figure "is not reproduced here and is
+    attributed to a stale comparison anchor". That was wrong, and it was wrong in the direction that
+    flatters this PR, so it is corrected in place rather than quietly re-worded.
+
+    The two measurements are of DIFFERENT THINGS, and both are true:
+
+      (i)  flux-fleet#2307's own diff, merge-base -> head, rendered for the three AWS cells:
+           0 changed lines  (sections 1-3 above; the PR writes no file an AWS cell reads)
+
+      (ii) THIS onyx PR's CHART change, rendered into those same cells with IDENTICAL values on both
+           sides: 8 / 8 / 18 changed lines — which is exactly the review's figure. The cause is in this
+           repo, not in flux:
+             $ git diff --stat 822abd2356..2b60fdc4df -- infra/helm
+               infra/helm/onyx-app/values.yaml | 20 ++++++-------
+               infra/helm/onyx/values.yaml     |  6 ------
+             the two empty gen-2 stanzas (scanner_events_asb, mcp_gateway_events_asb) are REMOVED and two
+             empty stanzas (alert_processing_asb, asset_ingestion_asb) are ADDED, which moves the rendered
+             config.yaml and rolls its checksum/config annotation.
+           Per-instance numbers, measured with identical values on both sides, in
+           evidence/at11-08-flux-render-aws-cells.txt: c01/intuit 8, c03/saas 8, s-use1-c01/saas 18,
+           and 0 for every cell that does not deploy these services.
+
+    SO THE OPERATIONAL CONSEQUENCE THE REVIEW NAMED IS REAL: when the chart lands, those three AWS
+    workloads take a ONE-TIME ROLLING RESTART. It is disclosed in the PR body's carve-out (b), it is
+    semantically inert (an empty stanza is what the config model already defaults to, and a removed field
+    is accepted-and-ignored because BaseCustomSettings sets extra="allow"), and it is NOT caused by
+    merging flux-fleet#2307.
+
 =================== VERDICT ===================
-    changed lines: 0 on all three AWS cells at the PR's merge-base. flux-fleet#2307 cannot cause an AWS
-    rolling restart, because it touches no file any AWS cell renders from. The 8/8/18 report is not
-    reproduced here and is attributed to a stale comparison anchor, stated rather than argued away.
+    flux-fleet#2307: 0 changed lines on all three AWS cells at the PR's merge-base — it touches no file any
+    AWS cell renders from, so merging it cannot restart an AWS workload.
+    THIS onyx PR's chart: 8 / 8 / 18 changed lines on those same cells — a one-time rolling restart when the
+    chart lands, semantically inert, disclosed in the body. The review's figure was right; this file's first
+    verdict attributed it to the wrong change and is corrected above.
