@@ -1,0 +1,14 @@
+# PRDCT-11935 at7-07-db-rows-usage.txt — the usage-session row for the real agent chat run this window
+# FILE LAST WRITTEN 2026-08-24T01:10:06Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:10:06Z
+
+SET
+  id  |      external_id       | app_id | device_id | session_user_email | has_content_events | actor_identifier |          created_at           |          updated_at           
+------+------------------------+--------+-----------+--------------------+--------------------+------------------+-------------------------------+-------------------------------
+ 7555 | 20260824_002925_7185b3 |  55751 |         1 |                    | t                  |                  | 2026-08-24 00:30:01.779228+00 | 2026-08-24 00:30:07.769928+00
+(1 row)
+
+
+FIDELITY: external_id 20260824_002925_7185b3 is verbatim the session id the hermes CLI printed
+when the chat ran this window ('Session: 20260824_002925_7185b3'). DB id 7555 is the id the SPA's
+/ai-activity per-session deep link uses (?activitySessionId=7555) and renders as '#7555'.
