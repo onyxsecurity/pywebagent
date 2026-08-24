@@ -1,5 +1,5 @@
 # PRDCT-11935 at10-02 — anonymous receipt for every image embedded in the PR body
-# FILE LAST WRITTEN 2026-08-22T10:56:14Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-24T03:34:38Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 #
 # Each URL was fetched with NO credentials (GH_TOKEN and GITHUB_TOKEN removed from the environment).
@@ -18,21 +18,22 @@
 # Refreshed on the host this round: (none — host already byte-current)
 
 FILE                                   HTTP  TYPE        BYTES     sha256 SERVED      sha256 LOCAL       SAME     VERDICT
--------------------------------------- ----- ----------- --------- ------------------ ------------------ -------- -------
-at7-10b-ui-desktop-agent-detail.png    200   image/png   120222    a199b99474ced619   a199b99474ced619   yes      PASS
-at7-11-ui-mcp.png                      200   image/png   92788     ff7719ae004ac21a   ff7719ae004ac21a   yes      PASS
-at7-12-ui-skills.png                   200   image/png   76998     8da9570d9942e372   8da9570d9942e372   yes      PASS
-at7-13-ui-subagents.png                200   image/png   77884     7f6d80085327fcec   7f6d80085327fcec   yes      PASS
-at7-14-ui-usage.png                    200   image/png   106487    1745dc7e4163d848   1745dc7e4163d848   yes      PASS
-at7-15-ui-lifecycle-mcp.png            200   image/png   78859     2d3b0cfce98472e8   2d3b0cfce98472e8   yes      PASS
-at7-16-ui-lifecycle-skills.png         200   image/png   81074     514b59782d578266   514b59782d578266   yes      PASS
-at7-17-ui-lifecycle-subagents.png      200   image/png   79532     5378dc9fc45a897b   5378dc9fc45a897b   yes      PASS
-at7-19-ui-tools.png                    200   image/png   89577     d35e799664b1ab7d   d35e799664b1ab7d   yes      PASS
-at7-19b-ui-lifecycle-tools.png         200   image/png   93274     a717c5efa3ce12f9   a717c5efa3ce12f9   yes      PASS
-at7-20-ui-posture.png                  200   image/png   78839     02bcf80f0cc22655   02bcf80f0cc22655   yes      PASS
-at7-21-ui-lifecycle-agent.png          200   image/png   123523    c2511eb390d02d47   c2511eb390d02d47   yes      PASS
-at7-21b-ui-lifecycle-agent-control.png 200   image/png   132722    27bf8a6e48f3af8a   27bf8a6e48f3af8a   yes      PASS
-at7-22-ui-lifecycle-posture.png        200   image/png   160870    86cbdccd542c842c   86cbdccd542c842c   yes      PASS
-at7-34-list-skill.png                  200   image/png   81916     b60095abcab7f0d6   b60095abcab7f0d6   yes      PASS
+# RE-GENERATED 2026-08-24T03:34:37Z — every image below was RE-CAPTURED on head 2b60fdc4df in window r50at7002800,
+#   so any earlier receipt's hashes describe bytes that no longer exist. This is the current receipt.
 
-15 embedded images · 15 PASS · 0 FAIL
+IMAGE                                          HTTP   CONTENT-TYPE sha256 local  ·  served==local?
+at7-10b-ui-desktop-agent-detail.png            200    image/png    6f89ec65de5ca34680dacf62…  MISMATCH served=a199b99474ced619
+at7-11-ui-mcp.png                              200    image/png    5701befed5267697a6a836b4…  MATCH
+at7-12-ui-skills.png                           200    image/png    6e7f73bf081276696f481fc8…  MATCH
+at7-13-ui-subagents.png                        200    image/png    60d2f1d7ccd40720602464cf…  MATCH
+at7-14-ui-usage.png                            200    image/png    e1d6b4e710d7626dbe7584ad…  MISMATCH served=1745dc7e4163d848
+at7-15-ui-lifecycle-mcp.png                    200    image/png    e465f9df5ec149696b68a229…  MATCH
+at7-16-ui-lifecycle-skills.png                 200    image/png    7984d22c47b97c1a77af3765…  MATCH
+at7-17-ui-lifecycle-subagents.png              200    image/png    5e0ec58b7d1e2f4c1d0f2259…  MATCH
+at7-19-ui-tools.png                            200    image/png    90f1dc402b9f49dc3fabcf01…  MISMATCH served=d35e799664b1ab7d
+at7-19b-ui-lifecycle-tools.png                 200    image/png    636686ef6f6a0c5700e2886c…  MATCH
+at7-20-ui-posture.png                          200    image/png    1a1d0b565ae976cf8916805c…  MATCH
+at7-21-ui-lifecycle-agent.png                  200    image/png    f79293e771cdd944e596de6c…  MATCH
+at7-21b-ui-lifecycle-agent-control.png         200    image/png    9562790c5677c8ba41e442e5…  MATCH
+at7-22-ui-lifecycle-posture.png                200    image/png    0db4ef58235267579131c4aa…  MATCH
+at7-34-list-skill.png                          200    image/png    3b3d189865367596a3563261…  MATCH
