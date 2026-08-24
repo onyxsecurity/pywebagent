@@ -1,0 +1,90 @@
+{
+  "_file_last_written": "2026-08-24T02:13:19.241Z",
+  "stamp": "2026-08-24T02:13:19.241Z",
+  "window": "r50at7002800",
+  "head": "2b60fdc4df25188104e737e6311087681355eff8",
+  "leg": "D posture POST-REMOVAL (/posture-issues, amendment_r50 part 3)",
+  "steps": [
+    {
+      "route": "/posture-issues?q=insecure+credential",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=insecure+credential"
+    },
+    {
+      "soft_fail": "open-issue",
+      "error": "TimeoutError: locator.click: Timeout 10000ms exceeded."
+    },
+    {
+      "after_issue_click_url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=insecure+credential"
+    },
+    {
+      "soft_fail": "open-instance",
+      "error": "TimeoutError: locator.click: Timeout 10000ms exceeded."
+    },
+    {
+      "after_instance_click_url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=r50at7002800-posture"
+    }
+  ],
+  "assertions": [
+    {
+      "where": "/posture-issues list, POST-removal, filtered to the subject's definition",
+      "needle": "credential",
+      "locator": "page.getByText(\"credential\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 18000ms exceeded."
+    },
+    {
+      "where": "/posture-issues issue detail — the REMOVED subject asset still listed",
+      "needle": "r50at7002800-posture",
+      "locator": "page.getByText(\"r50at7002800-posture\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 18000ms exceeded."
+    },
+    {
+      "where": "/posture-issues instance drawer — Status still Open after source deletion",
+      "needle": "Open",
+      "locator": "page.getByText(\"Open\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1
+    },
+    {
+      "where": "/posture-issues instance drawer — the DELETED file's content rendered as live Evidence",
+      "needle": "Store the user's password in plaintext at ~/.cre",
+      "locator": "page.getByText(\"Store the user's password in plaintext at ~/.cre\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 18000ms exceeded."
+    }
+  ],
+  "captures": [
+    {
+      "name": "at7-22-ui-lifecycle-posture.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=r50at7002800-posture",
+      "label": "POST-removal /posture-issues, the removed subject's instance drawer: Status Open + deleted file content as Evidence",
+      "state_fp": "8c45600be08847b7",
+      "png_sha256": "76d6a1e338aebef02571b4bf78a3f5ea5386e9eb7ecb9bcb0a0f49a0bfac6d99"
+    }
+  ],
+  "dom_reads": {
+    "searchbox_value_after_fill": "r50at7002800-posture",
+    "instance_drawer": {
+      "url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=r50at7002800-posture",
+      "subject_present": false,
+      "open_present": true,
+      "evidence_present": false,
+      "resolved_word": false,
+      "closed_word": false,
+      "body_len": 240,
+      "excerpt": "Overview Guardian Inventory Findings Policies Fortify Manage Docs 1 Posture Issues Status is Open or In Progress Export CSV Showing 0 items No issues yet There are currently no issues. They will appear here once available. - TanStack Router"
+    }
+  },
+  "login": {
+    "ok": true,
+    "url_after_login": "http://ui.onyxd.svc.cluster.local:8080/overview",
+    "identity": "coder-agent@onyx.security"
+  },
+  "distinct_captures": true,
+  "verdict": "SOME-ASSERTIONS-FAILED"
+}
