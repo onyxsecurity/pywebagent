@@ -1,22 +1,32 @@
 # PRDCT-11935 at10-05 — the PR's review threads: what each one was, and what was done
-# FILE LAST WRITTEN 2026-08-22T05:28:51Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+# FILE LAST WRITTEN 2026-08-24T00:52:40Z   (round-50 evidence-honesty sweep; previous stamp 2026-08-23T11:10:37Z)
+# THIS FILE IS NOW ACCURATE AGAINST onyx head 2b60fdc4df25188104e737e6311087681355eff8.
+#   THREE of the fixes recorded below (sections 1, 2 and 2b) describe code that two owner rulings
+#   have since REMOVED FROM THIS PR. The reviewer threads were really raised and really answered at
+#   the time, so the record is kept — but each now carries a correction stating what is true at head,
+#   because a reader must not conclude this PR still ships those fixes. Section 3 onward is unaffected.
+# (original stamp line follows)
+# FILE LAST WRITTEN 2026-08-23T11:10:37Z
 #   measurements themselves, which is why the two can differ when a later round corrected a number.
 # branch dfe23b9e83 · last written 2026-08-20T03:24:22Z (this file is updated whenever a
 #   thread is answered, so its stamp is the last write, not a single capture moment)
 #
-# 16 review threads are on this PR (12 from cr-onyx[bot], 4 from cursor[bot]); 0 are unanswered. Counts read from the
+# 17 review threads are on this PR; 0 are unanswered and 0 unresolved. (Was 16 through round 43; the
+# 17th arrived on the round-44 merge head and is resolved. Counts read from the GraphQL
+# reviewThreads API at write time, never typed.) Counts read from the
 # GraphQL reviewThreads API at write time — an earlier version of this line said 14/2/12, typed once
 # and never re-read, and stayed wrong after a third cursor thread arrived. None had been
-# answered. All 16 are now replied to in-thread and resolved. The disposition, which sums to
+# answered. All 17 are now replied to in-thread and resolved. The disposition, which sums to
 # the same 16 rather than to a number typed separately — every thread mapped to its section by
 # re-reading all 16 first comments from the API in round 36, not by re-adding the old buckets:
 #      4  real defects fixed with code       (sections 1, 2, 2b)
 #      3  stale (closed by an earlier commit on this branch)   (section 4)
 #      1  a question answered by rendering   (section 5)
-#      7  clarity / structure / test-gap items, all applied    (section 3)
+#      8  clarity / structure / test-gap items, all applied    (section 3; the 17th arrived on the
+#         round-44 merge head and is resolved)
 #      1  measured first, and half of it refuted by the measurement   (section 7)
 #      —
-#     16  total, matching the API read above.
+#     17  total, matching the API read above.
 # ROUND-36 CORRECTION, and it is the third time this block has been wrong, so the cause is named:
 #  the header line was re-read from the API and said 16 while the breakdown under it was never
 #  re-derived and still summed to 15 — the same shape as the "All 14 under a corrected 15" error the
@@ -31,12 +41,44 @@
 #      reviewer finding that was genuinely fixed is still an under-reported finding.
 #  Both were replied to and resolved on the PR at the time; the omission was in THIS artifact only.
 #
-# The three code fixes are three commits, each with a test that fails without it.
+# ~~The three code fixes are three commits, each with a test that fails without it.~~
+#   CORRECTED (round-50 sweep): true when written; at head TWO of those three commits have been
+#   reverted/dropped out of this PR and NONE of their tests exists any more. See the corrections
+#   inside sections 1, 2 and 2b. At head:
+#     $ grep -rn 'TestHandlerErrorBackoff'                                   backend_python | wc -l  -> 0
+#     $ grep -rn 'test_seeded_connectors_carry_the_agents_scanner_version'    backend_python | wc -l  -> 0
+#     $ grep -rn 'test_the_dropped_slice_count_is_the_agents_whose_rows_are_missing' backend_python | wc -l  -> 0
 
 ================================================================================================
-1. REAL DEFECT — no backoff on the release path (cursor "High", cr-onyx "medium")
+1. ~~REAL DEFECT — no backoff on the release path~~ (cursor "High", cr-onyx "medium")
+   THREAD ANSWERED; THE FIX IS NO LONGER IN THIS PR.
 ================================================================================================
-Fixed in c70493626a.
+~~Fixed in c70493626a.~~
+##########################################################################################
+#  CORRECTED BY THE ROUND-50 SWEEP — DROPPED BY THE ROUND-46 OWNER RULING AS SUPERSEDED BY `main`.
+#  WHAT THIS SECTION CLAIMED AS SHIPPED: "abandon_message now RETURNS whether the release is
+#  immediate (ASB True, SQS False), and the pool sleeps error_backoff_seconds only in the immediate
+#  case", covered by TestHandlerErrorBackoff.
+#  WHAT IS TRUE AT HEAD 2b60fdc4df25188104e737e6311087681355eff8: the queue-layer abandon/pacing work
+#  is NOT in this PR. `main` landed its own `abandon_message` while this branch was open — the same
+#  hazard, solved `main`'s way — so this branch took `main`'s version and dropped its own. The
+#  contract at head is `-> None`, not a bool, and there is no release-path backoff:
+#      $ grep -n 'async def abandon_message' backend_python/src/common_core/services/queue/{asb,client}.py
+#      .../asb.py:253:    async def abandon_message(self, msg: ReceivedMessage) -> None:
+#      .../client.py:96:  async def abandon_message(self, msg: ReceivedMessage) -> None:
+#      $ grep -rn 'TestHandlerErrorBackoff' backend_python | wc -l
+#      0
+#      $ for f in consumer_pool.py sqs.py client.py; do git diff --quiet origin/main -- \
+#          backend_python/src/common_core/services/queue/$f && echo "$f IDENTICAL"; done
+#      consumer_pool.py IDENTICAL · sqs.py IDENTICAL · client.py IDENTICAL
+#      $ git diff --stat origin/main -- backend_python/src/common_core/services/queue/asb.py
+#      1 file changed, 25 insertions(+)      (the `_system_properties` addition — the one thing
+#                                             `main` does not have — and nothing else)
+#  NOTE: `error_backoff_seconds` DOES still exist (config.py:80, service.py:247/:264) but it is the
+#  PRE-EXISTING poll-error backoff, unrelated to the abandon pacing this section described.
+#  THE 21-ms MEASUREMENT BELOW IS REAL and is retained: it documents the hazard, which `main` now
+#  owns. It is no longer evidence of anything THIS PR fixes.
+##########################################################################################
 The claim: a handler exception calls abandon_message, which on Service Bus re-offers the message
 IMMEDIATELY and increments its delivery count, so a transient dependency failure cycles
 receive -> fail -> abandon at full speed and exhausts max_delivery_count, parking good work in the
@@ -56,9 +98,36 @@ each hard-capping its polls so a regression fails fast instead of spinning the s
   before the fix: 25 abandons inside the budget (the tight loop)   after: 2
 
 ================================================================================================
-2. REAL DEFECT — seeded connectors lost the agent's scanner_version (cr-onyx "medium")
+2. ~~REAL DEFECT — seeded connectors lost the agent's scanner_version~~ (cr-onyx "medium")
+   THREAD ANSWERED; THE FIX IS NO LONGER IN THIS PR.
 ================================================================================================
-Fixed in 8342fed114.
+~~Fixed in 8342fed114.~~
+##########################################################################################
+#  CORRECTED BY THE ROUND-50 SWEEP — REVERTED BY THE ROUND-45 OWNER RULING.
+#  WHAT THIS SECTION CLAIMED AS SHIPPED: commit 8342fed114 lifting `resolve_scanner_version_for_agent`
+#  into its own module so both lanes share it, mirroring the Temporal fallback so a seeded connector
+#  carries the agent's scanner_version, covered by
+#  `test_seeded_connectors_carry_the_agents_scanner_version`.
+#  WHAT IS TRUE AT HEAD 2b60fdc4df25188104e737e6311087681355eff8: none of it is in this PR. The
+#  round-45 ruling reverted the seeded-connector work — `build_seeded_connector_servers` seeding in
+#  the new lane, the scanner_version stamp, and the `desktop_agent_creator/scanner_version.py` module.
+#      $ git diff 822abd2356..2b60fdc4df | grep -c 'scanner_version'
+#      1     <- a DOCS line in the new ADR, not code
+#      $ grep -rn 'test_seeded_connectors_carry_the_agents_scanner_version' backend_python | wc -l
+#      0
+#      $ grep -rn 'scanner_version' backend_python/src/endpoint_asset_ingestion | wc -l
+#      3     <- extract.py:251, extract.py:638, mcp_writer.py:1140, ALL PRE-EXISTING:
+#      $ git grep -n 'scanner_version' 822abd2356 -- backend_python/src/endpoint_asset_ingestion
+#      822abd2356:.../extract.py:251 · :638 · .../mcp_writer.py:1140     (identical at the PR base)
+#  AND THE ONE NON-ZERO COUNT, quoted rather than rounded down:
+#      $ grep -rn 'build_seeded_connector_servers' backend_python/src backend | wc -l
+#      3     <- all three in GEN-1's python_temporal_worker/integrations/desktop_agent_creator/
+#               (connector_seed.py:37, workflow.py:34, workflow.py:726), which this PR does not
+#               touch. NONE is in the new endpoint_asset_ingestion lane.
+#  THE "HONEST LIMIT" PARAGRAPH BELOW STANDS AS A MEASUREMENT (the scanner does emit scannerVersion;
+#  protects_all_mcps is false everywhere on this box) — but it is now a fact about the gate, not the
+#  null effect of a fix this PR carries. See at6-08-gateway-version-gate.txt, corrected the same way.
+##########################################################################################
 The claim: the Temporal lane stamps the agent's resolved scanner_version across its whole merged
 server list, seeded connectors included; the in-process lane's model_copy did not, so a seeded
 connector reached upsert_mcp_gateway_installation with scanner_version=None and the crud then took
@@ -81,10 +150,30 @@ Test: test_seeded_connectors_carry_the_agents_scanner_version — fails on the o
   re-drive below proves only that the changed writer still ingests correctly.
 
 ================================================================================================
-2b. REAL DEFECT — the dropped-slice count was the marker-void set (cursor "Medium")
+2b. ~~REAL DEFECT — the dropped-slice count was the marker-void set~~ (cursor "Medium")
+    THREAD ANSWERED; THE FIX IS NO LONGER IN THIS PR.
 ================================================================================================
-ADDED ROUND 36: answered and fixed at the time, but this file never carried the thread. Fixed in
-cb96081d70.
+~~ADDED ROUND 36: answered and fixed at the time, but this file never carried the thread. Fixed in
+cb96081d70.~~
+##########################################################################################
+#  CORRECTED BY THE ROUND-50 SWEEP — REVERTED BY THE ROUND-45 OWNER RULING.
+#  WHAT THIS SECTION CLAIMED AS SHIPPED: commit cb96081d70 re-taking the dropped-slice count at the
+#  two points where a slice is genuinely abandoned, covered by
+#  `test_the_dropped_slice_count_is_the_agents_whose_rows_are_missing`.
+#  WHAT IS TRUE AT HEAD 2b60fdc4df25188104e737e6311087681355eff8: the whole per-agent-slice abandon
+#  accounting was reverted — the `processed_with_failures` object outcome, the
+#  `asset_ingestion_agent_slices_dropped_total` counter, and the test. `object_processor.py` and
+#  `metrics.py` are byte-identical to `main`. The prose below that says objects "metered
+#  `processed_with_failures`" describes a class that no longer exists.
+#      $ grep -rn 'processed_with_failures' backend_python/src backend | wc -l   -> 0
+#      $ grep -rn 'agent_slices_dropped'    backend_python/src backend | wc -l   -> 0
+#      $ git diff 822abd2356..2b60fdc4df | grep -c 'processed_with_failures'     -> 0
+#      $ grep -rn 'test_the_dropped_slice_count_is_the_agents_whose_rows_are_missing' backend_python | wc -l
+#      0
+#  ObjectLabels.outcome declares FOUR values at head — processed / skipped_flag_off /
+#  skipped_unknown_tenant / failed (metrics.py:130). The reviewer's over/under-count analysis below
+#  is retained as the record of a real thread; it is no longer a description of shipped behaviour.
+##########################################################################################
 
 The reviewer's point, and it was wrong in BOTH directions: `dropped_agent_slices` was
 `len(failed_identities)`, a set that exists to void re-ingest markers rather than to count abandoned
