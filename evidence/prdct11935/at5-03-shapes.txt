@@ -1,104 +1,120 @@
-# PRDCT-11935 at5-03 — BOTH Event Grid body shapes exercised on the CODE THAT SHIPS
-# FILE LAST WRITTEN 2026-08-21T10:06:03Z
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · writer image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T07:35:21Z · tenant onyx_security
+# PRDCT-11935 at5-03 — BOTH Event Grid body shapes exercised on the CODE THAT SHIPS, RE-DRIVEN on the
+#                        shipped head this round.
+# FILE LAST WRITTEN 2026-08-24T03:10:28Z
 #
-# RE-CAPTURED THIS ROUND, and the reason is the point of the file. The previous revision was stamped
-# 'branch 20fa8d9553 · captured 2026-08-18T19:20:04Z' — sixteen lane-touching commits back, and BEFORE
-# cdcd725ebb ("Merge main: one Event Grid BlobCreated parser, not two") deleted eventgrid_event.py and
-# moved the lane onto blob_event.py. Its array body carried only subject/eventType/eventTime and NO
-# data.url, so it was written for the DELETED parser: replayed verbatim against the shipped one it is
-# dead-lettered as poison, not parsed. Its section 3 also cited
-# tests/common_core/services/ingestion_events/test_eventgrid_event.py, which does not exist at head.
-# Both are corrected below against the parser that actually ships.
+# PROVENANCE — every sha this capture depends on, named:
+#   onyx head        2b60fdc4df25188104e737e6311087681355eff8  (branch factory-eval-v32/PRDCT-11935)
+#   image actually running in deploy/eai-azure (the azure-mode consumer under test)
+#                    localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+#                    @sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25
+#   flux-fleet       a4493c1e5ac0545fdf7fcd2f349060288111c42c  (PR onyxsecurity/flux-fleet#2307 head, OPEN /
+#                    NOT merged — re-read live this round; named because the deployed lane config is its render)
+#   tenant           onyx_security / 61750f27-8fbd-42a4-80cf-4191cfb2371a
+#   capture window   2026-08-24T02:54Z .. 2026-08-24T03:09Z
 #
-# WHY data.url IS LOAD-BEARING NOW: the shipped parser resolves the object from the blob URL and refuses
-# an event without one — "BlobCreated event has no blob url", blob_event.py:91-93 — where the deleted
-# parser resolved it from the subject. So a body with no data.url is correctly rejected; the previous
-# revision's own §2 body is an example of the rejection, not of the acceptance it claimed.
+# WHY RE-DRIVEN. The shipped revision of this file was stamped "branch a2486bb33f · image :prdct11935-r26 ·
+# captured 2026-08-21T07:35:21Z" — a superseded commit and a superseded image. Both shapes are re-driven
+# below on the head that ships, against the REAL lab Service Bus queue endpoint-asset-ingestion-prdct11935.
 #
-# The gen-2 trap had two silent-drop branches: a single-event body parsed to zero records (ack), and an
-# ARRAY body raised ValueError -> parse_err (ack). A fix handling only the object shape would leave half
-# the trap alive, so both shapes are shown against the real lab queue on the head image.
+# THE TRAP THIS AT KILLS. The gen-2 dead path had TWO silent-drop branches: a single-event body that parsed
+# to zero records (ack, nothing dispatched), and an ARRAY body that raised ValueError -> parse_err (ack).
+# A fix handling only the object shape leaves half the trap alive, so BOTH shapes are shown here.
+#
+# THE SHIPPED PARSER, ONE LINE OF IT, IS THE WHOLE FIX:
+#   backend_python/src/common_core/services/ingestion_events/blob_event.py:64  def parse_blob_event_message(body)
+#   backend_python/src/common_core/services/ingestion_events/blob_event.py:75
+#       events = parsed if isinstance(parsed, list) else [parsed]
+#   -> one code path normalises a bare event dict and a JSON array of events into the same record list,
+#      which is exactly what Go's ParseEvents does. Each event must carry data.url
+#      (blob_event.py:90-93, "BlobCreated event has no blob url") — the shipped parser resolves the object
+#      from the blob URL, not from the subject.
 
-## 1) SINGLE-EVENT shape — what real Event Grid -> Service Bus delivery emits (one event per message).
-##    REAL deliveries off the Kong-originated chain, driven this round by a real onyx-scanner scan
-##    (probe skill r27-at5-20260821073153), parsed by the shipped parser and settled — not dropped:
-  2026-08-21T07:29:45.466940Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=287.625215 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787297094-703e45d5-9870-4aa1-a193-5924b9d7b752.log' span_id=4d59ddbfa8389d3c tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=82d8514851dac7ec4854ee670abce3de
-  2026-08-21T07:32:02.008974Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.498237 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787297521-c1a40ed5-fa8f-40fc-b9a8-7e94e9114554.log' span_id=d46def08c30464d7 tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=1d5f3de252184d95800f7476a2d36b11
-  2026-08-21T07:32:54.622277Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=0.329179 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787297572-3e55cf08-76f8-4d5c-893c-f468c679a109.log' span_id=cd85732b35a5083c tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=02e87686d60a778fed9e42f0511d6405
+================================================================================
+=== 1. SINGLE-EVENT SHAPE — what real Event Grid -> Service Bus delivery actually emits
+================================================================================
+    The transport delivers ONE event per Service Bus message. These are REAL deliveries off the at1
+    Kong-originated chain, driven this round (the 300-object burst that also armed the KEDA scaler in
+    at8-06: scanner body -> Kong -> vector -> lab Blob -> Event Grid -> byoc-events topic ->
+    sys.Label LIKE '%source=mcp-scanner/%' subscription -> the queue), parsed by the shipped parser and
+    SETTLED AS PROCESSED — not dropped:
 
-## 2) ARRAY shape — the same schema's batch form, which Go's ParseEvents accepts and the pre-fix Python
-##    path could only raise on. Event Grid's Service Bus transport does not emit it (one event per
-##    message — evidence/at1-03-eventgrid-message.json), so it is placed on the REAL queue directly.
-##    Built from the REAL captured envelope in at1-03 — every field of a genuine delivery, field for
-##    field — with each element's subject + data.url pointed at a blob that REALLY EXISTS in the lab
-##    storage account right now (both listed by `az storage blob list` in this round's transcript), so
-##    the records are really fetched and really ingested rather than 404-ing. PRINTED UNELIDED (round-28
-##    gate note): an earlier revision abbreviated the data object with `...`, which made the printed body
-##    invalid JSON and therefore un-replayable. Every byte sent is below:
-   [
-    {
-     "topic": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st",
-     "subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787297573-83335c75-5eaa-4ab1-807e-06ba67aa0369.log",
-     "eventType": "Microsoft.Storage.BlobCreated",
-     "id": "5f03648c-301e-0017-3b30-2fccc0063ad1",
-     "data": {
-      "api": "PutBlob",
-      "clientRequestId": "e9a8514c-eab2-42ba-adff-a43dcabfeddb",
-      "requestId": "5f03648c-301e-0017-3b30-2fccc0000000",
-      "eTag": "0x8DEFD479748421A",
-      "contentType": "application/x-ndjson",
-      "contentLength": 554406,
-      "blobType": "BlockBlob",
-      "accessTier": "Default",
-      "url": "https://prdct11935st.blob.core.windows.net/ingestion/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787297573-83335c75-5eaa-4ab1-807e-06ba67aa0369.log",
-      "sequencer": "00000000000000000000000000048CF60000000001ee21cd",
-      "storageDiagnostics": {
-       "batchId": "dbc6f1b6-1006-002f-0030-2f6800000000"
-      }
-     },
-     "dataVersion": "",
-     "metadataVersion": "1",
-     "eventTime": "2026-08-18T16:41:45.579954Z"
-    },
-    {
-     "topic": "/subscriptions/b3f77526-827b-4354-9166-bcbff86b9749/resourceGroups/prdct11935-rg/providers/Microsoft.Storage/storageAccounts/prdct11935st",
-     "subject": "/blobServices/default/containers/ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787297576-8a49f8e1-9bb1-45f6-96d4-bf3e590b30c8.log",
-     "eventType": "Microsoft.Storage.BlobCreated",
-     "id": "5f03648c-301e-0017-3b30-2fccc0063ad1",
-     "data": {
-      "api": "PutBlob",
-      "clientRequestId": "e9a8514c-eab2-42ba-adff-a43dcabfeddb",
-      "requestId": "5f03648c-301e-0017-3b30-2fccc0000000",
-      "eTag": "0x8DEFD479748421A",
-      "contentType": "application/x-ndjson",
-      "contentLength": 554406,
-      "blobType": "BlockBlob",
-      "accessTier": "Default",
-      "url": "https://prdct11935st.blob.core.windows.net/ingestion/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787297576-8a49f8e1-9bb1-45f6-96d4-bf3e590b30c8.log",
-      "sequencer": "00000000000000000000000000048CF60000000001ee21cd",
-      "storageDiagnostics": {
-       "batchId": "dbc6f1b6-1006-002f-0030-2f6800000000"
-      }
-     },
-     "dataVersion": "",
-     "metadataVersion": "1",
-     "eventTime": "2026-08-18T16:41:45.579954Z"
-    }
-   ]
+  2026-08-24T02:55:09.562892Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=13.929225 outcome=processed s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-24/parity-1787540079-a393aca1-c110-4867-a4e1-6ceb265aafbf.log' span_id=b620fd01d36
+  2026-08-24T02:55:10.536669Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=13.759569 outcome=processed s3_key='tenant=11935b00-0000-4000-8000-000000000b02/source=mcp-scanner/date=2026-08-24/parity-1787540080-c5da8bc1-366c-42d8-9c36-cf9bed879848.log' span_id=a003b45fb00
+  2026-08-24T02:55:11.278697Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=14.21292 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-24/r52q056/1787540096-e1606826-2e10-47b3-836d-7cac02fd70e9.log' span_id=4c07ecd0f17
 
-##    ONE message in, TWO records handled out — both elements parsed from the single body, each settled
-##    independently, both outcome=processed, and note the SHARED trace_id: one message, two records:
-  2026-08-21T07:34:01.678987Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=226335.890962 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787297573-83335c75-5eaa-4ab1-807e-06ba67aa0369.log' span_id=c02f7ca70b16f90b tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=5d842899dedf54d4c9082ce6ba4eb83c
-  2026-08-21T07:34:01.760747Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=226336.099248 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-21/1787297576-8a49f8e1-9bb1-45f6-96d4-bf3e590b30c8.log' span_id=c02f7ca70b16f90b tenant_uuid=61750f27-8fbd-42a4-80cf-4191cfb2371a trace_flags=01 trace_id=5d842899dedf54d4c9082ce6ba4eb83c
+    Not a cherry-pick: on this one pod alone, in the window, 35 single-event deliveries were settled
+    outcome=processed (the burst's 300 objects were spread across the 20 replicas KEDA started).
+    The two tenants visible above are both real chain output: 61750f27-… is the product tenant's own
+    ingestion principal, 11935b00-… is the cm's separate azure_blob_parity_tb sink, a different tenant on the
+    same real transport.
 
-##    and the SINGLE ack for that one message:
-  2026-08-21T07:34:01.761187Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=266 message_id=28c5a041-2a70-49fc-83b5-0e50d1670605 span_id=c02f7ca70b16f90b trace_flags=01 trace_id=5d842899dedf54d4c9082ce6ba4eb83c
+    NOTE ON outcome=processed: the assertion is dispatch, not ack. `asset_ingestion_record_handled …
+    outcome=processed` is emitted at message_handler.py:171 AFTER the record is ingested — the pre-fix
+    branch logged nothing and completed the message with zero records.
 
-## 3) The unit-level pins for the same two shapes, on the parser that ships (they fail without it):
-   backend_python/tests/common_core/services/ingestion_events/test_blob_event.py
-     ::test_a_blob_created_event_yields_its_container_and_key      (the single-object shape)
-     ::test_a_batched_array_yields_one_record_each                 (the array shape)
-     ::test_a_real_event_grid_to_service_bus_delivery_parses       (the real captured delivery)
-   $ .venv/bin/python -m pytest tests/common_core/services/ingestion_events/test_blob_event.py -q
-     14 passed, 4 warnings in 11.92s
+================================================================================
+=== 2. ARRAY SHAPE — the batch form the transport does NOT emit, exercised on the REAL queue
+================================================================================
+    WHY IT IS PLACED, NOT ROUTED: Azure Event Grid's Service Bus delivery emits a single event object per
+    message, so the array branch cannot be reached through the transport at all. It is still live code
+    (blob_event.py:75) and it is half the gen-2 trap, so it is exercised directly on the REAL queue — no
+    mock, no in-process call, no hand-invented body.
+
+    THE BODY IS BUILT FROM TWO REAL CAPTURED EVENT BODIES — Event Grid's own, captured off this same lab
+    queue and published verbatim in evidence/at1-03-eventgrid-message.json (_the_deliveries_for_this_at):
+      id=86ab2506-f01e-0027-093a-33720f0646a8
+        eventType   Microsoft.Storage.BlobCreated
+        eventTime   2026-08-23T20:06:15.5947981Z
+        data.url    https://prdct11935st.blob.core.windows.net/ingestion/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log
+        contentLength 680904
+      id=86aba93d-f01e-0027-143a-33720f0645fe
+        eventType   Microsoft.Storage.BlobCreated
+        eventTime   2026-08-23T20:07:11.1212739Z
+        data.url    https://prdct11935st.blob.core.windows.net/ingestion/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log
+        contentLength 3058551
+
+    Both referenced blobs were re-verified to still exist in the lab container before the send
+    (`az storage blob exists` -> True, True), so the two records resolve to real objects.
+    The array message = `[body1, body2]`, 2,287 bytes, ONE Service Bus message:
+
+      $ python /tmp/prdct11935/sb.py send array-body.json "<the first body's own subject as Label>"
+        sent 2287 bytes to endpoint-asset-ingestion-prdct11935 (Label=/blobServices/default/containers/
+        ingestion/blobs/tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/
+        1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log)
+      sent at 2026-08-24T03:08:51.625Z
+
+    ONE MESSAGE IN, TWO RECORDS OUT, ONE SETTLEMENT — the shipped consumer's own log:
+
+  2026-08-24T03:08:58.101626Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=152 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log' span_id=f1a48aea666ea150 tenant_schema=onyx_security tenant_uuid=61750f27-8fb
+  2026-08-24T03:08:58.101788Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=25357.646384 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log' span_id=f1a48aea666ea15
+  2026-08-24T03:09:00.155493Z [info     ] ingested scanner object        [endpoint_asset_ingestion.ingestion.object_processor] filename=object_processor.py func_name=process lineno=152 s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log' span_id=f1a48aea666ea150 tenant_schema=onyx_security tenant_uuid=61750f27-8fb
+  2026-08-24T03:09:00.155724Z [info     ] asset_ingestion_record_handled [endpoint_asset_ingestion.consumer.message_handler] filename=message_handler.py func_name=_handle_record lineno=171 object_age_seconds=25306.980683 outcome=processed s3_key='tenant=61750f27-8fbd-42a4-80cf-4191cfb2371a/source=mcp-scanner/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log' span_id=f1a48aea666ea15
+  2026-08-24T03:09:00.156355Z [info     ] Completed message              [common_core.services.queue.asb] filename=asb.py func_name=complete_message lineno=244 message_id=ac31f8c4-22b0-4dfb-bb6f-12d44f807f61 span_id=f1a48aea666ea150 trace_flags=01 trace_id=8f803e93875817d0d6b73dd0ecf27691
+
+    THE JOIN THAT MAKES IT ONE MESSAGE, measured not asserted:
+      · all five lines above carry the SAME trace_id 8f803e93875817d0d6b73dd0ecf27691 — one message, one
+        trace, one handler invocation
+      · TWO distinct s3_key values appear, one per element of the array:
+          …/date=2026-08-23/1787515575-4ded3ce4-7a46-4d2b-a4f3-5e7275db5652.log   (element 0)
+          …/date=2026-08-23/1787515631-415c98cc-9891-4e2a-ab82-648c85f98330.log   (element 1)
+      · each is settled `asset_ingestion_record_handled … outcome=processed`
+          element 0 at 2026-08-24T03:08:58.101788Z
+          element 1 at 2026-08-24T03:09:00.155724Z
+      · and the MESSAGE is completed exactly ONCE, after both records:
+          2026-08-24T03:09:00.156355Z Completed message  [common_core.services.queue.asb] asb.py:244
+            message_id=ac31f8c4-22b0-4dfb-bb6f-12d44f807f61
+        -> 2 records from 1 message. On the pre-fix code this same body raised ValueError, incremented
+           parse_errors and completed the message with ZERO records.
+
+    NOTHING WAS DEAD-LETTERED: the queue's $DeadLetterQueue count is unchanged across the send —
+      before: dead_letter=122   after: active=0 dead_letter=122 scheduled=0 transfer_dlq=0 total=122
+
+================================================================================
+=== 3. WHAT WOULD HAVE FAILED THIS AT, AND DID NOT
+================================================================================
+    single-event body parsed to zero records and acked (the pre-fix branch) ...... not observed; §1
+    array body -> ValueError -> parse_err -> ack (the other half of the trap) .... not observed; §2
+    array body dead-lettered as poison .......................................... not observed; DLQ flat at 122
+    a hand-invented Event Grid body used where a real captured one exists ....... none; §2 bodies are
+                                                                                   Event Grid's own, from at1-03
+    mocked ASB / mocked parser .................................................. none; real queue, real SDK
