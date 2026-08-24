@@ -1,0 +1,217 @@
+{
+  "FILE LAST WRITTEN": "FILE LAST WRITTEN 2026-08-24T03:41:52Z",
+  "stamp": "2026-08-24T00:57:51.287Z",
+  "window": "r50at7002800",
+  "head": "2b60fdc4df25188104e737e6311087681355eff8",
+  "steps": [
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "Onyx Lab R50 MCP",
+      "try": 1,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "Onyx Lab R50 MCP",
+      "try": 2,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "Onyx Lab R50 MCP",
+      "try": 3,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "Onyx Lab R50 MCP",
+      "try": 4,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "r50at7002800-skill",
+      "try": 1,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "r50at7002800-skill",
+      "try": 2,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "r50at7002800-skill",
+      "try": 3,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "r50at7002800-skill",
+      "try": 4,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "r50at7002800-sub",
+      "try": 1,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "r50at7002800-sub",
+      "try": 2,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "r50at7002800-sub",
+      "try": 3,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "search": "r50at7002800-sub",
+      "try": 4,
+      "showing": "0",
+      "contains": false
+    },
+    {
+      "route": "/ai-activity?activitySessionId=7555",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-activity?activitySessionId=7555",
+      "rows": 18
+    }
+  ],
+  "assertions": [
+    {
+      "where": "MCP server row on /ai-assets (searched)",
+      "needle": "Onyx Lab R50 MCP",
+      "locator": "page.getByText(\"Onyx Lab R50 MCP\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 25000ms exceeded."
+    },
+    {
+      "where": "skill row on /ai-assets (searched)",
+      "needle": "r50at7002800-skill",
+      "locator": "page.getByText(\"r50at7002800-skill\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 25000ms exceeded."
+    },
+    {
+      "where": "subagent row on /ai-assets (searched)",
+      "needle": "r50at7002800-sub",
+      "locator": "page.getByText(\"r50at7002800-sub\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 25000ms exceeded."
+    },
+    {
+      "where": "/ai-activity per-session detail panel — session id",
+      "needle": "#7555",
+      "locator": "page.getByText(\"#7555\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1,
+      "asserted_text": "Conversation Details View conversation history and messages Unknown user & Hermes Agent (coder) Aug 24, 2026, 12:30 AM #7555 Conversation HA Hermes Agent (coder) Aug 24, 2026, 12:29 AM Response [REDACTED] UU Unknown user Aug 24, 2026, 12:29 AM Prompt Reply with exactly this token and nothing else: [REDACTED] Asset Details HA Hermes Agent (coder) Endpoint AI Agent Close"
+    },
+    {
+      "where": "/ai-activity detail panel — THIS window's real prompt text",
+      "needle": "Reply with exactly this token and nothing else",
+      "locator": "page.getByText(\"Reply with exactly this token and nothing else\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1,
+      "asserted_text": "Conversation Details View conversation history and messages Unknown user & Hermes Agent (coder) Aug 24, 2026, 12:30 AM #7555 Conversation HA Hermes Agent (coder) Aug 24, 2026, 12:29 AM Response [REDACTED] UU Unknown user Aug 24, 2026, 12:29 AM Prompt Reply with exactly this token and nothing else: [REDACTED] Asset Details HA Hermes Agent (coder) Endpoint AI Agent Close"
+    },
+    {
+      "where": "/ai-activity detail panel — the agent that produced the session",
+      "needle": "Hermes Agent (coder)",
+      "locator": "page.getByText(\"Hermes Agent (coder)\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 21,
+      "asserted_text": "Aug 24, 2026 12:29 AM N/A ip-10-10-6-254 HA Hermes Agent (coder) Agent [REDACTED] Info"
+    }
+  ],
+  "login": {
+    "ok": true,
+    "url_after_login": "http://ui.onyxd.svc.cluster.local:8080/overview",
+    "identity": "coder-agent@onyx.security"
+  },
+  "usage_panel_text": "Overview Guardian Inventory Findings Policies Fortify Manage Docs 1 AI Activity Filters Export CSV Columns Showing 296 requests Data retained for 90 days Date Employee Device Asset Type Account Type Prompt Severity Aug 24, 2026 12:29 AM N/A ip-10-10-6-254 HA Hermes Agent (coder) Agent [REDACTED] Info Aug 23, 2026 10:28 PM N/A ip-10-10-6-254 HA Hermes Agent (coder) Agent [REDACTED] Info Aug 23, 2026 6:00 PM N/A ip-10-10-6-254 HA Hermes Agent (coder) Agent [REDACTED] Info Aug 22, 2026 7:30 AM N/A ip-10-10-6-254 HA Hermes Agent (coder) Agent Round-33 verifier at7 UI-half session marker 20260822073000 ... Info Aug 21, 2026 11:58 PM N/A ip-10-10-6-254 HA Hermes Agent (coder) Agent vr30-verifier-at7-usage-probe nonce=7c18e870-5e35-4a03-8229-... Info Aug 21, 2026 5:01 PM N/A ip-10-10-6-254 HA Hermes Agent (coder) Agent [REDACTED] Info Aug 21, 2026 1:32 PM N/A ip-10-10-6-254 HA Hermes Agent (coder) Agent round-27 at7 verifier usage-session probe nonce fa87898f-d4c... Info Aug 21, 2026 10:57 AM N/A ip-10-10-6-254 HA Hermes Agent (coder) Agent [REDACTED] Info Aug 21, 2026 3:31 AM N/A ip-10-10-6-254 HA Hermes Agent (coder) Agent [REDACTED] Info Aug 21, 2026 12:22 AM N/A ip-10-10-6-254 HA Herm",
+  "usage_nonce_visible": false,
+  "usage_redacted": true,
+  "verdict": "SOME-ASSERTIONS-FAILED"
+}
