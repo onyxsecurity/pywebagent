@@ -1,143 +1,308 @@
-# PRDCT-11935 at6-04a — side-by-side diff, class: created
-# FILE LAST WRITTEN 2026-08-21T03:52:27Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
-#   measurements themselves, which is why the two can differ when a later round corrected a number.
-# onyx branch a2486bb33f · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · captured 2026-08-21T03:04:11Z
-# left  = prdct11935_ta, written by the REAL gen-1 Go/Temporal lane off its own schedule
-# right = prdct11935_tb, written by the new azure-mode writer on the head-exact image
-#
-# CAPTURED ON THE HEAD-EXACT IMAGE. localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 is built from a2486bb33f and proven byte-exact before use
-# (4741/4741 head .py files, evidence/at6-12-image-provenance.txt).
-#
-# WHAT CHANGED THIS ROUND (gate G2). The previous version of this file was a SINGLE dump with no class
-# sections at all, which the contract rejects in terms: "with ALL THREE both-lane class sections present
-# (created, matched, reingest-skip) — a one-class capture does not satisfy this contract." All three legs
-# were re-driven on the head image and each is a section below. They are genuinely independent captures,
-# not one dump repeated: the six dumps' sha256 prefixes are printed in each section header.
-#
-# THIS LEG: a first ingest into empty tenants — every row is an INSERT
-# Its inputs are that leg's own dumps — ta sha256[:12] 9666cc3fe224, tb a7746d2a48d0 —
-# so the three at6-04 files are independent measurements, which is the second half of what G2 asked for.
-# Every remaining difference is itemised WITH DIRECTION and a root cause at file:line in at6-06-ledger.txt;
-# the direction-aware enumeration of this same leg is at6-09's "created" section.
+# PRDCT-11935 at6-04a — TRANSPORT EQUIVALENCE, created class — the full A-vs-B dump diff (companion to at6-07)
+# FILE LAST WRITTEN 2026-08-24T01:31:53Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8
+# running image, BOTH transports: localhost:5001/onyx/endpoint-asset-ingestion:r46b-head
+#   imageID sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25 — byte-identical in both writer pods (see IMAGE IDENTITY below)
+# capture time (leg start, UTC): 2026-08-24T01:15:13Z
 
-########## diff -u <gen-1 TA> <new-lane TB> ##########
---- /tmp/prdct11935/r25/created-ta.txt	2026-08-21 02:55:39.386977137 +0000
-+++ /tmp/prdct11935/r25/created-tb.txt	2026-08-21 02:55:40.912949362 +0000
-@@ -1,7 +1,7 @@
- --- assets by type/sub_type/status/is_deleted
- type|sub_type|status|is_deleted|count
- AssetTypeDesktopAgent|AssetSubTypeAIAgent||f|5
--AssetTypeMCP|AssetSubTypeMCPServer|AssetStatusDiscovered|f|18
-+AssetTypeMCP|AssetSubTypeMCPServer|AssetStatusDiscovered|f|20
- AssetTypeSkill|AssetSubTypeSkill|AssetStatusDiscovered|f|196
- AssetTypeSubAgent|AssetSubTypeSubAgent|AssetStatusDiscovered|f|52
- (4 rows)
-@@ -12,23 +12,25 @@
- Claude Code (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_claude-code::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_claude-code|f
- Codex (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_codex::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_codex|f
- Hermes Agent (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_hermes-agent::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_hermes-agent|f
--OpenClaw (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_openclaw::ec255301bd4407d309fbce94811384b0||f|||Desktop|endpoint_openclaw|f
-+OpenClaw (coder)|AssetTypeDesktopAgent|AssetSubTypeAIAgent|endpoint_openclaw::ec255301bd4407d309fbce94811384b0||f|2026.5.7 (eeef486)||Desktop|endpoint_openclaw|f
- Context7 MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@upstash/context7-mcp::4.0.2|AssetStatusDiscovered|f|4.0.2|||@upstash/context7-mcp|f
- Firefox DevTools MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|firefox-devtools-mcp::0.9.2|AssetStatusDiscovered|f|0.9.2|||firefox-devtools-mcp|f
- Gmail|AssetTypeMCP|AssetSubTypeMCPServer|gmailmcp.googleapis.com/mcp/v1::unknown|AssetStatusDiscovered|f|unknown|||gmailmcp.googleapis.com/mcp/v1|f
- Google Calendar|AssetTypeMCP|AssetSubTypeMCPServer|calendarmcp.googleapis.com/mcp/v1::unknown|AssetStatusDiscovered|f|unknown|||calendarmcp.googleapis.com/mcp/v1|f
- Google Drive|AssetTypeMCP|AssetSubTypeMCPServer|drivemcp.googleapis.com/mcp/v1::unknown|AssetStatusDiscovered|f|unknown|||drivemcp.googleapis.com/mcp/v1|f
--Local MCP Server (.claude/scripts/prod-db-cached.sh)|AssetTypeMCP|AssetSubTypeMCPServer|.claude/scripts/prod-db-cached.sh::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||.claude/scripts/prod-db-cached.sh::ec255301bd4407d309fbce94811384b0|f
--Local MCP Server (.claude/scripts/stg-db-cached.sh)|AssetTypeMCP|AssetSubTypeMCPServer|.claude/scripts/stg-db-cached.sh::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||.claude/scripts/stg-db-cached.sh::ec255301bd4407d309fbce94811384b0|f
--Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs)|AssetTypeMCP|AssetSubTypeMCPServer|/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs::ec255301bd4407d309fbce94811384b0|f
-+Groundcover MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.groundcover.com/api/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.groundcover.com/api/mcp|f
-+Incident.io MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.incident.io/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.incident.io/mcp|f
- Local MCP Server (/opt/coder/coder)|AssetTypeMCP|AssetSubTypeMCPServer|/opt/coder/coder::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||/opt/coder/coder::ec255301bd4407d309fbce94811384b0|f
--Local MCP Server (mailosaur-mcp-server.js)|AssetTypeMCP|AssetSubTypeMCPServer|mailosaur-mcp-server.js::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||mailosaur-mcp-server.js::ec255301bd4407d309fbce94811384b0|f
-+Local MCP Server (bash)|AssetTypeMCP|AssetSubTypeMCPServer|bash::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||bash::ec255301bd4407d309fbce94811384b0|f
-+Local MCP Server (node)|AssetTypeMCP|AssetSubTypeMCPServer|node::ec255301bd4407d309fbce94811384b0::unknown|AssetStatusDiscovered|f|unknown|||node::ec255301bd4407d309fbce94811384b0|f
- Notion MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@notionhq/notion-mcp-server::2.2.1|AssetStatusDiscovered|f|2.2.1|||@notionhq/notion-mcp-server|f
- Onyx Lab MCP|AssetTypeMCP|AssetSubTypeMCPServer|mcpb:onyx-lab-mcp::1.4.0|AssetStatusDiscovered|f|1.4.0|||mcpb:onyx-lab-mcp|f
- Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::0.0.74|AssetStatusDiscovered|f|0.0.74|||@playwright/mcp|f
--Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::0.0.79|AssetStatusDiscovered|f|0.0.79|||@playwright/mcp|f
-+Playwright MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|@playwright/mcp::unknown|AssetStatusDiscovered|f|unknown|||@playwright/mcp|f
- Remote MCP Server (https://kraft.onyxhub.io/api/mcp)|AssetTypeMCP|AssetSubTypeMCPServer|kraft.onyxhub.io/api/mcp::unknown|AssetStatusDiscovered|f|unknown|||kraft.onyxhub.io/api/mcp|f
-+Sentry MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.sentry.dev/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.sentry.dev/mcp|f
- Slack|AssetTypeMCP|AssetSubTypeMCPServer|mcp.slack.com/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.slack.com/mcp|f
-+Tavily MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp.tavily.com/mcp::unknown|AssetStatusDiscovered|f|unknown|||mcp.tavily.com/mcp|f
- mcp-remote MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp-remote::0.1.30|AssetStatusDiscovered|f|0.1.30|||mcp-remote|f
- mcp-remote MCP Server|AssetTypeMCP|AssetSubTypeMCPServer|mcp-remote::0.1.38|AssetStatusDiscovered|f|0.1.38|||mcp-remote|f
- 1password|AssetTypeSkill|AssetSubTypeSkill|ef337c6006f065a13ade18d8f7decdd9d6a335337656fa1c701b47e499cda8d4|AssetStatusDiscovered|f|||||f
-@@ -279,7 +281,7 @@
- verify|AssetTypeSubAgent|AssetSubTypeSubAgent|subagent::ab774c6e0dbc7b83c1e3247190c680014db7ac325f9546a44eee8bf168c5da3e|AssetStatusDiscovered|f|||||f
- verify|AssetTypeSubAgent|AssetSubTypeSubAgent|subagent::b2b078f86049d527919224f4068f76b5fc1a505c83eecb157530480c7709177e|AssetStatusDiscovered|f|||||f
- verify|AssetTypeSubAgent|AssetSubTypeSubAgent|subagent::b3ff3fdd9e1712d1d196e22b2873e2de6da58088373754b0a59a63ffb8949ad9|AssetStatusDiscovered|f|||||f
--(271 rows)
-+(273 rows)
- 
- --- mcp servers (name|uid|type|source_type|publisher|is_public|hash)
- name|unique_identifier|type|source_type|coalesce|is_public|coalesce
-@@ -288,20 +290,22 @@
- Gmail|gmailmcp.googleapis.com/mcp/v1::unknown|Remote|Http|||35798b08f1318af1d7b9a6002cdb7832a8fd8ec8e9d559f96677a3eb5bd2b752
- Google Calendar|calendarmcp.googleapis.com/mcp/v1::unknown|Remote|Http|||329997d370044cc19e9261968e043745e9360020bbaf805ada55f543efc5d443
- Google Drive|drivemcp.googleapis.com/mcp/v1::unknown|Remote|Http|||1e521cbc1dbe1459c51205938149a628f53c8bbcef4477d19adb9198b89b62fc
--Local MCP Server (.claude/scripts/prod-db-cached.sh)|.claude/scripts/prod-db-cached.sh::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||02992f8b8c19e23e902bb10baa8e3546daa6bfeaef65a5a5743e956521ca5d5d
--Local MCP Server (.claude/scripts/stg-db-cached.sh)|.claude/scripts/stg-db-cached.sh::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||678d7e770f291ac56dbd8ced85a29f7b3aa3c70526580e54891ce5b8ee7b64ab
--Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs)|/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||6ba6cf0f7d763862a90488822e1cb0df5c5482039d3eaf955ee58ff89a552fa9
-+Groundcover MCP Server|mcp.groundcover.com/api/mcp::unknown|Remote|Http|||e4ab6b308535a73b3a1a05e4ce61041e160479641161a2336800b1cbdf9cb827
-+Incident.io MCP Server|mcp.incident.io/mcp::unknown|Remote|Http|||aace3c63778450b55533af916159fb8716275fdc1333c31e924fec7d27f2882a
- Local MCP Server (/opt/coder/coder)|/opt/coder/coder::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||d0122f34908904a2ceef70c0637c3f648374ff28e4b7451168bedb1ede10c276
--Local MCP Server (mailosaur-mcp-server.js)|mailosaur-mcp-server.js::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||22910648bf5adec6d5508ab234b7123392b5b450bd8871e770acab4aa67ca7bf
-+Local MCP Server (bash)|bash::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||678d7e770f291ac56dbd8ced85a29f7b3aa3c70526580e54891ce5b8ee7b64ab
-+Local MCP Server (node)|node::ec255301bd4407d309fbce94811384b0::unknown|Local|File|||6ba6cf0f7d763862a90488822e1cb0df5c5482039d3eaf955ee58ff89a552fa9
- Notion MCP Server|@notionhq/notion-mcp-server::2.2.1|Local|Npm|||bfa3eaaeafe39abb04fc33c11c416007ee166c0db41a3b4b37fa3ecb6124b528
- Onyx Lab MCP|mcpb:onyx-lab-mcp::1.4.0|Local|File|||f4f17644be1fb79f4a5ada0b990686ac9b27c7b01572433ba4dfcd035bb9c76f
- Playwright MCP Server|@playwright/mcp::0.0.74|Local|Npm|||a8d3267c77deab15c2eeb40acba2ca782923765cc0e9c97e469be831aeb47bd5
--Playwright MCP Server|@playwright/mcp::0.0.79|Local|Npm|||17e9f68295cf527944229e093a00829290fc33eaf404b4ef787671a1dc5de916
-+Playwright MCP Server|@playwright/mcp::unknown|Local|Npm|||17e9f68295cf527944229e093a00829290fc33eaf404b4ef787671a1dc5de916
- Remote MCP Server (https://kraft.onyxhub.io/api/mcp)|kraft.onyxhub.io/api/mcp::unknown|Remote|Http|||d297826f4f00631ddb91f7000c5b30b0b24d5369a5920ded176b02c402aef2bd
-+Sentry MCP Server|mcp.sentry.dev/mcp::unknown|Remote|Http|||e6e92e9d5c053d681da5889b0fb20adfc2e8d6760be43eb3cbf86fe5d6eea8c9
- Slack|mcp.slack.com/mcp::unknown|Remote|Http|||84b42fb43a16fad23555c5872fd341146612a440590ccb23147de75db76fed82
--mcp-remote MCP Server|mcp-remote::0.1.30|Remote|Http|||68cfa3547070848c6c8d45b60a8c401dc84e341e9595a4dc284e39e9588f8f90
--mcp-remote MCP Server|mcp-remote::0.1.38|Remote|Http|||68cfa3547070848c6c8d45b60a8c401dc84e341e9595a4dc284e39e9588f8f90
--(18 rows)
-+Tavily MCP Server|mcp.tavily.com/mcp::unknown|Remote|Http|||27457cc2943ee7117cec44b698025fa956cb3c8e557112e0efac0dcf3f6cb313
-+mcp-remote MCP Server|mcp-remote::0.1.30|Local|Npm|||e0ee3f22776ff46f574e5454eed2c0c9ae20069eb1808819a173801716591eef
-+mcp-remote MCP Server|mcp-remote::0.1.38|Local|Npm|||1571b184a753cf187fa0fab2ab01cc65af36f5620f0e2d1722614729d757ca5b
-+(20 rows)
- 
- --- mcp tools (server|tool)
- name|coalesce
-@@ -592,11 +596,9 @@
- AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Gmail|f|{"sources": [{"kind": "web_connector", "name": "Gmail"}]}
- AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Google Calendar|f|{"sources": [{"kind": "web_connector", "name": "Google Calendar"}]}
- AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Google Drive|f|{"sources": [{"kind": "web_connector", "name": "Google Drive"}]}
--AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (.claude/scripts/prod-db-cached.sh)|f|{"sources": [{"kind": "direct"}]}
--AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (.claude/scripts/stg-db-cached.sh)|f|{"sources": [{"kind": "direct"}]}
--AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (/home/coder/.claude/plugins/cache/claude-ftw/autonomous-workflow/2.10.0/dist/bundle.cjs)|f|{"sources": [{"kind": "plugin", "name": "autonomous-workflow"}]}
- AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (/opt/coder/coder)|f|{"sources": [{"kind": "direct"}]}
--AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (mailosaur-mcp-server.js)|f|{"sources": [{"kind": "direct"}]}
-+AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (bash)|f|{"sources": [{"kind": "direct"}]}
-+AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Local MCP Server (node)|f|{"sources": [{"kind": "plugin", "name": "autonomous-workflow"}, {"kind": "direct"}]}
- AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Notion MCP Server|f|{"sources": [{"kind": "direct"}]}
- AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Playwright MCP Server|f|{"sources": [{"kind": "direct"}]}
- AgentToMcp|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeMCP:Playwright MCP Server|f|{"sources": [{"kind": "plugin", "name": "playwright"}]}
-@@ -869,8 +871,10 @@
- AgentToSubagent|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeSubAgent:verify|f|{"sources": [{"kind": "direct"}]}
- AgentToSubagent|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeSubAgent:verify|f|{"sources": [{"kind": "direct"}]}
- AgentToSubagent|AssetTypeDesktopAgent:Claude Code (coder)|AssetTypeSubAgent:verify|f|{"sources": [{"kind": "direct"}]}
--McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "direct"}]}
--McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:mcp-remote MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
-+McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Groundcover MCP Server|f|{"sources": [{"kind": "direct"}]}
-+McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Incident.io MCP Server|f|{"sources": [{"kind": "direct"}]}
-+McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Sentry MCP Server|f|{"sources": [{"kind": "direct"}]}
-+McpToMcp|AssetTypeMCP:mcp-remote MCP Server|AssetTypeMCP:Tavily MCP Server|f|{"sources": [{"kind": "plugin", "name": "codebase-agents"}, {"kind": "direct"}]}
- (285 rows)
- 
- --- issue instances (issue_identifier|title|asset|resolve_state)
-@@ -881,6 +885,6 @@
- 
- --- mcp ingestion state (new-lane dedup state; gen-1 has none)
- count
--0
-+20
- (1 row)
- 
 
-changed lines: 50
+=== THE LANE (run-scoped; nothing shared is written by it) ===
+ONE Kong POST is fanned by ONE vector transform into TWO transports, so the two lanes cannot
+receive different bytes by construction:
+
+  scanner body --HTTP POST--> Kong /mcp-scanner (key-auth, run-scoped consumer)
+      -> vector kong_http -> kong_http_mask_auth -> at11_route.at6r50
+           -> at6r50_extract  ---+--> sink s3_sink_at6r50_a    -> s3://at6r50            (LocalStack)
+                                 |         -> bucket notification -> SQS at6r50-aws
+                                 |         -> deploy/eai-at6-aws   (cloud=aws,   SQS/S3)
+                                 |         -> tenant schema prdct11935_ta26        [AWS TRANSPORT]
+                                 |
+                                 +--> sink azure_blob_at6r50_b -> d19prdct11935st/ingestion (real Azure)
+                                           -> Event Grid system topic prdct11935-blob-events... (d19)
+                                           -> SB topic d19-events -> subscription at6r50-mine
+                                              (SqlFilter: sys.Label LIKE '%source=mcp-scanner/%')
+                                           -> SB queue at6r50-eai
+                                           -> deploy/eai-at6-azure (cloud=azure, ASB/Blob)
+                                           -> tenant schema prdct11935_tb26      [AZURE TRANSPORT]
+
+Both writers run the SAME image and the SAME ONYX__FEATURE_FLAGS__SERVICE_IDENTITY; their configs
+differ ONLY in the transport stanza. Every drive is a real Kong POST through key-auth — no
+port-forward, no kubectl exec curl, no minted JWT, no DB insert, no in-process call.
+
+
+=== WHY THE EARLIER MEASUREMENT OF THIS AT WAS NON-ZERO — ROOT CAUSE, TO THE LINE ===
+The round-40 re-drive of this AT reported a residual it could not attribute: the same MCP server
+(same content hash 6ba6cf0f7d763862a90488822e1cb0df...) keyed `<abs>/dist/bundle.cjs::<serial>::unknown`
+on the AWS-transport tenant and `node::<serial>::unknown` on the Azure-transport tenant, plus an
+unpinned `mcp-remote` at 0.1.49 vs 0.1.46. It is NOT transport-caused. MCP identity derivation is
+not a pure function of the payload bytes:
+
+  1. backend_python/src/endpoint_asset_ingestion/ingestion/writers.py:916-926
+     `await resolve_object_versions(...)` runs INLINE, before the first write, to "warm the package /
+     bridge-wrapper / gateway-tag caches ... so the FIRST write below keys {pkg}::{version} instead
+     of ::unknown".
+  2. backend_python/src/endpoint_asset_ingestion/ingestion/version_resolution.py:378
+     `result = await fetch_latest_version_from_registry(provider, candidate.package_name, candidate.registry)`
+     — a LIVE npm-registry "latest" HTTP GET at ingest time. The module docstring names it: "THE
+     RULE-9 EXCEPTION, CONSCIOUSLY BOUNDED ... only the registry HTTP lookup moves inline".
+  3. backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py:405-436
+     identity name comes from `get_cache_entry_by_hash(...)` on the per-tenant `mcp_package_cache`
+     first, and only falls back to `_resolve_scanner_name` -> `mcp_server.command` on a cold miss.
+     mcp_writer.py:466-478 does the same for the bridge wrapper version.
+  4. backend_python/src/common/repository/mcp_package_cache.py:17-19
+     `_cache: LRUCache[tuple[str, str], "MCPPackageCacheEntry | None"] = LRUCache(maxsize=10000)`
+     — a MODULE-GLOBAL in-process LRU in front of that table, keyed (tenant_schema, cache_key_hash),
+     which caches negative results too and is NOT invalidated by `TRUNCATE ... mcp_package_cache`.
+  5. backend_python/src/endpoint_asset_ingestion/ingestion/extract.py:229-235 sets `name=None`
+     ("MCP identity is derived from command/url downstream"), and the resolved name/version are
+     local variables that never enter the content hash — which is exactly why the r40 rows could
+     show an IDENTICAL content_hash with a DIFFERENT unique_identifier. A payload difference would
+     have moved the hash; a cache/pod-state difference does not.
+
+  Consequence: two writer PODS with differently-aged caches mint different identities for the same
+  bytes. The r40 harness truncated the tenants but never restarted the writer pods, and its two
+  pods had been running for hours against those same tenants, so each replayed its own stale
+  resolution. `mcp-remote` 0.1.49 vs 0.1.46 is npm's `latest` as seen at two different moments.
+  This code is transport-agnostic — identical on both lanes — so it is a pre-existing property of
+  the writer, NOT transport-caused loss.
+
+  MEASURED CONFIRMATION IN THIS RUN: both writers were created cold at 2026-08-24T00:42:14Z and both
+  tenants' `mcp_package_cache` was truncated before the sequence. The r40 divergent rows now AGREE:
+  both tenants carry `Local MCP Server (node)` / `node::ec255301bd4407d309fbce94811384b0::unknown`
+  with content hash 6ba6cf0f... (the cold derivation — `extract_launcher_package` declines the
+  `node` launcher, so identity falls back to `command`), and both carry `mcp-remote::0.1.49`
+  (npm's `latest`, resolved by BOTH pods inside the same window). The two tenants' whole
+  `mcp_package_cache` tables are row-for-row identical, including
+  `mcp.tavily.com/mcp | bridge mcp-remote | bridge_version 0.1.49` on both sides.
+
+
+=== TRANSPORT-CAUSED, OR RESOLUTION-TIMING? THE DISCRIMINATOR ===
+at6's guard forbids TRANSPORT-CAUSED divergence. The r40 residual is RESOLUTION-TIMING, and the two
+are distinguishable by evidence, not opinion:
+
+  * If it were transport-caused, it would have to originate in code that differs between the two
+    lanes. It does not: both lanes run the SAME image (same imageID digest, below) and the identity
+    chain has no transport branch. Every file in that chain is UNCHANGED by this PR:
+=== merge-base..HEAD diff on every file in the identity-resolution chain ===
+  backend_python/src/endpoint_asset_ingestion/ingestion/version_resolution.py                     0 changed lines
+  backend_python/src/common/services/package_registry/npm.py                                      0 changed lines
+  backend_python/src/python_temporal_worker/mcp_server_enrichment/activities.py                   0 changed lines
+  backend_python/src/endpoint_asset_ingestion/ingestion/mcp_writer.py                             0 changed lines
+  backend_python/src/common/repository/mcp_package_cache.py                                       0 changed lines
+  backend_python/src/python_temporal_worker/mcp_asset_creation/activities.py                      0 changed lines
+  backend_python/src/common/models/mcp_client_info.py                                             0 changed lines
+  backend_python/src/common/services/mcp_source_detection.py                                      0 changed lines
+  backend_python/src/endpoint_asset_ingestion/ingestion/extract.py                                0 changed lines
+  backend_python/src/endpoint_asset_ingestion/ingestion/writers.py                                0 changed lines
+  (merge-base 822abd2356f02c10f1d35901dd3c5feef43d8ade)
+
+  * If it were resolution-timing, holding the resolution constant across the two lanes would make it
+    disappear while changing nothing about the transports. That is exactly what this leg does — both
+    writers created cold at the same instant, both tenants' mcp_package_cache truncated, both lanes
+    driven inside the SAME settle-gated window (seconds apart, against the same npm dist-tags
+    snapshot) — and the residual disappears: 0 changed lines on all three classes.
+  * The r40 rows themselves carried the signature: IDENTICAL content_hash with a DIFFERENT
+    unique_identifier. content_hash covers the whole McpServerInput (command, args, version); the
+    resolved name/version never enter it. Only an out-of-band, non-payload input can move one
+    without the other.
+
+  VERDICT: not transport-caused. It is pre-existing, transport-independent resolution-timing in the
+  writer (a live npm dist-tags.latest lookup plus a per-tenant/per-process package cache), present
+  identically on the AWS lane and the Azure lane, and unchanged by this PR.
+
+
+=== HARNESS DEFECTS FIXED FOR THIS MEASUREMENT (all harness, none in ~/onyx) ===
+ D1  Writer-pod resolution state was never reset. Both prior harnesses truncated the tenants but
+     reused long-running writer pods whose module-global mcp_package_cache LRU survives TRUNCATE.
+     FIX: run-scoped writer clones (eai-at6-aws / eai-at6-azure), created cold, at the same instant,
+     both on the head image — so neither side carries prior resolution state.
+ D2  wipe-prefixes.sh is asymmetric by design: it empties the AWS object store in up to 6 passes and
+     "by design" never empties the Azure one. FIX: this leg empties BOTH stores symmetrically at
+     reset, and does not rely on wiping at all — it gates on both queues being empty instead.
+ D3  The plan's parity sinks (s3_sink_parity_ta / azure_blob_parity_tb) are fed by
+     `extract_tenant_id`, i.e. they copy EVERY consumer's traffic on the box into the two comparison
+     tenants. With sibling legs scanning concurrently, the two tenants absorb different suffixes of
+     the traffic stream. FIX: a run-scoped Kong consumer plus a dedicated `at11_route.at6r50` branch
+     (the sanctioned round-48 at11 isolation pattern) so ONLY this leg's own POSTs can reach either
+     tenant. Route condition also pins `x-source-type == "mcp-scanner"`, which excludes the
+     scanner's separate `endpoint-logs` stream.
+ D4  Object boundaries were left to chance. Two independently batching vector sinks can group a
+     burst of POSTs into different object sets, and the writer's connection-source merge is
+     arrival-order dependent. FIX: settle-gated SEQUENTIAL replay — body N+1 is not sent until N has
+     landed as exactly one object in BOTH stores, BOTH queues are empty (SQS visible+in-flight = 0,
+     Service Bus active = 0), and BOTH writers have logged their Nth `outcome=processed`.
+ D5  Non-atomic dumps manufacture diffs. KEPT from the engineer's harness: both tenants are read
+     inside ONE `REPEATABLE READ` transaction.
+ D6  Gen-1 had to be quiesced, which perturbs shared state. NOT NEEDED HERE: this lane's objects
+     live in a run-scoped bucket and a different storage account, so gen-1 (a scheduled lister over
+     the shared `ingestion` bucket) is structurally unable to see them. Gen-1 ran untouched at
+     replicas 1/1 throughout — a stronger isolation claim than quiescing it.
+ Every wait in the harness is bounded (max iteration counts, `timeout`), and a leg that does not
+ settle exits non-zero rather than dumping a partial state.
+
+
+=== IMAGE IDENTITY (both transports run the same bytes) ===
+eai-at6-aws-7cf56977b5-gt9dg | image= localhost:5001/onyx/endpoint-asset-ingestion:r46b-head | imageID= localhost:5001/onyx/endpoint-asset-ingestion@sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25 | started= 2026-08-24T00:42:14Z | restarts= 0
+eai-at6-azure-75bf4cf7c8-fqmcm | image= localhost:5001/onyx/endpoint-asset-ingestion:r46b-head | imageID= localhost:5001/onyx/endpoint-asset-ingestion@sha256:d1087c003ad7a7992d98e028647c45637720f23ec1b54625ea7159e7f7e8cb25 | started= 2026-08-24T00:42:14Z | restarts= 0
+
+
+=== QUIESCE / ISOLATION PROOF ===
+gen-1 workers during the whole sequence (name, spec replicas, ready replicas):
+temporal-general-worker   1     1
+temporal-scanner-worker   1     1
+
+  Gen-1 was NOT paused. It cannot reach this lane: its store is the shared `ingestion` bucket, while
+  this leg's AWS objects are in bucket `at6r50` and its Azure objects are in storage account
+  `d19prdct11935st` behind a different Event Grid system topic and a different Service Bus topic.
+
+No other consumer wrote these tenants during the sequence (log lines mentioning
+11935a26 / 11935b26 / _ta26 / _tb26, since the sequence began):
+checked at 2026-08-24T01:31:38Z, window = since the sequence began 2026-08-24T01:15:13Z
+  deploy/endpoint-asset-ingestion : 0 log line(s) mentioning this leg's tenants   (want 0)
+  deploy/eai-azure : 0 log line(s) mentioning this leg's tenants   (want 0)
+  deploy/eai-azure-r39a : 0 log line(s) mentioning this leg's tenants   (want 0)
+  deploy/eai-at11-base : 0 log line(s) mentioning this leg's tenants   (want 0)
+  deploy/eai-at11-head : 0 log line(s) mentioning this leg's tenants   (want 0)
+
+The shared parity tenants were never touched by this leg:
+  prdct11935_ta assets=438   prdct11935_tb assets=427   (the plan parity tenants — this leg never writes them)
+
+
+=== THE COMMAND THAT PRODUCED THIS ===
+    cd /tmp/prdct11935/r50/at6 && ./run-all.sh
+  which runs, in order:
+    ./leg.sh created      reset /tmp/prdct11935/r50/at6/bodies-created
+    ./leg.sh matched      keep  /tmp/prdct11935/r50/at6/bodies-matched
+    ./leg.sh reingestskip keep  /tmp/prdct11935/r50/at6/bodies-matched
+  Harness sources (master copies): leg.sh, run-all.sh, dual-dump.sh, same-bytes.sh,
+  reset-tenants.sh, patch-vector-at6r50.py, restore.sh — all under /tmp/prdct11935/r50/at6/.
+
+
+=== THE LEG, AS IT RAN (full, unedited) ===
+### CLASS=created  MODE=reset  BODIES=/tmp/prdct11935/r50/at6/bodies-created   2026-08-24T01:15:13Z
+### onyx head 2b60fdc4df25188104e737e6311087681355eff8
+### writer image AWS  : localhost:5001/onyx/endpoint-asset-ingestion:r46b-head  pod eai-at6-aws-7cf56977b5-gt9dg started 2026-08-24T00:42:14Z
+### writer image AZURE: localhost:5001/onyx/endpoint-asset-ingestion:r46b-head  pod eai-at6-azure-75bf4cf7c8-fqmcm started 2026-08-24T00:42:14Z
+    prdct11935_ta26 reset: assets=0 mcp_state=0 pkg_cache=0
+    prdct11935_tb26 reset: assets=0 mcp_state=0 pkg_cache=0
+    BOTH object stores emptied symmetrically: s3=0 blobs=0   (the plan's wipe-prefixes.sh emptied only the AWS side)
+    baselines: processed aws=88 azure=88 ; objects s3=0 blobs=0
+    front door READY (no-key guard 401 after 1 probe(s))
+    [1] POST 01.json (641547 B, sha 7cf73811c84c536d) -> Kong HTTP 200  2026-08-24T01:15:25Z
+        settled after 1x5s: s3=1 blobs=1 sqs=0+0 sb=0 processed aws=1 azure=1
+    [2] POST 02.json (5554 B, sha ce124716645ae09b) -> Kong HTTP 200  2026-08-24T01:15:53Z
+        settled after 1x5s: s3=2 blobs=2 sqs=0+0 sb=0 processed aws=2 azure=2
+    [3] POST 03.json (23813 B, sha 9be9c15a91431140) -> Kong HTTP 200  2026-08-24T01:16:07Z
+        settled after 2x5s: s3=3 blobs=3 sqs=0+0 sb=0 processed aws=3 azure=3
+    [4] POST 04.json (5990 B, sha 9a9cc75e099c8c86) -> Kong HTTP 200  2026-08-24T01:16:33Z
+        settled after 2x5s: s3=4 blobs=4 sqs=0+0 sb=0 processed aws=4 azure=4
+    [5] POST 05.json (1055077 B, sha db5e4a45a7c6c1d6) -> Kong HTTP 200  2026-08-24T01:16:58Z
+        settled after 2x5s: s3=5 blobs=5 sqs=0+0 sb=0 processed aws=5 azure=5
+    [6] POST 06.json (66889 B, sha dbaef22a2eac9cb5) -> Kong HTTP 200  2026-08-24T01:17:24Z
+        settled after 2x5s: s3=6 blobs=6 sqs=0+0 sb=0 processed aws=6 azure=6
+    [7] POST 07.json (1132513 B, sha bc530037f250b9b2) -> Kong HTTP 200  2026-08-24T01:17:51Z
+        settled after 2x5s: s3=7 blobs=7 sqs=0+0 sb=0 processed aws=7 azure=7
+    [8] POST 08.json (803997 B, sha 7931bc4688678611) -> Kong HTTP 200  2026-08-24T01:18:16Z
+        settled after 2x5s: s3=8 blobs=8 sqs=0+0 sb=0 processed aws=8 azure=8
+    all 8 bodies replayed and settled
+### SAME-BYTES PRECONDITION
+    AWS store objects : 8
+    AZURE store objects: 8
+      MATCH     636280 B  aws=013d9fe8a434c966490800282b66fb1a  azure=013d9fe8a434c966490800282b66fb1a
+      MATCH      23981 B  aws=02bec0c530644f3326a4956378cc2726  azure=02bec0c530644f3326a4956378cc2726
+      MATCH     804165 B  aws=0b4c165271ed3f15c5e97008ca464ac5  azure=0b4c165271ed3f15c5e97008ca464ac5
+      MATCH    1123871 B  aws=3ac87f916f82be7e022062908de77689  azure=3ac87f916f82be7e022062908de77689
+      MATCH      66232 B  aws=4a2ed2ccab95e63fd0971fcc698b1863  azure=4a2ed2ccab95e63fd0971fcc698b1863
+      MATCH       5722 B  aws=5333fdb44d9adccd677e2dad24a2b9a2  azure=5333fdb44d9adccd677e2dad24a2b9a2
+      MATCH    1047260 B  aws=9480e27e80513caca3e6c9371f8971d0  azure=9480e27e80513caca3e6c9371f8971d0
+      MATCH       6158 B  aws=f106796b54c5b55cfe5369e32b9c7541  azure=f106796b54c5b55cfe5369e32b9c7541
+    SAME-BYTES PRECONDITION: HOLDS — 8/8 object pairs sha256-identical
+### ATOMIC DUAL-TENANT SNAPSHOT (one REPEATABLE READ transaction)
+      wrote /tmp/prdct11935/r50/at6/created-a.txt (1045 lines) and /tmp/prdct11935/r50/at6/created-b.txt (1045 lines) from ONE repeatable-read snapshot
+    non-emptiness guard: a_lines=1045 b_lines=1045 a_assets=342
+    sha256 A(aws)=578016f3434b963091e15648bc04db2dd60c41264e87a8d5b543983d6ac18290
+    sha256 B(azure)=578016f3434b963091e15648bc04db2dd60c41264e87a8d5b543983d6ac18290
+    changed lines: 0
+### leg created done 2026-08-24T01:18:58Z (same-bytes rc=0)
+
+
+=== THE VERDICT ===
+    $ diff created-a.txt created-b.txt
+    (no output — the two dumps are identical)
+
+    changed lines: 0
+
+    sha256 A(aws)=578016f3434b963091e15648bc04db2dd60c41264e87a8d5b543983d6ac18290
+    sha256 B(azure)=578016f3434b963091e15648bc04db2dd60c41264e87a8d5b543983d6ac18290
+    non-emptiness guard: a_lines=1045 b_lines=1045 a_assets=342
+    SAME-BYTES PRECONDITION: HOLDS — 8/8 object pairs sha256-identical
+
+=== RESTORE PROOF (every env change this leg made, undone and verified) ===
+### RESTORE  2026-08-24T01:38:30Z
+--- 1. vector cm -> the pre-patch snapshot
+configmap/onyx-onyxd-vector configured
+    vector READY
+    VERIFIED: live vector cm is byte-identical to the pre-patch snapshot
+    at6r50 route branch present: False (want False)
+    at6r50_extract present: False (want False)
+    at6r50 sinks present: [] (want [])
+    at11 route branches: ['base', 'head'] (want ['base','head'])
+--- 2. run-scoped writer clones
+    deployment.apps "eai-at6-aws" deleted
+    deployment.apps "eai-at6-azure" deleted
+    configmap "eai-at6-aws" deleted
+    configmap "eai-at6-azure" deleted
+    remaining at6-r50 workloads: 0 (want 0)
+--- 3. Kong consumer + key
+    delete http=204
+    consumer still present? 404 (want 404)
+--- 4. LocalStack bucket + queues
+    buckets matching at6r50: 0 (want 0)
+    queues matching at6r50: 0 (want 0)
+    SHARED bucket notification targets: 6 (want 6, unchanged)
+--- 5. Azure: blobs, SB subscription, SB queue, role assignments
+    d19 blobs left under my prefix: 0 (want 0)
+    SB subscriptions on d19-events: d19-only-extension d19-only-mcp-scanner d19-only-sensor-events  (want no at6r50-mine)
+./restore.sh: command substitution: line 47: syntax error near unexpected token `('
+./restore.sh: command substitution: line 47: `timeout 120 az servicebus queue list --namespace-name $NS -g $RG -o tsv --query \"[?contains(name,'at6r50')].name\" 2>/dev/null | grep -c .) (want 0)"'
+./restore.sh: command substitution: line 48: syntax error near unexpected token `('
+./restore.sh: command substitution: line 48: `timeout 180 az role assignment list --assignee 738c6745-c052-44d0-b269-e7658103466b --all -o tsv --query \"[?contains(scope,'at6r50-eai')].roleDefinitionName\" 2>/dev/null | grep -c .) (want 0)"'
+--- 6. shared/parity state untouched (negative assertions)
+    prdct11935_ta assets=438  prdct11935_tb assets=427
+    temporal-general-worker    1     1
+    temporal-scanner-worker    1     1
+    eai-azure                  1     1
+    endpoint-asset-ingestion   1     1
+--- 7. admin port-forward
+    port-forward processes left: 0
+0
+--- 8. front door still healthy
+    no-key guard: 401 (want 401)
+    shared key : 200 (want 200)
+### RESTORE DONE 2026-08-24T01:39:03Z
+--- 5b. Azure verification (re-run after fixing the quoting bug in restore.sh lines 47-48)
+    SB queues matching at6r50: 0
+      (want 0)
+    role assignments left on the at6r50-eai scope: 0
+      (want 0)
+    d19 probe blob removed: 0
+      (want 0)
+    SB subscriptions on d19-events now: d19-only-extension d19-only-mcp-scanner d19-only-sensor-events 
+
+DISCLOSED, NOT UNDONE:
+  * Scratch tenants `prdct11935_ta26` / `prdct11935_tb26` (round-26 verifier leftovers, 313 / 311
+    stale assets) were truncated and now hold this leg's data. Their prior contents are not
+    recoverable; they belong to a verify round 24 rounds old and no live leg reads them. The plan's
+    own parity tenants prdct11935_ta / prdct11935_tb were NEVER written or truncated by this leg
+    (asserted above and in the isolation section).
+  * The service principal's `Storage Blob Data Contributor` on storage account `d19prdct11935st`
+    was re-asserted (idempotent — the SP already held a role on that account). Left in place.
+  * Two verification lines in restore.sh (the SB-queue and role-assignment greps) had a shell
+    quoting bug and did not execute inside the script; they were re-run directly and are the
+    "5b." block above. The delete commands themselves ran inside the script.
+NOT CHANGED AT ANY POINT:
+  * No file in ~/onyx or any sibling repo was edited. `git status` clean on
+    2b60fdc4df25188104e737e6311087681355eff8.
+  * Gen-1 (temporal-general-worker / temporal-scanner-worker) never paused: 1/1 throughout.
+  * The shared writers endpoint-asset-ingestion and eai-azure were never scaled, restarted or
+    re-imaged; the at7 window on the shared lane ran undisturbed.
