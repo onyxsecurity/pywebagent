@@ -1,0 +1,169 @@
+{
+  "FILE LAST WRITTEN": "FILE LAST WRITTEN 2026-08-24T03:41:52Z",
+  "stamp": "2026-08-24T00:43:52.099Z",
+  "window": "r50at7002800",
+  "head": "2b60fdc4df25188104e737e6311087681355eff8",
+  "base": "http://ui.onyxd.svc.cluster.local:8080/",
+  "steps": [
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "route": "/ai-assets/desktop-agents/10729",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/desktop-agents/10729?tab=overview",
+      "rows": 0
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "route": "/ai-assets/mcp/442199",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets/mcp/442199?tab=overview",
+      "rows": 0
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "route": "/ai-assets",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-assets",
+      "rows": 10
+    },
+    {
+      "route": "/ai-activity",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-activity",
+      "rows": 18
+    },
+    {
+      "route": "/ai-activity?activitySessionId=7555",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/ai-activity?activitySessionId=7555",
+      "rows": 18
+    }
+  ],
+  "assertions": [
+    {
+      "where": "desktop-agent row on /ai-assets (searched)",
+      "needle": "OpenClaw",
+      "locator": "page.getByText(\"OpenClaw\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 2,
+      "asserted_text": "OC OpenClaw Endpoint AI Agent 1 Instance 5.5 Agent L4: Autonomous Execute Command +7 0 Aug 19, 2026 Aug 23, 2026"
+    },
+    {
+      "where": "desktop-agent detail /ai-assets/desktop-agents/10729",
+      "needle": "OpenClaw",
+      "locator": "page.getByText(\"OpenClaw\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 4,
+      "asserted_text": "OpenClaw"
+    },
+    {
+      "where": "MCP server row on /ai-assets (searched)",
+      "needle": "Onyx Lab R50 MCP",
+      "locator": "page.getByText(\"Onyx Lab R50 MCP\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 25000ms exceeded."
+    },
+    {
+      "where": "MCP detail header",
+      "needle": "Onyx Lab R50 MCP",
+      "locator": "page.getByText(\"Onyx Lab R50 MCP\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 3,
+      "asserted_text": "Onyx Lab R50 MCP"
+    },
+    {
+      "where": "MCP detail tools list",
+      "needle": "r50__echo",
+      "locator": "page.getByText(\"r50__echo\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1,
+      "asserted_text": "Tools 5 r50__echo Tool Action: lab tool echo Inputs None Permissions Unknown r50__hostname Tool Action: lab tool hostname Inputs None Permissions Unknown r50__search Tool Action: lab tool search Inputs None Permissions Unknown r50__time Tool Action: lab tool time Inputs None Permissions Unknown r50__verify Tool Action: lab tool verify Inputs None Permissions Unknown"
+    },
+    {
+      "where": "MCP detail tools list",
+      "needle": "r50__hostname",
+      "locator": "page.getByText(\"r50__hostname\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1,
+      "asserted_text": "Tools 5 r50__echo Tool Action: lab tool echo Inputs None Permissions Unknown r50__hostname Tool Action: lab tool hostname Inputs None Permissions Unknown r50__search Tool Action: lab tool search Inputs None Permissions Unknown r50__time Tool Action: lab tool time Inputs None Permissions Unknown r50__verify Tool Action: lab tool verify Inputs None Permissions Unknown"
+    },
+    {
+      "where": "MCP detail tools list",
+      "needle": "r50__search",
+      "locator": "page.getByText(\"r50__search\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1,
+      "asserted_text": "Tools 5 r50__echo Tool Action: lab tool echo Inputs None Permissions Unknown r50__hostname Tool Action: lab tool hostname Inputs None Permissions Unknown r50__search Tool Action: lab tool search Inputs None Permissions Unknown r50__time Tool Action: lab tool time Inputs None Permissions Unknown r50__verify Tool Action: lab tool verify Inputs None Permissions Unknown"
+    },
+    {
+      "where": "MCP detail tools list",
+      "needle": "r50__time",
+      "locator": "page.getByText(\"r50__time\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1,
+      "asserted_text": "Tools 5 r50__echo Tool Action: lab tool echo Inputs None Permissions Unknown r50__hostname Tool Action: lab tool hostname Inputs None Permissions Unknown r50__search Tool Action: lab tool search Inputs None Permissions Unknown r50__time Tool Action: lab tool time Inputs None Permissions Unknown r50__verify Tool Action: lab tool verify Inputs None Permissions Unknown"
+    },
+    {
+      "where": "MCP detail tools list",
+      "needle": "r50__verify",
+      "locator": "page.getByText(\"r50__verify\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1,
+      "asserted_text": "Tools 5 r50__echo Tool Action: lab tool echo Inputs None Permissions Unknown r50__hostname Tool Action: lab tool hostname Inputs None Permissions Unknown r50__search Tool Action: lab tool search Inputs None Permissions Unknown r50__time Tool Action: lab tool time Inputs None Permissions Unknown r50__verify Tool Action: lab tool verify Inputs None Permissions Unknown"
+    },
+    {
+      "where": "skill row on /ai-assets (searched)",
+      "needle": "r50at7002800-skill",
+      "locator": "page.getByText(\"r50at7002800-skill\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 25000ms exceeded."
+    },
+    {
+      "where": "subagent row on /ai-assets (searched)",
+      "needle": "r50at7002800-sub",
+      "locator": "page.getByText(\"r50at7002800-sub\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 25000ms exceeded."
+    },
+    {
+      "where": "/ai-activity per-session detail panel — session id",
+      "needle": "#7555",
+      "locator": "page.getByText(\"#7555\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1,
+      "asserted_text": "Conversation Details View conversation history and messages Unknown user & Hermes Agent (coder) Aug 24, 2026, 12:30 AM #7555 Conversation HA Hermes Agent (coder) Aug 24, 2026, 12:29 AM Response [REDACTED] UU Unknown user Aug 24, 2026, 12:29 AM Prompt Reply with exactly this token and nothing else: [REDACTED] Asset Details HA Hermes Agent (coder) Endpoint AI Agent Close"
+    },
+    {
+      "where": "/ai-activity per-session detail panel — the session's real conversation content (nonce token)",
+      "needle": "cd8e20c0",
+      "locator": "page.getByText(\"cd8e20c0\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": false,
+      "matches": 0,
+      "error": "TimeoutError: locator.waitFor: Timeout 25000ms exceeded."
+    }
+  ],
+  "login": {
+    "ok": true,
+    "url_after_login": "http://ui.onyxd.svc.cluster.local:8080/overview",
+    "identity": "coder-agent@onyx.security"
+  },
+  "verdict": "SOME-ASSERTIONS-FAILED"
+}
