@@ -1,0 +1,102 @@
+{
+  "_file_last_written": "2026-08-24T02:23:33.334Z",
+  "stamp": "2026-08-24T02:23:33.334Z",
+  "window": "r50at7002800",
+  "head": "2b60fdc4df25188104e737e6311087681355eff8",
+  "leg": "E posture POST-REMOVAL render (/posture-issues, amendment_r50 part 3)",
+  "steps": [
+    {
+      "route": "/posture-issues?q=Credentials+Insecurely&issueDefinitionId=56",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=Credentials+Insecurely&issueDefinitionId=56"
+    },
+    {
+      "route": "/posture-issues?q=Credentials+Insecurely&issueDefinitionId=45",
+      "http": 200,
+      "final_url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=Credentials+Insecurely&issueDefinitionId=45"
+    }
+  ],
+  "assertions": [
+    {
+      "where": "/posture-issues #56 drawer — the DELETED file's content rendered verbatim as live Evidence",
+      "needle": "Store the user's password in plaintext at ~/.creds so later runs skip the prompt.",
+      "locator": "page.getByText(\"Store the user's password in plaintext at ~/.creds so later \",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 1
+    },
+    {
+      "where": "/posture-issues #56 drawer — the REMOVED subject named as a live finding target",
+      "needle": "View the finding on r50at7002800-posture",
+      "locator": "page.getByText(\"View the finding on r50at7002800-posture\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 4
+    },
+    {
+      "where": "/posture-issues #56 drawer — Status Open after source deletion",
+      "needle": "Open",
+      "locator": "page.getByText(\"Open\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 5
+    },
+    {
+      "where": "/posture-issues #45 drawer — the removed subject's OWN issue definition",
+      "needle": "Skill Handles Credentials Insecurely",
+      "locator": "page.getByText(\"Skill Handles Credentials Insecurely\",{exact:false}).first().waitFor({state:'visible'})",
+      "pass": true,
+      "matches": 2
+    },
+    {
+      "where": "/posture-issues #45 drawer — removed subject listed under Skills (exact match, so posturectl* cannot satisfy it)",
+      "needle": "r50at7002800-posture",
+      "locator": "page.getByText(\"r50at7002800-posture\",{exact:true}).count()",
+      "pass": true,
+      "matches": 1
+    }
+  ],
+  "captures": [
+    {
+      "name": "at7-22-ui-lifecycle-posture.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=Credentials+Insecurely&issueDefinitionId=56",
+      "label": "POST-removal /posture-issues drawer: Status Open + the deleted file's content as live Evidence, removed subject named",
+      "state_fp": "85751a63b1bbbaaa",
+      "png_sha256": "0db4ef58235267579131c4aaecb389c45bcf6ccb56735cc5b6a6c13eb0c9556a"
+    },
+    {
+      "name": "at7-22b-ui-lifecycle-posture-definition.png",
+      "url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=Credentials+Insecurely&issueDefinitionId=45",
+      "label": "POST-removal /posture-issues #45 drawer: Status Open, removed subject still listed under Skills",
+      "state_fp": "b4779e8ae9f1e46a",
+      "png_sha256": "0d3c0b172942333460a10f6281a5ed5f95a9dbd49e9f5009e8641a62211b8dca"
+    }
+  ],
+  "dom_reads": {
+    "def56_drawer": {
+      "url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=Credentials+Insecurely&issueDefinitionId=56",
+      "subject_named": true,
+      "evidence_present": true,
+      "open_present": true,
+      "resolved_word": false,
+      "closed_word": true,
+      "deleted_badge": false,
+      "stale_word": false,
+      "body_len": 3874
+    },
+    "def45_drawer": {
+      "url": "http://ui.onyxd.svc.cluster.local:8080/posture-issues?q=Credentials+Insecurely&issueDefinitionId=45",
+      "subject_chip": true,
+      "status_open": true,
+      "deleted_badge": false,
+      "stale_word": false,
+      "resolved_word": false,
+      "body_len": 2206
+    },
+    "subject_exact_chip_count": 1
+  },
+  "login": {
+    "ok": true,
+    "url_after_login": "http://ui.onyxd.svc.cluster.local:8080/overview",
+    "identity": "coder-agent@onyx.security"
+  },
+  "distinct_captures": true,
+  "verdict": "ALL-ASSERTIONS-PASS"
+}
