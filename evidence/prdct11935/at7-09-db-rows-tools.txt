@@ -1,25 +1,25 @@
-# PRDCT-11935 at7-09 — DB rows, classes MCP TOOLS and POSTURE
-# FILE LAST WRITTEN 2026-08-21T23:10:00Z
-#
-# ROUND-33 CITE REFRESH (S10, line-number-only). `mcp_writer.py:1181` -> `mcp_writer.py:1209` — `upsert_mcp_tools`; :1181 at HEAD is `destination_asset_id=asset.asset_id`. Mirrored from the plan's
-# CORRECTION LOG under the orchestrator-authorized joint S1-S12 refresh (plan re-frozen at
-# sha256 7f26074e90cf643d...); the corrected line was re-read with sed at HEAD before this edit.
-# Nothing else in this file changed. Full mirror record: evidence/at10-07-stale-cite-refresh.txt.
-# onyx branch a2486bb33f (full a2486bb33f835af24f5850e4f4c5eb2e8b02afb9) · image localhost:5001/onyx/endpoint-asset-ingestion:prdct11935-r26 · pod eai-azure-66d8f8595d-krjhd
-# captured 2026-08-21T15:33:43Z · tenant onyx_security
-=========================== MCP TOOLS ===========================
-     id  |        server        |     tool     |      type       | is_active 
-    -----+----------------------+--------------+-----------------+-----------
-      98 | Onyx Lab MCP         | lab_echo     | ToolTypeMCPTool | t
-      99 | Onyx Lab MCP         | lab_hostname | ToolTypeMCPTool | t
-     100 | Onyx Lab MCP         | lab_search   | ToolTypeMCPTool | t
-     101 | Onyx Lab MCP         | lab_time     | ToolTypeMCPTool | t
-     102 | Onyx Lab MCP         | lab_verify   | ToolTypeMCPTool | t
-     103 | Onyx Lab Sibling MCP | sib_check    | ToolTypeMCPTool | t
-     104 | Onyx Lab Sibling MCP | sib_echo     | ToolTypeMCPTool | t
-     105 | Onyx Lab Sibling MCP | sib_time     | ToolTypeMCPTool | t
-    (8 rows)
-## FIDELITY: all eight tools above are ones the machines' own bundle manifests declare, written by
-## upsert_mcp_tools  (mcp_writer.py:1209) with type=ToolTypeMCPTool onto the two bundle assets created in
-## this window (131106 subject, 131552 sibling).
+# PRDCT-11935 at7-09-db-rows-tools.txt — the MCP-tools class rows on this window's subject + sibling servers
+# FILE LAST WRITTEN 2026-08-24T01:10:27Z
+# onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T01:10:27Z
 
+SET
+ id  | asset_id |     server_name      |   tool_name   |  external_id  |      type       | external_description | is_active |          created_at           |          updated_at           
+-----+----------+----------------------+---------------+---------------+-----------------+----------------------+-----------+-------------------------------+-------------------------------
+ 159 |   442199 | Onyx Lab R50 MCP     | r50__echo     | r50__echo     | ToolTypeMCPTool | lab tool echo        | t         | 2026-08-24 00:30:00.348225+00 | 2026-08-24 00:30:00.348225+00
+ 160 |   442199 | Onyx Lab R50 MCP     | r50__hostname | r50__hostname | ToolTypeMCPTool | lab tool hostname    | t         | 2026-08-24 00:30:00.348225+00 | 2026-08-24 00:30:00.348225+00
+ 161 |   442199 | Onyx Lab R50 MCP     | r50__search   | r50__search   | ToolTypeMCPTool | lab tool search      | t         | 2026-08-24 00:30:00.348225+00 | 2026-08-24 00:30:00.348225+00
+ 162 |   442199 | Onyx Lab R50 MCP     | r50__time     | r50__time     | ToolTypeMCPTool | lab tool time        | t         | 2026-08-24 00:30:00.348225+00 | 2026-08-24 00:30:00.348225+00
+ 163 |   442199 | Onyx Lab R50 MCP     | r50__verify   | r50__verify   | ToolTypeMCPTool | lab tool verify      | t         | 2026-08-24 00:30:00.348225+00 | 2026-08-24 00:30:00.348225+00
+ 164 |   442200 | Onyx Sibling R50 MCP | r50sib__ping  | r50sib__ping  | ToolTypeMCPTool | lab tool ping        | t         | 2026-08-24 00:30:00.463886+00 | 2026-08-24 00:30:00.463886+00
+ 165 |   442200 | Onyx Sibling R50 MCP | r50sib__stat  | r50sib__stat  | ToolTypeMCPTool | lab tool stat        | t         | 2026-08-24 00:30:00.463886+00 | 2026-08-24 00:30:00.463886+00
+(7 rows)
+
+
+NOTE ON THE LINK SHAPE (measured, not assumed): onyx_security.mcp_server_tools is EMPTY for the
+whole tenant (select count(*) = 0). On head the server->tool relation is carried by tools.asset_id
+pointing at the MCP server's asset row, and that is what the /ai-assets/mcp/$appId tools list renders.
+
+FIDELITY: the five subject tool names are verbatim the tools[] array of the manifest.json that the
+Anthropic packer put inside onyx-lab-r50at7002800-1.0.0.mcpb this window:
+  r50__echo, r50__hostname, r50__search, r50__time, r50__verify   (tools.id 159-163)
+  sibling control onyx-sib-r50at7002800: r50sib__ping, r50sib__stat        (tools.id 164-165)
