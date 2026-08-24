@@ -1,5 +1,6 @@
 # PRDCT-11935 at7-51-posture-reaffirm-headcode.txt — amendment_r50 AMENDED PART 2 on the head under verify: STILL-OPEN / RE-EVALUATED / DIFF-GUARDED-FROZEN, four-leg COVERAGE, identity-pinned worker, bracketed no-op counter
-# FILE LAST WRITTEN 2026-08-24T02:39:29Z
+# FILE LAST WRITTEN 2026-08-24T03:50:07Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8 · image localhost:5001/onyx/endpoint-asset-ingestion:r46b-head (endpoint-asset-ingestion, azure-mode writer, read live) + localhost:5001/onyx/temporal-python-worker:r50-head (posture/issue-detection worker, read live) · captured 2026-08-24T02:26:52Z
 
 window r50at7002800 · tenant onyx_security (uuid 61750f27-8fbd-42a4-80cf-4191cfb2371a, public.tenants id 1)
@@ -367,8 +368,9 @@ c4 (ONCE PER WINDOW) — the SAME-AGENT SAME-DEFINITION IN-WINDOW *CREATED* CONT
     447772 / 448472 r50at7002800-posture  asset_posture_findings.classified_at 01:44:48.829425+00 (8 each, unchanged)
 
   WHY THIS IS THE PER-PAIR EVALUATED-NESS PROOF: the counted pass demonstrably expanded THIS agent's
-  AgentToSkill set and ran the skill matchers end-to-end (it CREATED 6748-6751 for four skill-* definitions
-  on the same owning agent). The subject rides the SAME JOIN with no per-skill filter
+  AgentToSkill set and ran the skill matchers end-to-end (it CREATED 6748-6751 — the (4 rows) block
+  printed above, one row per skill-* definition — on the same owning agent). The subject rides the
+  SAME JOIN with no per-skill filter
   (common/repository/skill.py:229-256, is_deleted==False connections — its edge is live above), so a pass
   that evaluated (same definitions x control) evaluated the subject too. On later counted scans (B, C) the
   control legitimately reads unchanged — its rows are byte-identical to their 02:07:23.854862+00 create.
@@ -482,9 +484,9 @@ issue_records_written_total{lane="legacy-detection",outcome="unchanged",tenant_s
                                                           subject row.
     outcome="reopened"         1 ->       2   (+1)       likewise not a subject row.
     issue_evidence_refreshes_total, onyx_security:
-      agent-using-skill-with-dangerous-capability          16 -> 27
-      agent-using-skill-with-hardcoded-secrets             16 -> 27
-      agent-using-skill-with-insecure-credential-handling  25 -> 36
+      agent-using-skill-with-dangerous-capability          from 16 to 27
+      agent-using-skill-with-hardcoded-secrets             from 16 to 27
+      agent-using-skill-with-insecure-credential-handling  from 25 to 36
       -> the ONLY refresh series that moved are the asset-23 AGENT-PAIR definitions, whose evidence
          GENUINELY differed because the control skill posturectl2 joined the agent's skill set (the
          IS DISTINCT FROM path working as designed).
