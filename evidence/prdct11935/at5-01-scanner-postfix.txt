@@ -1,5 +1,6 @@
 # PRDCT-11935 at5 (POST-FIX) — scanner_event_consumer_service REFUSES ONYX__CLOUD=azure
-# FILE LAST WRITTEN 2026-08-24T00:51:33Z
+# FILE LAST WRITTEN 2026-08-24T03:48:34Z  ·  this stamp is the file's own last-write time; the capture times stated below belong to the
+#   measurements themselves, which is why the two can differ when a later round corrected a number.
 # onyx head 2b60fdc4df25188104e737e6311087681355eff8  (clean tree: `git status --porcelain` empty at build time)
 # image BUILT BY THIS CAPTURE  ->  tag pushed: localhost:5001/onyx/scanner-event-consumer:r50at5-head
 #   digest: sha256:943a1264fbc21c709de4ccc91c1248a5ff840ede04997fd0dce70cad8d79b85f
@@ -131,7 +132,7 @@ $ python sb.py peek-dlq 5 scanner-events-prdct11935
 ################################################################################
 ## 5. THE DELETION ITSELF — the Azure/Service-Bus branch is gone from this service on head
 ################################################################################
-$ git -C /home/coder/onyx diff --stat origin/main 2b60fdc4df25188104e737e6311087681355eff8 -- backend_python/src/scanner_event_consumer_service
+$ cd /home/coder/onyx && git diff --stat origin/main 2b60fdc4df25188104e737e6311087681355eff8 -- backend_python/src/scanner_event_consumer_service
  .../src/scanner_event_consumer_service/config.py   | 49 +++++++++----------
  .../src/scanner_event_consumer_service/service.py  | 57 +++++-----------------
  2 files changed, 36 insertions(+), 70 deletions(-)
