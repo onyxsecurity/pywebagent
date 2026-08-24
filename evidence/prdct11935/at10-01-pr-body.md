@@ -1,9 +1,9 @@
 RE-FETCHED LIVE AT AUDIT TIME — this file is the PR body as the API returns it, not a local draft.
   command:   curl -H 'Authorization: Bearer $GH_TOKEN' https://api.github.com/repos/onyxsecurity/onyx/pulls/12329 | jq -r .body
-  fetched:   2026-08-24T03:51:57Z
+  fetched:   2026-08-24T03:53:32Z
   pr:        https://github.com/onyxsecurity/onyx/pull/12329
   onyx head: 2b60fdc4df25188104e737e6311087681355eff8
-  bytes:     242522
+  bytes:     242520
   identity:  everything below the marker line is byte-identical to what that command returned.
   round 49:  the deploy-safety round. research adjudicated verify-r39 GAP 1 and re-froze the plan
              (sha 863dbd105e74...). This body now states the MEASURED production LaunchDarkly posture
@@ -514,7 +514,7 @@ asserting is fine.
 | 15 | cloud/transport mismatch refusal (`transport_guard.py:22-84`, `config.py:189-225`) | any combination booted → `TransportCloudMismatchError` | **GLOBAL — every boot, AWS included** | A new way for a deploy to stop. **Second, uninventoried refusal:** `service.py:129-133` → `storage_factory.py:67-68` raises if `cloud=azure` lacks `blob.account_url`. |
 | 10b ✅ **CORRECTED** | `reject_cleartext_endpoint` | ~~"GLOBAL, AWS cells too"~~ — **wrong.** It **pre-exists on `main`** (`c32bad53cc`; `git diff <merge-base> HEAD -- common_core/config.py` is **empty**) | **This service only** | Real change is `config.py:55`: `AssetIngestionS3Config(BaseCustomSettings)` → `(S3Config)`. Chart default `endpoint: ""` passes, so no cell is hit. |
 | 24 | `_sys_*` receive-count/sent-timestamp (`asb.py:48-67`, applied `:192`) | absent → always present | **Azure, ALL ASB consumers — incl. one this PR never touches** | `alert_processor_service/.../message_handler.py:105`/`:110` gate `queue_wait` on these; redeliveries now excluded. **Its comment at `:67-68` is now factually wrong.** `sensor_service` receives but never reads them. |
-| 49 ✅ **CORRECTED** | `max_delivery_count` (`service_bus.tf:292`) | n/a → **`5`** | The new queue | The row used to say it *deviates from every sibling, which use 3* — **stale.** `posture_issue_verdicts` (`:100`) also uses **5**, same rationale at `:88`. 1 of 2, not a lone deviant. **No ticket authorisation.** |
+| 49 ✅ **CORRECTED** | `max_delivery_count` (`service_bus.tf:292`) | n/a → **5** | The new queue | The row used to say it *deviates from every sibling, which use 3* — **stale.** `posture_issue_verdicts` (`:100`) also uses **5**, same rationale at `:88`. 1 of 2, not a lone deviant. **No ticket authorisation.** |
 | **NEW** | Event Grid has **no dead-letter destination** (`blob_events_to_servicebus/main.tf:35-79`) | `retry_policy` + `storage_blob_dead_letter_destination` **unset** | Every BlobCreated event | **Measured on the pinned provider (azurerm 4.81.0, real apply + `az … show`):** 30 attempts, 1440-min TTL, `deadLetterDestination: null` → Event Grid **silently drops** the event. `$DeadLetterQueue` covers only what *reached* the queue. |
 | **NEW** | plan-time precondition (`service_bus.tf:312-320`) | none → queue **refused at plan** without an Event Grid producer | Any caller of `cell-azure-instance` | Added in review, after the first inventory. Turns pre-existing `customer_event_grid_topic_principal_id` (default `""`) into a gate on whether the queue builds. |
 | 46 + 47 | `parse_event_time` log text (`event_time.py:29`); `azure-storage-blob` (`pyproject.toml:140`) | 2 messages → 1; transitive → **direct** `>=12.27.1` | **GLOBAL — neither is Azure-gated** | Log alerts on the old strings stop matching (`service.py:158-172` reworded too). Image contents change for **every** `backend_python` service. **No authorisation.** |
